@@ -1,0 +1,13 @@
+[flake8]
+exclude =
+ignore =
+    # False positives on imports used only in generic type annotations
+    F401
+    # In conflict with modern PEP8, see https://gitlab.com/pycqa/flake8/issues/139
+    W503
+    # Raises false positives on @overload
+    F811
+    # In conflict with PEP8, space is allowed before colon in slicing
+    E203
+    # Don't warn about line length
+    E501

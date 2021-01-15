@@ -1,0 +1,16 @@
+This	O
+is	O
+a	O
+sentence	O
+.	O
+
+University	B-ORG
+of	I-ORG
+Pennsylvania	E-ORG
+is	O
+in	O
+West	B-LOC
+Philadelphia	E-LOC
+,	O
+Pennsylvania	S-LOC
+.	O

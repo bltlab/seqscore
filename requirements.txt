@@ -1,0 +1,14 @@
+attrs>=19.2.0
+click
+tabulate
+
+# For testing
+pytest
+pytest-cov
+seqeval==1.2.2
+
+# For development
+black==20.8b1
+mypy==0.800
+isort==5.7.0
+flake8==3.8.4
