@@ -19,6 +19,7 @@ def setup_package() -> None:
         # 3.8 and up, but not Python 4
         python_requires="~=3.8",
         license="MIT",
+        description="SeqScore: Scoring for named entity recognition and other sequence labeling tasks",
         long_description=long_description,
         install_requires=[
             "attrs>=19.2.0",
