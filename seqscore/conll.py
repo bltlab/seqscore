@@ -30,10 +30,7 @@ SUPPORTED_DISPLAY_FORMATS = (DISPLAY_PRETTY, DISPLAY_CONLL, DISPLAY_DELIM)
 @attrs(frozen=True)
 class _CoNLLToken:
     text: str = attrib()
-    pos_tag: Optional[str] = attrib()
-    lemmas: Optional[Tuple[str, ...]] = attrib()
-    chunk_tag: Optional[str] = attrib()
-    ne_tag: str = attrib()
+    label: str = attrib()
     is_docstart: bool = attrib()
     line_num: int = attrib()
 
@@ -42,21 +39,9 @@ class _CoNLLToken:
     def from_line(cls, line: str, line_num: int) -> "_CoNLLToken":
         splits = line.split()
         text = splits[0]
-        ne_tag = splits[-1]
-
-        if len(splits) == 5:
-            # Assume has lemmas like 2002 German data
-            lemmas = tuple(splits[1].split("|"))
-            pos_tag = splits[2]
-            chunk_tag = splits[3]
-        else:
-            lemmas = None
-            # Other tags will be POS if available, then chunk if available
-            pos_tag = splits[1] if len(splits) > 2 else None
-            chunk_tag = splits[2] if len(splits) > 3 else None
-
+        label = splits[-1]
         is_docstart = text == DOCSTART
-        return cls(text, pos_tag, lemmas, chunk_tag, ne_tag, is_docstart, line_num)
+        return cls(text, label, is_docstart, line_num)
 
 
 @attrs(frozen=True)
@@ -92,7 +77,7 @@ class CoNLLIngester:
 
             # Validate before decoding
             validation = validate_sentence(
-                tokens, labels, line_nums, self.encoding, repair
+                tokens, labels, line_nums, self.encoding, repair=repair
             )
             if not validation.is_valid():
                 if repair:
@@ -155,7 +140,7 @@ class CoNLLIngester:
 
             # Validate
             document_results.append(
-                validate_sentence(tokens, labels, line_nums, self.encoding, REPAIR_NONE)
+                validate_sentence(tokens, labels, line_nums, self.encoding)
             )
 
         if document_results:
@@ -168,7 +153,7 @@ class CoNLLIngester:
         source_sentence: Sequence[_CoNLLToken],
     ) -> Tuple[Tuple[str, ...], Tuple[str, ...], Tuple[int, ...]]:
         tokens = tuple(tok.text for tok in source_sentence)
-        labels = tuple(tok.ne_tag for tok in source_sentence)
+        labels = tuple(tok.label for tok in source_sentence)
         line_nums = tuple(tok.line_num for tok in source_sentence)
         return tokens, labels, line_nums
 
@@ -233,6 +218,8 @@ def ingest_conll_file(
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ) -> List[List[LabeledSentence]]:
+    if repair == REPAIR_NONE:
+        repair = None
     encoding = get_encoding(encoding_name)
     ingester = CoNLLIngester(
         encoding,
@@ -285,7 +272,7 @@ def validate_conll_file(
 def score_conll_files(
     pred_file: PathType,
     reference_file: PathType,
-    repair: str,
+    repair: Optional[str],
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,

@@ -12,7 +12,7 @@ def setup_package() -> None:
 
     setup(
         name="seqscore",
-        version="0.2.0",
+        version="0.2.1",
         packages=find_packages(include=("seqscore", "seqscore.*")),
         # Package type information
         package_data={"seqscore": ["py.typed"]},

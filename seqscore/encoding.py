@@ -497,7 +497,8 @@ def validate_sentence(
     labels: Sequence[str],
     line_nums: Sequence[int],
     encoding: Encoding,
-    repair: Optional[str],
+    *,
+    repair: Optional[str] = None,
 ) -> ValidationResult:
     if not (len(tokens) == len(labels) == len(line_nums)):
         raise ValueError("Tokens, labels, and line numbers must be the same length")

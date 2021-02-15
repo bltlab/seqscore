@@ -45,16 +45,18 @@ def _repair_option() -> Callable:
 
 @cli.command()
 @_input_file_arguments
-@click.option("--labels", type=click.Choice(VALIDATION_SUPPORTED_ENCODINGS))
+@click.option(
+    "--labels", required=True, type=click.Choice(VALIDATION_SUPPORTED_ENCODINGS)
+)
 def validate(
     file: str,
-    mention_encoding: str,
+    labels: str,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ):
     validate_conll_file(
         file,
-        mention_encoding,
+        labels,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
     )
@@ -64,21 +66,23 @@ def validate(
 @_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
-@click.option("--labels", type=click.Choice(DECODING_SUPPORTED_ENCODINGS))
+@click.option("--labels", required=True, type=click.Choice(DECODING_SUPPORTED_ENCODINGS))
 @click.option("--delim", default="\t")
 def dump(
     file: str,
     output_file: str,
-    mention_encoding: str,
+    labels: str,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
     delim: str,
+    repair: str,
 ):
     docs = ingest_conll_file(
         file,
-        mention_encoding,
+        labels,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
+        repair=repair,
     )
 
     counts: Counter[Tuple[str, Tuple[str, ...]]] = Counter()
