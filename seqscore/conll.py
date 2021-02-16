@@ -258,14 +258,14 @@ def validate_conll_file(
         if errors:
             print(
                 f"Encountered {len(errors)} errors in {n_tokens} tokens, {n_sentences} sentences, "
-                + f"and {n_docs} documents:"
+                + f"and {n_docs} documents in {input_path}"
             )
             print("\n".join(err.msg for err in errors))
             sys.exit(1)
         else:
             print(
                 f"No errors found in {n_tokens} tokens, {n_sentences} sentences, "
-                + f"and {n_docs} documents"
+                + f"and {n_docs} documents in {input_path}"
             )
 
 
@@ -364,6 +364,7 @@ def format_output_table(
         "F1",
         "Reference",
         "Predicted",
+        "Correct",
     ]
     rows = [
         [
@@ -373,6 +374,7 @@ def format_output_table(
             _pretty_format_num(class_scores.f1),
             class_scores.total_ref,
             class_scores.total_pos,
+            class_scores.true_pos,
         ]
     ]
 
@@ -386,6 +388,7 @@ def format_output_table(
                 _pretty_format_num(score.f1),
                 score.total_ref,
                 score.total_pos,
+                score.true_pos,
             ]
         )
 
