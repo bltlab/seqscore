@@ -1,4 +1,3 @@
-import sys
 from abc import abstractmethod
 from typing import (
     AbstractSet,
@@ -46,16 +45,10 @@ def _tuplify_strs(strs: Iterable[str]) -> Tuple[str, ...]:
     return tuple(strs)
 
 
-def _tuplify_sentence_mentions(
-    sent_ments: Iterable["SentenceMention"],
-) -> Tuple["SentenceMention", ...]:
-    return tuple(sent_ments)
-
-
-@attrs(frozen=True, slots=True)
-class Mention:
-    tokens: Tuple[str, ...] = attrib(converter=_tuplify_strs)
-    type: str = attrib()
+def _tuplify_mentions(
+    mentions: Iterable["Mention"],
+) -> Tuple["Mention", ...]:
+    return tuple(mentions)
 
 
 @attrs(frozen=True, slots=True)
@@ -65,26 +58,16 @@ class Span:
 
 
 @attrs(frozen=True, slots=True)
-class SentenceMention:
-    mention: Mention = attrib()
+class Mention:
     span: Span = attrib()
-
-
-@attrs(frozen=True, slots=True)
-class DocumentMention:
-    mention: Mention = attrib()
-    document: int = attrib(validator=_validator_nonnegative)
-    sentence: int = attrib(validator=_validator_nonnegative)
-    span: Span = attrib()
+    type: str = attrib()
 
 
 @attrs(frozen=True, slots=True)
 class LabeledSentence(Sequence[str]):
     tokens: Tuple[str, ...] = attrib(converter=_tuplify_strs)
     labels: Tuple[str, ...] = attrib(converter=_tuplify_strs)
-    mentions: Tuple[SentenceMention, ...] = attrib(
-        default=(), converter=_tuplify_sentence_mentions
-    )
+    mentions: Tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
 
     def __attrs_post_init__(self):
         if len(self.tokens) != len(self.labels):
@@ -104,11 +87,6 @@ class LabeledSentence(Sequence[str]):
             # Labels cannot be None or an empty string
             if not token:
                 raise ValueError(f"Invalid token: {repr(token)}")
-
-    @staticmethod
-    def from_tokens(labeled_tokens: Sequence[Tuple[str, str]]) -> "LabeledSentence":
-        tokens, labels = zip(*labeled_tokens)
-        return LabeledSentence(tokens, labels)
 
     @overload
     def __getitem__(self, index: int) -> str:
@@ -135,6 +113,12 @@ class LabeledSentence(Sequence[str]):
 
     def tokens_with_labels(self) -> Tuple[Tuple[str, str], ...]:
         return tuple(zip(self.tokens, self.labels))
+
+    def span_tokens(self, span: Span) -> Tuple[str, ...]:
+        return self.tokens[span.start : span.end]
+
+    def mention_tokens(self, mention: Mention) -> Tuple[str, ...]:
+        return self.span_tokens(mention.span)
 
 
 @attrs
@@ -211,12 +195,12 @@ class Encoding(Protocol):
 
     @abstractmethod
     def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[SentenceMention]
+        self, sentence: LabeledSentence, mentions: Sequence[Mention]
     ) -> Sequence[str]:
         raise NotImplementedError
 
     @abstractmethod
-    def decode_mentions(self, sentence: LabeledSentence) -> List[SentenceMention]:
+    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
         raise NotImplementedError
 
 
@@ -249,7 +233,7 @@ class MentionBuilder:
         self.start_idx = start_idx
         self.entity_type = entity_type
 
-    def end_mention(self, end_idx: int) -> SentenceMention:
+    def end_mention(self, end_idx: int) -> Mention:
         # Since end index is exclusive, cannot be zero
         assert end_idx > 0
 
@@ -259,10 +243,7 @@ class MentionBuilder:
         if self.entity_type is None:
             raise ValueError("No mention entity type")
 
-        mention = SentenceMention(
-            Mention(self.tokens[self.start_idx : end_idx], self.entity_type),
-            Span(self.start_idx, end_idx),
-        )
+        mention = Mention(Span(self.start_idx, end_idx), self.entity_type)
 
         self.start_idx = None
         self.entity_type = None
@@ -287,11 +268,11 @@ class IO(Encoding):
         )
 
     def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[SentenceMention]
+        self, sentence: LabeledSentence, mentions: Sequence[Mention]
     ) -> Sequence[str]:
         raise NotImplementedError
 
-    def decode_mentions(self, sentence: LabeledSentence) -> List[SentenceMention]:
+    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
         raise NotImplementedError
 
     def repair_labels(
@@ -315,12 +296,12 @@ class BIO(IO):
         )
 
     def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[SentenceMention]
+        self, sentence: LabeledSentence, mentions: Sequence[Mention]
     ) -> Sequence[str]:
         raise NotImplementedError
 
-    def decode_mentions(self, sentence: LabeledSentence) -> List[SentenceMention]:
-        mentions: List[SentenceMention] = []
+    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
+        mentions: List[Mention] = []
         builder = MentionBuilder(sentence.tokens)
 
         # We define this just to make it clear it will be defined regardless of the loop running,
@@ -440,11 +421,11 @@ class BIOES(BIO):
             )
         )
 
-    def decode_mentions(self, sentence: LabeledSentence) -> List[SentenceMention]:
+    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
         raise NotImplementedError
 
     def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[SentenceMention]
+        self, sentence: LabeledSentence, mentions: Sequence[Mention]
     ) -> Sequence[str]:
         raise NotImplementedError
 

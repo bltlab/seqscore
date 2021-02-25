@@ -3,7 +3,7 @@ from typing import DefaultDict, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
 
-from seqscore.encoding import LabeledSentence
+from seqscore.encoding import LabeledSentence, Mention
 
 
 def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore"]:
@@ -18,6 +18,13 @@ class ClassificationScore:
     type_scores: DefaultDict[str, "ClassificationScore"] = attrib(
         default=Factory(_defaultdict_classification_score), kw_only=True
     )
+
+    def update(self, score: "ClassificationScore") -> None:
+        self.true_pos += score.true_pos
+        self.false_pos += score.false_pos
+        self.false_neg += score.false_neg
+        for entity_type, entity_score in score.type_scores.items():
+            self.type_scores[entity_type].update(entity_score)
 
     @property
     def total_pos(self) -> int:
@@ -90,8 +97,8 @@ def compute_scores(
                     f"reference has {len(ref_sentence)}"
                 )
 
-            # Fail if tokens have been changed. Note that if this check is removed, the span
-            # scoring logic needs to be changed to ignore the tokens, which are part of a mention.
+            # Fail if tokens have been changed
+            # TODO: Consider removing this check or providing a flag to disable it
             if pred_sentence.tokens != ref_sentence.tokens:
                 raise ValueError(
                     "Tokens do not match between predictions and reference. "
@@ -99,31 +106,55 @@ def compute_scores(
                     f"Reference: {ref_sentence.tokens}"
                 )
 
-            # Compute label accuracy
-            for pred_label, ref_label in zip(pred_sentence.labels, ref_sentence.labels):
-                if pred_label == ref_label:
-                    accuracy.hits += 1
-                accuracy.total += 1
-
-            # Compute span accuracy
-            pred_mentions = set(pred_sentence.mentions)
-            ref_mentions = set(ref_sentence.mentions)
-
-            # Positives
-            for pred in pred_mentions:
-                if pred in ref_mentions:
-                    # True positive
-                    classification.true_pos += 1
-                    classification.type_scores[pred.mention.type].true_pos += 1
-                else:
-                    # False positive
-                    classification.false_pos += 1
-                    classification.type_scores[pred.mention.type].false_pos += 1
-
-            # Negatives
-            for pred in ref_mentions:
-                if pred not in pred_mentions:
-                    classification.false_neg += 1
-                    classification.type_scores[pred.mention.type].false_neg += 1
+            score_sentence_labels(pred_sentence.labels, ref_sentence.labels, accuracy)
+            score_sentence_mentions(
+                pred_sentence.mentions, ref_sentence.mentions, classification
+            )
 
     return classification, accuracy
+
+
+def score_sentence_labels(
+    pred_labels: Sequence[str],
+    ref_labels: Sequence[str],
+    score: AccuracyScore,
+) -> None:
+    if len(pred_labels) != len(ref_labels):
+        raise ValueError(
+            f"Prediction has {len(pred_labels)} labels, "
+            f"reference has {len(ref_labels)}"
+        )
+
+    # Compute label accuracy
+    for pred_label, ref_label in zip(pred_labels, ref_labels):
+        if pred_label == ref_label:
+            score.hits += 1
+        score.total += 1
+
+
+def score_sentence_mentions(
+    pred_mentions: Sequence[Mention],
+    ref_mentions: Sequence[Mention],
+    score: ClassificationScore,
+) -> None:
+    """Update a ClassificationScore for a sentence's mentions."""
+    # Compute span accuracy
+    pred_mentions_set = set(pred_mentions)
+    ref_mentions_set = set(ref_mentions)
+
+    # Positives
+    for pred in pred_mentions_set:
+        if pred in ref_mentions_set:
+            # True positive
+            score.true_pos += 1
+            score.type_scores[pred.type].true_pos += 1
+        else:
+            # False positive
+            score.false_pos += 1
+            score.type_scores[pred.type].false_pos += 1
+
+    # Negatives
+    for pred in ref_mentions_set:
+        if pred not in pred_mentions_set:
+            score.false_neg += 1
+            score.type_scores[pred.type].false_neg += 1

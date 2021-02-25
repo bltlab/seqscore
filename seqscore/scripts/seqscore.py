@@ -89,7 +89,7 @@ def dump(
     for doc in docs:
         for sentence in doc:
             for mention in sentence.mentions:
-                key = (mention.mention.type, mention.mention.tokens)
+                key = (mention.type, sentence.mention_tokens(mention))
                 counts[key] += 1
 
     with open(output_file, "w", encoding="utf8") as output:
