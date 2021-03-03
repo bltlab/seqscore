@@ -11,6 +11,7 @@ from seqscore.encoding import (
     Encoding,
     EncodingError,
     LabeledSentence,
+    SentenceProvenance,
     ValidationResult,
     get_encoding,
     validate_sentence,
@@ -100,7 +101,9 @@ class CoNLLIngester:
                         + "\n".join(err.msg for err in validation.errors)
                     )
 
-            orig_sentence = LabeledSentence(tokens, labels)
+            orig_sentence = LabeledSentence(
+                tokens, labels, provenance=SentenceProvenance(line_nums[0], source_name)
+            )
             try:
                 mentions = self.encoding.decode_mentions(orig_sentence)
             except EncodingError as e:
@@ -110,7 +113,10 @@ class CoNLLIngester:
                 ) from e
 
             final_sentence = LabeledSentence(
-                orig_sentence.tokens, orig_sentence.labels, mentions
+                orig_sentence.tokens,
+                orig_sentence.labels,
+                mentions,
+                provenance=orig_sentence.provenance,
             )
             document.append(final_sentence)
 

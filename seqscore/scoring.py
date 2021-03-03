@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict, Sequence, Tuple
+from typing import DefaultDict, Optional, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
 
@@ -8,6 +8,47 @@ from seqscore.encoding import LabeledSentence, Mention
 
 def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore"]:
     return defaultdict(ClassificationScore)
+
+
+class TokenCountError(ValueError):
+    def __init__(
+        self,
+        reference_token_count: int,
+        pred_token_count: int,
+        line_num: int,
+        source: Optional[str],
+    ):
+        self.reference_token_count: int = reference_token_count
+        self.other_token_count: int = pred_token_count
+        self.line_num: int = line_num
+        self.source: Optional[str] = source
+
+        # Insertable string if source is specified
+        src = f" of {source}" if source else ""
+        msg = "\n".join(
+            [
+                f"Token count mismatch at line {line_num}{src}",
+                f"Reference sentence contains {reference_token_count} tokens; "
+                + f"predicted sentence contains {pred_token_count}.",
+                "Correct the predictions to have the same number of tokens as the reference.",
+            ]
+        )
+        super().__init__(msg)
+
+    @classmethod
+    def from_predicted_sentence(
+        cls, reference_token_count: int, pred_sentence: LabeledSentence
+    ):
+        if pred_sentence.provenance is None:
+            raise ValueError(
+                f"Cannot create {cls.__name__} from sentence without provenance"
+            )
+        return cls(
+            reference_token_count,
+            len(pred_sentence),
+            pred_sentence.provenance.starting_line,
+            pred_sentence.provenance.source,
+        )
 
 
 @attrs
@@ -92,13 +133,13 @@ def compute_scores(
 
         for pred_sentence, ref_sentence in zip(pred_doc, ref_doc):
             if len(pred_sentence) != len(ref_sentence):
-                raise ValueError(
-                    f"Prediction has {len(pred_sentence)} tokens, "
-                    f"reference has {len(ref_sentence)}"
+                raise TokenCountError.from_predicted_sentence(
+                    len(ref_sentence), pred_sentence
                 )
 
             # Fail if tokens have been changed
             # TODO: Consider removing this check or providing a flag to disable it
+            # TODO: Change to a more verbose error that uses the provenance
             if pred_sentence.tokens != ref_sentence.tokens:
                 raise ValueError(
                     "Tokens do not match between predictions and reference. "

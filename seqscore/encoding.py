@@ -64,10 +64,19 @@ class Mention:
 
 
 @attrs(frozen=True, slots=True)
+class SentenceProvenance:
+    starting_line: int = attrib()
+    source: Optional[str] = attrib()
+
+
+@attrs(frozen=True, slots=True)
 class LabeledSentence(Sequence[str]):
     tokens: Tuple[str, ...] = attrib(converter=_tuplify_strs)
     labels: Tuple[str, ...] = attrib(converter=_tuplify_strs)
     mentions: Tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
+    provenance: Optional[SentenceProvenance] = attrib(
+        default=None, eq=False, kw_only=True
+    )
 
     def __attrs_post_init__(self):
         if len(self.tokens) != len(self.labels):
