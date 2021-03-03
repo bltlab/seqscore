@@ -82,10 +82,15 @@ class CoNLLIngester:
             if not validation.is_valid():
                 if repair:
                     msg = (
-                        f"Repaired sentence at line {line_nums[0]} of {source_name} "
-                        + f"using method {repair}:",
-                        f"Old: {labels}",
-                        f"New: {validation.repaired_labels}",
+                        [
+                            f"Validation errors in sentence at line {line_nums[0]} of {source_name}:"
+                        ]
+                        + [error.msg for error in validation.errors]
+                        + [
+                            f"Used method {repair} to repair:",
+                            f"Old: {labels}",
+                            f"New: {validation.repaired_labels}",
+                        ]
                     )
                     print("\n".join(msg), file=sys.stderr)
                     labels = validation.repaired_labels
