@@ -142,7 +142,7 @@ def compute_scores(
             # TODO: Change to a more verbose error that uses the provenance
             if pred_sentence.tokens != ref_sentence.tokens:
                 raise ValueError(
-                    "Tokens do not match between predictions and reference. "
+                    "Tokens do not match between predictions and reference.\n"
                     f"Prediction: {pred_sentence.tokens}\n"
                     f"Reference: {ref_sentence.tokens}"
                 )
