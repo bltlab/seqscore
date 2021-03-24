@@ -3,7 +3,7 @@ from typing import Callable, Counter, Tuple
 import click
 
 from seqscore.conll import (
-    SUPPORTED_DISPLAY_FORMATS,
+    SUPPORTED_SCORE_FORMATS,
     ingest_conll_file,
     score_conll_files,
     validate_conll_file,
@@ -103,7 +103,7 @@ def dump(
 @click.option("--ignore-comment-lines", is_flag=True)
 @click.option("--ignore-document-boundaries/--use-document-boundaries", default=True)
 @_repair_option()
-@click.option("--display", default="pretty", type=click.Choice(SUPPORTED_DISPLAY_FORMATS))
+@click.option("--score-format", default="pretty", type=click.Choice(SUPPORTED_SCORE_FORMATS))
 @click.option("--delim", default="\t")
 def score(
     file: str,

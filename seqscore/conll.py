@@ -22,10 +22,10 @@ from seqscore.util import PathType
 DOCSTART = "-DOCSTART-"
 
 
-DISPLAY_PRETTY = "pretty"
-DISPLAY_CONLL = "conlleval"
-DISPLAY_DELIM = "delim"
-SUPPORTED_DISPLAY_FORMATS = (DISPLAY_PRETTY, DISPLAY_CONLL, DISPLAY_DELIM)
+FORMAT_PRETTY = "pretty"
+FORMAT_CONLL = "conlleval"
+FORMAT_DELIM = "delim"
+SUPPORTED_SCORE_FORMATS = (FORMAT_PRETTY, FORMAT_CONLL, FORMAT_DELIM)
 
 
 @attrs(frozen=True)
@@ -313,11 +313,11 @@ def score_conll_files(
 
     class_scores, acc_scores = compute_scores(pred_docs, ref_docs)
 
-    if output_format == DISPLAY_CONLL:
+    if output_format == FORMAT_CONLL:
         summary = format_output_conlleval(class_scores, acc_scores)
-    elif output_format in (DISPLAY_PRETTY, DISPLAY_DELIM):
+    elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
         header, rows = format_output_table(class_scores)
-        if output_format == DISPLAY_PRETTY:
+        if output_format == FORMAT_PRETTY:
             summary = tabulate(rows, header, tablefmt="github", floatfmt="6.2f")
         else:
             # Since rows are a mix of types, we need to convert to string
