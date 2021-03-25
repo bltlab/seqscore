@@ -164,7 +164,7 @@ class Encoding(Protocol):
     valid_different_type_transitions: AbstractSet[Tuple[str, str]]
 
     def split_label(self, label: str) -> Tuple[str, Optional[str]]:
-        splits = label.split(self.label_delim)
+        splits = label.split(self.label_delim, maxsplit=1)
         if len(splits) == 1:
             return (label, None)
         elif len(splits) == 2:
