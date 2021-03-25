@@ -42,7 +42,7 @@ def _input_file_arguments(func: Callable) -> Callable:
 
 def _repair_option() -> Callable:
     return click.option(
-        "--repair", default="conlleval", type=click.Choice(SUPPORTED_REPAIRS)
+        "--repair-method", default="conlleval", type=click.Choice(SUPPORTED_REPAIRS)
     )
 
 
