@@ -292,6 +292,42 @@ class IO(Encoding):
         raise NotImplementedError
 
 
+class IOB(IO):
+    def __init__(self):
+        super().__init__()
+        self.begin = "B"
+
+        self.valid_same_type_transitions = frozenset(
+            (("B", "B"), ("B", "I"), ("I", "I"), ("I", "B"), ("O", "O"))
+        )
+        self.valid_different_type_transitions = frozenset(
+            (
+                # You might think I->B is allowed for different types, but it isn't.
+                # Correctly-encoded IOB only uses B for I-X to B-X (same-type) transitions.
+                ("B", "I"),
+                ("B", "O"),
+                ("I", "I"),
+                ("I", "O"),
+                ("O", "I"),
+            )
+        )
+
+    def encode_mentions(
+        self, sentence: LabeledSentence, mentions: Sequence[Mention]
+    ) -> Sequence[str]:
+        raise NotImplementedError
+
+    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
+        raise NotImplementedError
+
+    def repair_labels(
+        self,
+        labels: Sequence[str],
+        method: str,
+    ) -> Sequence[str]:
+        raise NotImplementedError
+
+
 class BIO(IO):
     def __init__(self):
         super().__init__()
@@ -443,6 +479,7 @@ class BIOES(BIO):
 _ENCODING_NAMES: Dict[str, Encoding] = {
     "BIO": BIO(),
     "IO": IO(),
+    "IOB": IOB(),
     "BIOES": BIOES(),
 }
 VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(sorted(_ENCODING_NAMES))
