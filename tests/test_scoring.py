@@ -1,9 +1,10 @@
 import pytest
 
-from seqscore.encoding import Mention, Span
+from seqscore.encoding import EncodingError, Mention, Span
 from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,
+    score_label_sequences,
     score_sentence_labels,
     score_sentence_mentions,
 )
@@ -87,6 +88,51 @@ def test_score_sentence_mentions_incorrect1() -> None:
     # Note that we have already checked the precision and recall values
     assert score.f1 == pytest.approx(
         2 * (score.precision * score.recall) / (score.precision + score.recall)
+    )
+
+
+def test_score_label_sequences_correct() -> None:
+    ref_labels = [["O", "B-ORG", "I-ORG", "O"], ["B-PER", "I-PER"]]
+    pred_labels = ref_labels[:]
+    classification, accuracy = score_label_sequences(
+        pred_labels, ref_labels, "BIO", repair=None
+    )
+
+    assert accuracy.total == 6
+    assert accuracy.hits == 6
+    assert accuracy.accuracy == 1.0
+
+    assert classification.true_pos == 2
+    assert classification.false_pos == 0
+    assert classification.false_neg == 0
+    assert classification.type_scores["ORG"] == ClassificationScore(true_pos=1)
+    assert classification.type_scores["PER"] == ClassificationScore(true_pos=1)
+
+
+def test_score_label_sequences_invalid_norepair() -> None:
+    ref_labels = [["O", "B-ORG", "I-ORG", "O"], ["B-PER", "I-PER"]]
+    pred_labels = [["O", "B-ORG", "I-ORG", "O"], ["I-PER", "I-PER"]]
+    with pytest.raises(EncodingError):
+        score_label_sequences(pred_labels, ref_labels, "BIO", repair=None)
+
+
+def test_score_label_sequences_invalid_repair() -> None:
+    ref_labels = [["O", "B-ORG", "I-ORG", "O"], ["B-PER", "I-PER"]]
+    pred_labels = [["O", "I-ORG", "I-ORG", "O"], ["O", "I-PER"]]
+    classification, accuracy = score_label_sequences(
+        pred_labels, ref_labels, "BIO", repair="conlleval"
+    )
+
+    assert accuracy.total == 6
+    assert accuracy.hits == 4
+    assert accuracy.accuracy == 4 / 6
+
+    assert classification.true_pos == 1
+    assert classification.false_pos == 1
+    assert classification.false_neg == 1
+    assert classification.type_scores["ORG"] == ClassificationScore(true_pos=1)
+    assert classification.type_scores["PER"] == ClassificationScore(
+        false_pos=1, false_neg=1
     )
 
 

@@ -10,6 +10,7 @@ from seqscore.conll import (
 )
 from seqscore.encoding import (
     DECODING_SUPPORTED_ENCODINGS,
+    REPAIR_NONE,
     SUPPORTED_REPAIRS,
     VALIDATION_SUPPORTED_ENCODINGS,
 )
@@ -81,6 +82,9 @@ def dump(
     delim: str,
     repair: str,
 ):
+    if repair == REPAIR_NONE:
+        repair = None
+
     docs = ingest_conll_file(
         file,
         labels,
@@ -122,6 +126,9 @@ def score(
     delim: str,
     repair: str,
 ):
+    if repair == REPAIR_NONE:
+        repair = None
+
     score_conll_files(
         file,
         reference,

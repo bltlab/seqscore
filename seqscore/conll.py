@@ -7,7 +7,6 @@ from attr import attrib, attrs
 from tabulate import tabulate
 
 from seqscore.encoding import (
-    REPAIR_NONE,
     Encoding,
     EncodingError,
     LabeledSentence,
@@ -122,12 +121,7 @@ class CoNLLIngester:
                     + " ".join(labels),
                 ) from e
 
-            final_sentence = LabeledSentence(
-                orig_sentence.tokens,
-                orig_sentence.labels,
-                mentions,
-                provenance=orig_sentence.provenance,
-            )
+            final_sentence = orig_sentence.with_mentions(mentions)
             document.append(final_sentence)
 
         # Yield final document if non-empty
@@ -240,8 +234,6 @@ def ingest_conll_file(
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ) -> List[List[LabeledSentence]]:
-    if repair == REPAIR_NONE:
-        repair = None
     mention_encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         mention_encoding,
@@ -303,9 +295,6 @@ def score_conll_files(
     output_format: str,
     delim: str,
 ) -> None:
-    if repair == REPAIR_NONE:
-        repair = None
-
     # We only support scoring BIO
     mention_encoding_name = "BIO"
     pred_docs = ingest_conll_file(

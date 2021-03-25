@@ -97,6 +97,11 @@ class LabeledSentence(Sequence[str]):
             if not token:
                 raise ValueError(f"Invalid token: {repr(token)}")
 
+    def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSentence":
+        return LabeledSentence(
+            self.tokens, self.labels, mentions, provenance=self.provenance
+        )
+
     @overload
     def __getitem__(self, index: int) -> str:
         raise NotImplementedError
