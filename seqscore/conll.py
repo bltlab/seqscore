@@ -35,10 +35,20 @@ class _CoNLLToken:
     is_docstart: bool = attrib()
     line_num: int = attrib()
 
-    # TODO: Make delimiter configurable. Currently splits on any whitespace.
     @classmethod
-    def from_line(cls, line: str, line_num: int) -> "_CoNLLToken":
-        splits = line.split()
+    def from_line(cls, line: str, line_num: int, source_name: str) -> "_CoNLLToken":
+        # Note: The caller must strip the line of any trailing whitespace
+        # TODO: Sense the file rather than the line so we get consistency across lines
+        # Try space, then tab
+        splits = line.split(" ")
+        if len(splits) == 1:
+            splits = line.split("\t")
+
+        if len(splits) < 2:
+            raise ValueError(
+                f"Line {line_num} of {source_name} is not delimited by space or tab: {repr(line)}"
+            )
+
         text = splits[0]
         label = splits[-1]
         is_docstart = text == DOCSTART
@@ -58,7 +68,7 @@ class CoNLLIngester:
         document: List[LabeledSentence] = []
 
         for source_sentence in self._parse_file(
-            source, ignore_comments=self.ignore_comment_lines
+            source, source_name, ignore_comments=self.ignore_comment_lines
         ):
             if source_sentence[0].is_docstart:
                 # We can ony receive DOCSTART in a sentence by itself, see _parse_file.
@@ -125,12 +135,12 @@ class CoNLLIngester:
             document_counter += 1
             yield document
 
-    def validate(self, source: TextIO) -> List[List[ValidationResult]]:
+    def validate(self, source: TextIO, source_name: str) -> List[List[ValidationResult]]:
         all_results: List[List[ValidationResult]] = []
         document_results: List[ValidationResult] = []
 
         for source_sentence in self._parse_file(
-            source, ignore_comments=self.ignore_comment_lines
+            source, source_name, ignore_comments=self.ignore_comment_lines
         ):
             if source_sentence[0].is_docstart:
                 # We can ony receive DOCSTART in a sentence by itself, see _parse_file.
@@ -170,7 +180,7 @@ class CoNLLIngester:
 
     @classmethod
     def _parse_file(
-        cls, input_file: TextIO, *, ignore_comments: bool = False
+        cls, input_file: TextIO, source_name: str, *, ignore_comments: bool = False
     ) -> Iterable[Tuple[_CoNLLToken, ...]]:
         sentence: list = []
         line_num = 0
@@ -190,7 +200,7 @@ class CoNLLIngester:
                 # Always skip empty lines
                 continue
 
-            token = _CoNLLToken.from_line(line, line_num)
+            token = _CoNLLToken.from_line(line, line_num, source_name)
             # Skip document starts, but ensure sentence is empty when we reach them
             if token.is_docstart:
                 if sentence:
@@ -223,7 +233,8 @@ class CoNLLIngester:
 
 def ingest_conll_file(
     input_path: PathType,
-    encoding_name: str,
+    mention_encoding_name: str,
+    file_encoding: str,
     *,
     repair: Optional[str] = None,
     ignore_document_boundaries: bool,
@@ -231,32 +242,33 @@ def ingest_conll_file(
 ) -> List[List[LabeledSentence]]:
     if repair == REPAIR_NONE:
         repair = None
-    encoding = get_encoding(encoding_name)
+    mention_encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
-        encoding,
+        mention_encoding,
         ignore_comment_lines=ignore_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
-    with open(input_path, encoding="utf8") as input_file:
+    with open(input_path, encoding=file_encoding) as input_file:
         docs = list(ingester.ingest(input_file, str(input_path), repair))
     return docs
 
 
 def validate_conll_file(
     input_path: str,
-    encoding_name: str,
+    mention_encoding_name: str,
+    file_encoding: str,
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ) -> None:
-    encoding = get_encoding(encoding_name)
+    encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         encoding,
         ignore_comment_lines=ignore_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
-    with open(input_path, encoding="utf8") as input_file:
-        results = ingester.validate(input_file)
+    with open(input_path, encoding=file_encoding) as input_file:
+        results = ingester.validate(input_file, input_path)
         n_docs = len(results)
         n_sentences = sum(len(doc_results) for doc_results in results)
         n_tokens = sum(len(sent) for doc_results in results for sent in doc_results)
@@ -284,6 +296,7 @@ def score_conll_files(
     pred_file: PathType,
     reference_file: PathType,
     repair: Optional[str],
+    file_encoding: str,
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
@@ -298,6 +311,7 @@ def score_conll_files(
     pred_docs = ingest_conll_file(
         pred_file,
         mention_encoding_name,
+        file_encoding,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
@@ -306,6 +320,7 @@ def score_conll_files(
     ref_docs = ingest_conll_file(
         reference_file,
         mention_encoding_name,
+        file_encoding,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,

@@ -26,6 +26,7 @@ def _input_file_arguments(func: Callable) -> Callable:
     # In order they can be used on the command line
     decorators = [
         click.argument("file", type=click.Path(dir_okay=False)),
+        click.option("--file-encoding", default="UTF-8"),
         click.option("--ignore-comment-lines", is_flag=True),
         click.option(
             "--ignore-document-boundaries/--use-document-boundaries", default=True
@@ -51,12 +52,14 @@ def _repair_option() -> Callable:
 def validate(
     file: str,
     labels: str,
+    file_encoding: str,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ):
     validate_conll_file(
         file,
         labels,
+        file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
     )
@@ -70,6 +73,7 @@ def validate(
 @click.option("--delim", default="\t")
 def dump(
     file: str,
+    file_encoding: str,
     output_file: str,
     labels: str,
     ignore_document_boundaries: bool,
@@ -80,6 +84,7 @@ def dump(
     docs = ingest_conll_file(
         file,
         labels,
+        file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
         repair=repair,
@@ -92,7 +97,7 @@ def dump(
                 key = (mention.type, sentence.mention_tokens(mention))
                 counts[key] += 1
 
-    with open(output_file, "w", encoding="utf8") as output:
+    with open(output_file, "w", encoding=file_encoding) as output:
         for item, count in counts.most_common():
             print(delim.join((str(count), item[0], " ".join(item[1]))), file=output)
 
@@ -103,10 +108,13 @@ def dump(
 @click.option("--ignore-comment-lines", is_flag=True)
 @click.option("--ignore-document-boundaries/--use-document-boundaries", default=True)
 @_repair_option()
-@click.option("--score-format", default="pretty", type=click.Choice(SUPPORTED_SCORE_FORMATS))
+@click.option(
+    "--score-format", default="pretty", type=click.Choice(SUPPORTED_SCORE_FORMATS)
+)
 @click.option("--delim", default="\t")
 def score(
     file: str,
+    file_encoding: str,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
     reference: str,
@@ -118,6 +126,7 @@ def score(
         file,
         reference,
         repair,
+        file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
         output_format=display,
