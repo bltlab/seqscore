@@ -5,6 +5,7 @@ import click
 from seqscore.conll import (
     SUPPORTED_SCORE_FORMATS,
     ingest_conll_file,
+    repair_conll_file,
     score_conll_files,
     validate_conll_file,
 )
@@ -16,7 +17,6 @@ from seqscore.encoding import (
 )
 
 
-# TODO: Add repair subcommand
 # TODO: Add convert subcommand
 @click.group()
 def cli():
@@ -61,6 +61,34 @@ def validate(
         file,
         labels,
         file_encoding,
+        ignore_document_boundaries=ignore_document_boundaries,
+        ignore_comment_lines=ignore_comment_lines,
+    )
+
+
+@cli.command()
+@_input_file_arguments
+@click.argument("output_file")
+@_repair_option()
+@click.option("--output-delim", default=" ")
+def repair(
+    file: str,
+    output_file: str,
+    file_encoding: str,
+    repair: str,
+    output_delim: str,
+    ignore_document_boundaries: bool,
+    ignore_comment_lines: bool,
+):
+    if repair == REPAIR_NONE:
+        raise ValueError("Cannot repair if 'none' is specified as repair strategy")
+
+    repair_conll_file(
+        file,
+        output_file,
+        repair,
+        file_encoding,
+        output_delim,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
     )

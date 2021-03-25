@@ -284,6 +284,47 @@ def validate_conll_file(
             )
 
 
+def repair_conll_file(
+    input_file: PathType,
+    output_file: PathType,
+    repair: Optional[str],
+    file_encoding: str,
+    output_delim: str,
+    *,
+    ignore_document_boundaries: bool,
+    ignore_comment_lines: bool,
+) -> None:
+    # We only support repairing BIO
+    mention_encoding_name = "BIO"
+    docs = ingest_conll_file(
+        input_file,
+        mention_encoding_name,
+        file_encoding,
+        repair=repair,
+        ignore_document_boundaries=ignore_document_boundaries,
+        ignore_comment_lines=ignore_comment_lines,
+    )
+
+    output_docstart = len(docs) > 1
+
+    with open(output_file, "w", encoding=file_encoding) as file:
+        for doc in docs:
+            _write_doc(doc, output_delim, file, output_docstart=output_docstart)
+
+
+def _write_doc(
+    doc: List[LabeledSentence], delim: str, file: TextIO, *, output_docstart: bool
+) -> None:
+    if output_docstart:
+        print(f"{DOCSTART}{delim}O", file=file)
+        print(file=file)
+
+    for sentence in doc:
+        for token, label in sentence.tokens_with_labels():
+            print(f"{token}{delim}{label}", file=file)
+        print(file=file)
+
+
 def score_conll_files(
     pred_file: PathType,
     reference_file: PathType,
