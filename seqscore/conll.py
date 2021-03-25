@@ -309,11 +309,11 @@ def repair_conll_file(
 
     with open(output_file, "w", encoding=file_encoding) as file:
         for doc in docs:
-            _write_doc(doc, output_delim, file, output_docstart=output_docstart)
+            _write_doc_labels(doc, output_delim, file, output_docstart=output_docstart)
 
 
-def _write_doc(
-    doc: List[LabeledSentence], delim: str, file: TextIO, *, output_docstart: bool
+def _write_doc_labels(
+    doc: Sequence[LabeledSentence], delim: str, file: TextIO, *, output_docstart: bool
 ) -> None:
     if output_docstart:
         print(f"{DOCSTART}{delim}O", file=file)
@@ -321,6 +321,42 @@ def _write_doc(
 
     for sentence in doc:
         for token, label in sentence.tokens_with_labels():
+            print(f"{token}{delim}{label}", file=file)
+        print(file=file)
+
+
+def write_docs_using_encoding(
+    docs: Sequence[Sequence[LabeledSentence]],
+    mention_encoding_name: str,
+    file_encoding: str,
+    delim: str,
+    output_path: PathType,
+) -> None:
+    mention_encoding = get_encoding(mention_encoding_name)
+    output_docstart = len(docs) > 1
+
+    with open(output_path, "w", encoding=file_encoding) as file:
+        for doc in docs:
+            write_doc_using_encoding(
+                doc, mention_encoding, delim, file, output_docstart=output_docstart
+            )
+
+
+def write_doc_using_encoding(
+    doc: Sequence[LabeledSentence],
+    encoding: Encoding,
+    delim: str,
+    file: TextIO,
+    *,
+    output_docstart: bool,
+) -> None:
+    if output_docstart:
+        print(f"{DOCSTART}{delim}O", file=file)
+        print(file=file)
+
+    for sentence in doc:
+        labels = encoding.encode_mentions(sentence, sentence.mentions)
+        for token, label in zip(sentence.tokens, labels):
             print(f"{token}{delim}{label}", file=file)
         print(file=file)
 

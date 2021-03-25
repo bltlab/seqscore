@@ -160,10 +160,6 @@ class _EncoderToken:
 class Encoding(Protocol):
     label_delim: str = "-"
     outside: str = "O"
-    begin: Optional[str]
-    inside: Optional[str]
-    end: Optional[str]
-    only: Optional[str]
 
     valid_same_type_transitions: AbstractSet[Tuple[str, str]]
     valid_different_type_transitions: AbstractSet[Tuple[str, str]]
@@ -207,6 +203,7 @@ class Encoding(Protocol):
     ) -> Sequence[str]:
         raise NotImplementedError
 
+    # TODO: Consider getting the mentions from the sentence
     @abstractmethod
     def encode_mentions(
         self, sentence: LabeledSentence, mentions: Sequence[Mention]
@@ -272,10 +269,6 @@ class IO(Encoding):
     def __init__(self):
         self.inside = "I"
 
-        self.begin = None
-        self.end = None
-        self.only = None
-
         self.valid_same_type_transitions = frozenset((("I", "I"), ("O", "O")))
         self.valid_different_type_transitions = frozenset(
             (("I", "I"), ("O", "I"), ("I", "O"))
@@ -284,7 +277,17 @@ class IO(Encoding):
     def encode_mentions(
         self, sentence: LabeledSentence, mentions: Sequence[Mention]
     ) -> Sequence[str]:
-        raise NotImplementedError
+        length = len(sentence)
+        output_labels = [self.outside] * length
+
+        for mention in mentions:
+            span = mention.span
+            label = self.join_label(self.inside, mention.type)
+            output_labels[span.start] = label
+            for idx in range(span.start + 1, span.end):
+                output_labels[idx] = label
+
+        return output_labels
 
     def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
         raise NotImplementedError
@@ -348,7 +351,18 @@ class BIO(IO):
     def encode_mentions(
         self, sentence: LabeledSentence, mentions: Sequence[Mention]
     ) -> Sequence[str]:
-        raise NotImplementedError
+        length = len(sentence)
+        output_labels = [self.outside] * length
+
+        for mention in mentions:
+            span = mention.span
+            start_label = self.join_label(self.begin, mention.type)
+            output_labels[span.start] = start_label
+            inside_label = self.join_label(self.inside, mention.type)
+            for idx in range(span.start + 1, span.end):
+                output_labels[idx] = inside_label
+
+        return output_labels
 
     def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
         mentions: List[Mention] = []
@@ -489,6 +503,10 @@ _ENCODING_NAMES: Dict[str, Encoding] = {
 }
 VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(sorted(_ENCODING_NAMES))
 DECODING_SUPPORTED_ENCODINGS = ("BIO",)
+ENCODING_SUPPORTED_ENCODINGS = (
+    "BIO",
+    "IO",
+)
 
 
 def get_encoding(name: str) -> Encoding:

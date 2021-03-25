@@ -8,16 +8,17 @@ from seqscore.conll import (
     repair_conll_file,
     score_conll_files,
     validate_conll_file,
+    write_docs_using_encoding,
 )
 from seqscore.encoding import (
     DECODING_SUPPORTED_ENCODINGS,
+    ENCODING_SUPPORTED_ENCODINGS,
     REPAIR_NONE,
     SUPPORTED_REPAIRS,
     VALIDATION_SUPPORTED_ENCODINGS,
 )
 
 
-# TODO: Add convert subcommand
 @click.group()
 def cli():
     pass
@@ -91,6 +92,42 @@ def repair(
         output_delim,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
+    )
+
+
+@cli.command()
+@_input_file_arguments
+@click.argument("output_file")
+@click.option("--output-delim", default=" ")
+@click.option(
+    "--input-labels", required=True, type=click.Choice(DECODING_SUPPORTED_ENCODINGS)
+)
+@click.option(
+    "--output-labels", required=True, type=click.Choice(ENCODING_SUPPORTED_ENCODINGS)
+)
+def convert(
+    file: str,
+    output_file: str,
+    file_encoding: str,
+    output_delim: str,
+    input_labels: str,
+    output_labels: str,
+    ignore_document_boundaries: bool,
+    ignore_comment_lines: bool,
+):
+    if input_labels == output_labels:
+        raise ValueError("Cannot repair if 'none' is specified as repair strategy")
+
+    docs = ingest_conll_file(
+        file,
+        input_labels,
+        file_encoding,
+        ignore_document_boundaries=ignore_document_boundaries,
+        ignore_comment_lines=ignore_comment_lines,
+    )
+
+    write_docs_using_encoding(
+        docs, output_labels, file_encoding, output_delim, output_file
     )
 
 
