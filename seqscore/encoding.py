@@ -534,6 +534,9 @@ class ValidationResult:
     repaired_labels: Optional[Tuple[str, ...]] = attrib(
         converter=_tuplify_strs, default=()
     )
+    tokens: Optional[Tuple[str, ...]] = attrib(converter=_tuplify_strs, default=None)
+    labels: Optional[Tuple[str, ...]] = attrib(converter=_tuplify_strs, default=None)
+    line_nums: Optional[Tuple[int,...]] = attrib(default=None)
 
     def is_valid(self) -> bool:
         return not self.errors
@@ -599,6 +602,10 @@ def validate_sentence(
 
     if errors and repair:
         repaired_labels = encoding.repair_labels(labels, repair)
-        return ValidationResult(errors, len(tokens), repaired_labels)
+        return ValidationResult(errors, len(tokens), repaired_labels,
+                                tokens=tokens, labels=labels, line_nums=line_nums
+                                )
     else:
-        return ValidationResult(errors, len(tokens))
+        return ValidationResult(errors, len(tokens),
+                                tokens=tokens, labels=labels, line_nums=line_nums
+                                )
