@@ -78,18 +78,18 @@ def repair(
     file: str,
     output_file: str,
     file_encoding: str,
-    repair: str,
+    repair_method: str,
     output_delim: str,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ):
-    if repair == REPAIR_NONE:
+    if repair_method == REPAIR_NONE:
         raise ValueError("Cannot repair if 'none' is specified as repair strategy")
 
     repair_conll_file(
         file,
         output_file,
-        repair,
+        repair_method,
         file_encoding,
         output_delim,
         ignore_document_boundaries=ignore_document_boundaries,
@@ -147,10 +147,10 @@ def dump(
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
     delim: str,
-    repair: str,
+    repair_method: str,
 ):
-    if repair == REPAIR_NONE:
-        repair = None
+    if repair_method == REPAIR_NONE:
+        repair_method = None
 
     docs = ingest_conll_file(
         file,
@@ -158,7 +158,7 @@ def dump(
         file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
-        repair=repair,
+        repair=repair_method,
     )
 
     counts: Counter[Tuple[str, Tuple[str, ...]]] = Counter()
@@ -174,10 +174,8 @@ def dump(
 
 
 @cli.command()
-@click.argument("file", type=click.Path(dir_okay=False))
+@_input_file_arguments
 @click.option("--reference", required=True)
-@click.option("--ignore-comment-lines", is_flag=True)
-@click.option("--ignore-document-boundaries/--use-document-boundaries", default=True)
 @_repair_option()
 @click.option(
     "--score-format", default="pretty", type=click.Choice(SUPPORTED_SCORE_FORMATS)
@@ -189,21 +187,21 @@ def score(
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
     reference: str,
-    display: str,
+    score_format: str,
     delim: str,
-    repair: str,
+    repair_method: str,
 ):
-    if repair == REPAIR_NONE:
-        repair = None
+    if repair_method == REPAIR_NONE:
+        repair_method = None
 
     score_conll_files(
         file,
         reference,
-        repair,
+        repair_method,
         file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
-        output_format=display,
+        output_format=score_format,
         delim=delim,
     )
 
