@@ -163,9 +163,9 @@ def dump(
 
     counts: Counter[Tuple[str, Tuple[str, ...]]] = Counter()
     for doc in docs:
-        for sentence in doc:
-            for mention in sentence.mentions:
-                key = (mention.type, sentence.mention_tokens(mention))
+        for sequence in doc:
+            for mention in sequence.mentions:
+                key = (mention.type, sequence.mention_tokens(mention))
                 counts[key] += 1
 
     with open(output_file, "w", encoding=file_encoding) as output:

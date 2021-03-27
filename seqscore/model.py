@@ -53,17 +53,17 @@ class Mention:
 
 
 @attrs(frozen=True, slots=True)
-class SentenceProvenance:
+class SequenceProvenance:
     starting_line: int = attrib()
     source: Optional[str] = attrib()
 
 
 @attrs(frozen=True, slots=True)
-class LabeledSentence(Sequence[str]):
+class LabeledSequence(Sequence[str]):
     tokens: Tuple[str, ...] = attrib(converter=tuplify_strs)
     labels: Tuple[str, ...] = attrib(converter=tuplify_strs)
     mentions: Tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
-    provenance: Optional[SentenceProvenance] = attrib(
+    provenance: Optional[SequenceProvenance] = attrib(
         default=None, eq=False, kw_only=True
     )
 
@@ -88,8 +88,8 @@ class LabeledSentence(Sequence[str]):
             if not token:
                 raise ValueError(f"Invalid token: {repr(token)}")
 
-    def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSentence":
-        return LabeledSentence(
+    def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSequence":
+        return LabeledSequence(
             self.tokens, self.labels, mentions, provenance=self.provenance
         )
 

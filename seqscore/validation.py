@@ -34,7 +34,6 @@ class ValidationResult:
         return len(self.errors)
 
 
-# TODO: Make tokens optional
 def validate_labels(
     labels: Sequence[str],
     encoding: Encoding,
@@ -53,7 +52,7 @@ def validate_labels(
     errors: List[ValidationError] = []
     outside = encoding.dialect.outside
 
-    # Treat sentence as if preceded by outside
+    # Treat sequence as if preceded by outside
     prev_label = outside
     prev_state, prev_entity_type = encoding.split_label(prev_label)
 
@@ -104,7 +103,7 @@ def validate_labels(
             entity_type,
         )
 
-    # Treat sentence as if followed by outside
+    # Treat sequence as if followed by outside
     label = outside
     state, entity_type = encoding.split_label(label)
     if not encoding.is_valid_transition(prev_state, prev_entity_type, state, entity_type):

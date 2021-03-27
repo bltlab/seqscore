@@ -4,7 +4,7 @@ from typing import DefaultDict, Optional, Sequence, Tuple
 from attr import Factory, attrib, attrs
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
-from seqscore.model import LabeledSentence, Mention
+from seqscore.model import LabeledSequence, Mention
 from seqscore.validation import validate_labels
 
 
@@ -30,26 +30,26 @@ class TokenCountError(ValueError):
         msg = "\n".join(
             [
                 f"Token count mismatch at line {line_num}{src}",
-                f"Reference sentence contains {reference_token_count} tokens; "
-                + f"predicted sentence contains {pred_token_count}.",
+                f"Reference sequence contains {reference_token_count} tokens; "
+                + f"predicted sequence contains {pred_token_count}.",
                 "Correct the predictions to have the same number of tokens as the reference.",
             ]
         )
         super().__init__(msg)
 
     @classmethod
-    def from_predicted_sentence(
-        cls, reference_token_count: int, pred_sentence: LabeledSentence
+    def from_predicted_sequence(
+        cls, reference_token_count: int, pred_sequence: LabeledSequence
     ):
-        if pred_sentence.provenance is None:
+        if pred_sequence.provenance is None:
             raise ValueError(
-                f"Cannot create {cls.__name__} from sentence without provenance"
+                f"Cannot create {cls.__name__} from sequence without provenance"
             )
         return cls(
             reference_token_count,
-            len(pred_sentence),
-            pred_sentence.provenance.starting_line,
-            pred_sentence.provenance.source,
+            len(pred_sequence),
+            pred_sequence.provenance.starting_line,
+            pred_sequence.provenance.source,
         )
 
 
@@ -113,8 +113,8 @@ class AccuracyScore:
 
 
 def compute_scores(
-    pred_docs: Sequence[Sequence[LabeledSentence]],
-    ref_docs: Sequence[Sequence[LabeledSentence]],
+    pred_docs: Sequence[Sequence[LabeledSequence]],
+    ref_docs: Sequence[Sequence[LabeledSequence]],
 ) -> Tuple[ClassificationScore, AccuracyScore]:
     accuracy = AccuracyScore()
     classification = ClassificationScore()
@@ -129,39 +129,43 @@ def compute_scores(
     for pred_doc, ref_doc in zip(pred_docs, ref_docs):
         if len(pred_doc) != len(ref_doc):
             raise ValueError(
-                f"Prediction has {len(pred_doc)} sentences, "
+                f"Prediction has {len(pred_doc)} sequences, "
                 f"reference has {len(ref_doc)}"
             )
 
-        for pred_sentence, ref_sentence in zip(pred_doc, ref_doc):
-            if len(pred_sentence) != len(ref_sentence):
-                raise TokenCountError.from_predicted_sentence(
-                    len(ref_sentence), pred_sentence
+        for pred_sequence, ref_sequence in zip(pred_doc, ref_doc):
+            if len(pred_sequence) != len(ref_sequence):
+                raise TokenCountError.from_predicted_sequence(
+                    len(ref_sequence), pred_sequence
                 )
 
             # Fail if tokens have been changed
             # TODO: Consider removing this check or providing a flag to disable it
             # TODO: Change to a more verbose error that uses the provenance
-            if pred_sentence.tokens != ref_sentence.tokens:
+            if pred_sequence.tokens != ref_sequence.tokens:
                 raise ValueError(
                     "Tokens do not match between predictions and reference.\n"
-                    f"Prediction: {pred_sentence.tokens}\n"
-                    f"Reference: {ref_sentence.tokens}"
+                    f"Prediction: {pred_sequence.tokens}\n"
+                    f"Reference: {ref_sequence.tokens}"
                 )
 
-            score_sentence_labels(pred_sentence.labels, ref_sentence.labels, accuracy)
-            score_sentence_mentions(
-                pred_sentence.mentions, ref_sentence.mentions, classification
+            score_sequence_label_accuracy(
+                pred_sequence.labels, ref_sequence.labels, accuracy
+            )
+            score_sequence_mentions(
+                pred_sequence.mentions, ref_sequence.mentions, classification
             )
 
     return classification, accuracy
 
 
-def score_sentence_labels(
+def score_sequence_label_accuracy(
     pred_labels: Sequence[str],
     ref_labels: Sequence[str],
     score: AccuracyScore,
 ) -> None:
+    """Update an AccuracyScore for a single sequence's labels."""
+
     if len(pred_labels) != len(ref_labels):
         raise ValueError(
             f"Prediction has {len(pred_labels)} labels, "
@@ -175,12 +179,16 @@ def score_sentence_labels(
         score.total += 1
 
 
-def score_sentence_mentions(
+def score_sequence_mentions(
     pred_mentions: Sequence[Mention],
     ref_mentions: Sequence[Mention],
     score: ClassificationScore,
 ) -> None:
-    """Update a ClassificationScore for a sentence's mentions."""
+    """Update a ClassificationScore for a single sequence's mentions.
+
+    Since mentions are defined per-sequence, the behavior is not defined
+    if you provide mentions corresponding to multiple sequences.
+    """
     # Compute span accuracy
     pred_mentions_set = set(pred_mentions)
     ref_mentions_set = set(ref_mentions)
@@ -203,7 +211,7 @@ def score_sentence_mentions(
             score.type_scores[pred.type].false_neg += 1
 
 
-# TODO: Consider taking an iterable and checking sentence lengths
+# TODO: Consider taking an iterable and checking sequence lengths
 def score_label_sequences(
     pred_label_sequences: Sequence[Sequence[str]],
     ref_label_sequences: Sequence[Sequence[str]],
@@ -218,10 +226,10 @@ def score_label_sequences(
 
     for pred_labels, ref_labels in zip(pred_label_sequences, ref_label_sequences):
         # This takes care of checking that the lengths match
-        score_sentence_labels(pred_labels, ref_labels, accuracy_score)
+        score_sequence_label_accuracy(pred_labels, ref_labels, accuracy_score)
         pred_mentions = _repair_label_sequence(pred_labels, encoder, repair)
         ref_mentions = _repair_label_sequence(ref_labels, encoder, repair)
-        score_sentence_mentions(pred_mentions, ref_mentions, classifcation_score)
+        score_sequence_mentions(pred_mentions, ref_mentions, classifcation_score)
 
     return classifcation_score, accuracy_score
 

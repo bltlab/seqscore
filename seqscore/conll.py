@@ -7,7 +7,7 @@ from attr import attrib, attrs
 from tabulate import tabulate
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
-from seqscore.model import LabeledSentence, SentenceProvenance
+from seqscore.model import LabeledSequence, SequenceProvenance
 from seqscore.scoring import AccuracyScore, ClassificationScore, compute_scores
 from seqscore.util import PathType
 from seqscore.validation import ValidationResult, validate_labels
@@ -56,17 +56,17 @@ class CoNLLIngester:
 
     def ingest(
         self, source: TextIO, source_name: str, repair: Optional[str]
-    ) -> Iterable[List[LabeledSentence]]:
+    ) -> Iterable[List[LabeledSequence]]:
         document_counter = 0
-        document: List[LabeledSentence] = []
+        document: List[LabeledSequence] = []
 
-        for source_sentence in self._parse_file(
+        for source_sequence in self._parse_file(
             source, source_name, ignore_comments=self.ignore_comment_lines
         ):
-            if source_sentence[0].is_docstart:
-                # We can ony receive DOCSTART in a sentence by itself, see _parse_file.
-                # But we check anyway to be absolutely sure we aren't throwing away a sentence.
-                assert len(source_sentence) == 1
+            if source_sequence[0].is_docstart:
+                # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
+                # But we check anyway to be absolutely sure we aren't throwing away a sequence.
+                assert len(source_sequence) == 1
                 # End current document and start a new one if we're attending to boundaries.
                 # We skip this if the builder is empty, which will happen for the very
                 # first document in the corpus (as there is no previous document to end).
@@ -76,8 +76,8 @@ class CoNLLIngester:
                     document = []
                 continue
 
-            # Create mentions from tokens in sentence
-            tokens, labels, line_nums = self._decompose_sentence(source_sentence)
+            # Create mentions from tokens in sequence
+            tokens, labels, line_nums = self._decompose_sequence(source_sequence)
 
             # Validate before decoding
             validation = validate_labels(
@@ -87,7 +87,7 @@ class CoNLLIngester:
                 if repair:
                     msg = (
                         [
-                            f"Validation errors in sentence at line {line_nums[0]} of {source_name}:"
+                            f"Validation errors in sequence at line {line_nums[0]} of {source_name}:"
                         ]
                         + [error.msg for error in validation.errors]
                         + [
@@ -112,13 +112,13 @@ class CoNLLIngester:
                     + " ".join(labels),
                 ) from e
 
-            sentences = LabeledSentence(
+            sequences = LabeledSequence(
                 tokens,
                 labels,
                 mentions,
-                provenance=SentenceProvenance(line_nums[0], source_name),
+                provenance=SequenceProvenance(line_nums[0], source_name),
             )
-            document.append(sentences)
+            document.append(sequences)
 
         # Yield final document if non-empty
         if document:
@@ -129,13 +129,13 @@ class CoNLLIngester:
         all_results: List[List[ValidationResult]] = []
         document_results: List[ValidationResult] = []
 
-        for source_sentence in self._parse_file(
+        for source_sequence in self._parse_file(
             source, source_name, ignore_comments=self.ignore_comment_lines
         ):
-            if source_sentence[0].is_docstart:
-                # We can ony receive DOCSTART in a sentence by itself, see _parse_file.
-                # But we check anyway to be absolutely sure we aren't throwing away a sentence.
-                assert len(source_sentence) == 1
+            if source_sequence[0].is_docstart:
+                # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
+                # But we check anyway to be absolutely sure we aren't throwing away a sequence.
+                assert len(source_sequence) == 1
 
                 # If we care about document boundaries and we have results for this documents,
                 # add it and move on.
@@ -143,11 +143,11 @@ class CoNLLIngester:
                     all_results.append(document_results)
                     document_results = []
 
-                # Go to the next sentence
+                # Go to the next sequence
                 continue
 
-            # Create mentions from tokens in sentence
-            tokens, labels, line_nums = self._decompose_sentence(source_sentence)
+            # Create mentions from tokens in sequence
+            tokens, labels, line_nums = self._decompose_sequence(source_sequence)
 
             # Validate
             document_results.append(
@@ -160,19 +160,19 @@ class CoNLLIngester:
         return all_results
 
     @staticmethod
-    def _decompose_sentence(
-        source_sentence: Sequence[_CoNLLToken],
+    def _decompose_sequence(
+        source_sequence: Sequence[_CoNLLToken],
     ) -> Tuple[Tuple[str, ...], Tuple[str, ...], Tuple[int, ...]]:
-        tokens = tuple(tok.text for tok in source_sentence)
-        labels = tuple(tok.label for tok in source_sentence)
-        line_nums = tuple(tok.line_num for tok in source_sentence)
+        tokens = tuple(tok.text for tok in source_sequence)
+        labels = tuple(tok.label for tok in source_sequence)
+        line_nums = tuple(tok.line_num for tok in source_sequence)
         return tokens, labels, line_nums
 
     @classmethod
     def _parse_file(
         cls, input_file: TextIO, source_name: str, *, ignore_comments: bool = False
     ) -> Iterable[Tuple[_CoNLLToken, ...]]:
-        sentence: list = []
+        sequence: list = []
         line_num = 0
         for line in input_file:
             line_num += 1
@@ -182,42 +182,42 @@ class CoNLLIngester:
                 continue
 
             if not line:
-                # Clear out sentence if there's anything in it
-                if sentence:
-                    cls._check_sentence(sentence)
-                    yield tuple(sentence)
-                    sentence = []
+                # Clear out sequence if there's anything in it
+                if sequence:
+                    cls._check_sequence(sequence)
+                    yield tuple(sequence)
+                    sequence = []
                 # Always skip empty lines
                 continue
 
             token = _CoNLLToken.from_line(line, line_num, source_name)
-            # Skip document starts, but ensure sentence is empty when we reach them
+            # Skip document starts, but ensure sequence is empty when we reach them
             if token.is_docstart:
-                if sentence:
+                if sequence:
                     raise ValueError(
-                        f"Encountered DOCSTART at line {line_num} while still in sentence"
+                        f"Encountered DOCSTART at line {line_num} while still in sequence"
                     )
                 else:
-                    # Yield it by itself. Since the sentence variable is empty, leave it unchanged.
+                    # Yield it by itself. Since the sequence variable is empty, leave it unchanged.
                     tmp_sent = (token,)
-                    cls._check_sentence(tmp_sent)
+                    cls._check_sequence(tmp_sent)
                     yield tmp_sent
             else:
-                sentence.append(token)
+                sequence.append(token)
 
-        # Finish the last sentence if needed
-        if sentence:
-            cls._check_sentence(sentence)
-            yield tuple(sentence)
+        # Finish the last sequence if needed
+        if sequence:
+            cls._check_sequence(sequence)
+            yield tuple(sequence)
 
     @staticmethod
-    def _check_sentence(sentence: Sequence[_CoNLLToken]):
-        # We should only return DOCSTART in a sentence by itself. This isn't a constraint
+    def _check_sequence(sequence: Sequence[_CoNLLToken]):
+        # We should only return DOCSTART in a sequence by itself. This isn't a constraint
         # on the layout of the input document, but rather one we are enforcing so that consumers
-        # get document boundaries as their own sentences.
-        if sentence[0].is_docstart and len(sentence) > 1:
+        # get document boundaries as their own sequences.
+        if sequence[0].is_docstart and len(sequence) > 1:
             raise ValueError(
-                f"Returned -DOCSTART- as part of a sentence at line {sentence[0].line_num}"
+                f"Returned -DOCSTART- as part of a sequence at line {sequence[0].line_num}"
             )
 
 
@@ -229,7 +229,7 @@ def ingest_conll_file(
     repair: Optional[str] = None,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
-) -> List[List[LabeledSentence]]:
+) -> List[List[LabeledSequence]]:
     mention_encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         mention_encoding,
@@ -258,7 +258,7 @@ def validate_conll_file(
     with open(input_path, encoding=file_encoding) as input_file:
         results = ingester.validate(input_file, input_path)
         n_docs = len(results)
-        n_sentences = sum(len(doc_results) for doc_results in results)
+        n_sequences = sum(len(doc_results) for doc_results in results)
         n_tokens = sum(len(sent) for doc_results in results for sent in doc_results)
 
         errors = list(
@@ -268,14 +268,14 @@ def validate_conll_file(
         )
         if errors:
             print(
-                f"Encountered {len(errors)} errors in {n_tokens} tokens, {n_sentences} sentences, "
+                f"Encountered {len(errors)} errors in {n_tokens} tokens, {n_sequences} sequences, "
                 + f"and {n_docs} documents in {input_path}"
             )
             print("\n".join(err.msg for err in errors))
             sys.exit(1)
         else:
             print(
-                f"No errors found in {n_tokens} tokens, {n_sentences} sentences, "
+                f"No errors found in {n_tokens} tokens, {n_sequences} sequences, "
                 + f"and {n_docs} documents in {input_path}"
             )
 
@@ -309,20 +309,20 @@ def repair_conll_file(
 
 
 def _write_doc_labels(
-    doc: Sequence[LabeledSentence], delim: str, file: TextIO, *, output_docstart: bool
+    doc: Sequence[LabeledSequence], delim: str, file: TextIO, *, output_docstart: bool
 ) -> None:
     if output_docstart:
         print(f"{DOCSTART}{delim}O", file=file)
         print(file=file)
 
-    for sentence in doc:
-        for token, label in sentence.tokens_with_labels():
+    for sequence in doc:
+        for token, label in sequence.tokens_with_labels():
             print(f"{token}{delim}{label}", file=file)
         print(file=file)
 
 
 def write_docs_using_encoding(
-    docs: Sequence[Sequence[LabeledSentence]],
+    docs: Sequence[Sequence[LabeledSequence]],
     mention_encoding_name: str,
     file_encoding: str,
     delim: str,
@@ -339,7 +339,7 @@ def write_docs_using_encoding(
 
 
 def write_doc_using_encoding(
-    doc: Sequence[LabeledSentence],
+    doc: Sequence[LabeledSequence],
     encoding: Encoding,
     delim: str,
     file: TextIO,
@@ -350,9 +350,9 @@ def write_doc_using_encoding(
         print(f"{DOCSTART}{delim}O", file=file)
         print(file=file)
 
-    for sentence in doc:
-        labels = encoding.encode_sentence(sentence)
-        for token, label in zip(sentence.tokens, labels):
+    for sequence in doc:
+        labels = encoding.encode_sequence(sequence)
+        for token, label in zip(sequence.tokens, labels):
             print(f"{token}{delim}{label}", file=file)
         print(file=file)
 

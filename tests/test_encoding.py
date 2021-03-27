@@ -18,7 +18,7 @@ from seqscore.encoding import (
     EncodingError,
     get_encoding,
 )
-from seqscore.model import LabeledSentence, Mention, Span
+from seqscore.model import LabeledSequence, Mention, Span
 
 FULL_SENTENCE_LABELS = {
     "IO": ["I-PER", "O", "I-ORG", "I-ORG", "I-ORG", "I-ORG", "I-ORG", "I-LOC"],
@@ -162,8 +162,8 @@ def test_basic_encoding() -> None:
         assert encoding.encode_mentions(mentions, len(labels)) == labels
         # Also test encoding sentence object, intentionally putting no mentions in the
         # sentence labels to make sure encoding using the mentions, not the labels
-        sentence = LabeledSentence(["a"] * len(labels), ["O"] * len(labels), mentions)
-        assert encoding.encode_sentence(sentence) == labels
+        sentence = LabeledSequence(["a"] * len(labels), ["O"] * len(labels), mentions)
+        assert encoding.encode_sequence(sentence) == labels
 
 
 def test_round_trip() -> None:
@@ -210,25 +210,25 @@ def test_edge_case_encoding() -> None:
 def test_bio_invalid_start() -> None:
     decoder = get_encoding("BIO")
 
-    sent1 = LabeledSentence(("a",), ("I-PER",))
+    sent1 = LabeledSequence(("a",), ("I-PER",))
     with pytest.raises(EncodingError):
-        assert decoder.decode_sentence(sent1)
+        assert decoder.decode_sequence(sent1)
 
 
 def test_bio_invalid_continue() -> None:
     decoder = get_encoding("BIO")
 
-    sent1 = LabeledSentence(("a", "b"), ("B-PER", "I-LOC"))
+    sent1 = LabeledSequence(("a", "b"), ("B-PER", "I-LOC"))
     with pytest.raises(EncodingError):
-        assert decoder.decode_sentence(sent1)
+        assert decoder.decode_sequence(sent1)
 
 
 def test_iob_invalid_begin() -> None:
     decoder = get_encoding("IOB")
 
-    sent1 = LabeledSentence(("a", "b"), ("I-PER", "B-LOC"))
+    sent1 = LabeledSequence(("a", "b"), ("I-PER", "B-LOC"))
     with pytest.raises(EncodingError):
-        assert decoder.decode_sentence(sent1)
+        assert decoder.decode_sequence(sent1)
 
 
 def test_get_encodings() -> None:

@@ -6,8 +6,8 @@ from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,
     score_label_sequences,
-    score_sentence_labels,
-    score_sentence_mentions,
+    score_sequence_label_accuracy,
+    score_sequence_mentions,
 )
 
 
@@ -15,7 +15,7 @@ def test_score_sentence_labels_correct() -> None:
     ref_labels = ["O", "B-ORG", "I-ORG", "O"]
     pred_labels = ref_labels[:]
     score = AccuracyScore()
-    score_sentence_labels(pred_labels, ref_labels, score)
+    score_sequence_label_accuracy(pred_labels, ref_labels, score)
     assert score.total == 4
     assert score.hits == 4
     assert score.accuracy == 1.0
@@ -26,7 +26,7 @@ def test_score_sentence_labels_incorrect() -> None:
     pred_labels = ref_labels[:]
     pred_labels[2] = "B-LOC"
     score = AccuracyScore()
-    score_sentence_labels(pred_labels, ref_labels, score)
+    score_sequence_label_accuracy(pred_labels, ref_labels, score)
     assert score.total == 4
     assert score.hits == 3
     assert score.accuracy == pytest.approx(3 / 4)
@@ -37,14 +37,14 @@ def test_score_sentence_labels_invalid() -> None:
     # Shorter predictions than reference
     pred_labels = ref_labels[:-1]
     with pytest.raises(ValueError):
-        score_sentence_labels(pred_labels, ref_labels, AccuracyScore())
+        score_sequence_label_accuracy(pred_labels, ref_labels, AccuracyScore())
 
 
 def test_score_sentence_mentions_correct() -> None:
     ref_mentions = [Mention(Span(0, 2), "PER"), Mention(Span(4, 5), "ORG")]
     pred_mentions = [Mention(Span(0, 2), "PER"), Mention(Span(4, 5), "ORG")]
     score = ClassificationScore()
-    score_sentence_mentions(pred_mentions, ref_mentions, score)
+    score_sequence_mentions(pred_mentions, ref_mentions, score)
     assert score.true_pos == 2
     assert score.false_pos == 0
     assert score.false_neg == 0
@@ -72,7 +72,7 @@ def test_score_sentence_mentions_incorrect1() -> None:
         Mention(Span(9, 11), "MISC"),
     ]
     score = ClassificationScore()
-    score_sentence_mentions(pred_mentions, ref_mentions, score)
+    score_sequence_mentions(pred_mentions, ref_mentions, score)
     assert score.true_pos == 2
     assert score.false_pos == 1
     assert score.false_neg == 2

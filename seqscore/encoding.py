@@ -3,7 +3,7 @@ from typing import AbstractSet, Dict, List, Optional, Protocol, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
 
-from seqscore.model import LabeledSentence, Mention, Span
+from seqscore.model import LabeledSequence, Mention, Span
 
 REPAIR_CONLL = "conlleval"
 REPAIR_DISCARD = "discard"
@@ -114,18 +114,18 @@ class Encoding(Protocol):
     ) -> Sequence[str]:
         raise NotImplementedError
 
-    def encode_sentence(
+    def encode_sequence(
         self,
-        sentence: LabeledSentence,
+        sequence: LabeledSequence,
     ) -> Sequence[str]:
-        return self.encode_mentions(sentence.mentions, len(sentence))
+        return self.encode_mentions(sequence.mentions, len(sequence))
 
     @abstractmethod
     def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
         raise NotImplementedError
 
-    def decode_sentence(self, sentence: LabeledSentence) -> List[Mention]:
-        return self.decode_labels(sentence.labels)
+    def decode_sequence(self, sequence: LabeledSequence) -> List[Mention]:
+        return self.decode_labels(sequence.labels)
 
 
 class EncodingError(Exception):
@@ -176,10 +176,6 @@ class IO(Encoding):
         inside = self.dialect.inside
         outside = self.dialect.outside
 
-        # We define this just to make it clear it will be defined regardless of the loop running,
-        # even though it's guaranteed to run since sentences cannot be empty by construction.
-        idx = 0
-
         for idx, label in enumerate(labels):
             state, entity_type = self.split_label(label)
 
@@ -201,7 +197,7 @@ class IO(Encoding):
 
         # Finish the last mention if needed
         if builder.in_mention():
-            builder.end_mention(idx + 1)
+            builder.end_mention(len(labels))
 
         assert not builder.in_mention()
         return builder.mentions
@@ -248,10 +244,6 @@ class IOB(Encoding):
         outside = self.dialect.outside
         begin = self.dialect.begin
 
-        # We define this just to make it clear it will be defined regardless of the loop running,
-        # even though it's guaranteed to run since sentences cannot be empty by construction.
-        idx = 0
-
         for idx, label in enumerate(labels):
             state, entity_type = self.split_label(label)
 
@@ -283,7 +275,7 @@ class IOB(Encoding):
 
         # Finish the last mention if needed
         if builder.in_mention():
-            builder.end_mention(idx + 1)
+            builder.end_mention(len(labels))
 
         assert not builder.in_mention()
         return builder.mentions
@@ -378,7 +370,7 @@ class BIO(Encoding):
         outside = self.dialect.outside
 
         # We define this just to make it clear it will be defined regardless of the loop running,
-        # even though it's guaranteed to run since sentences cannot be empty by construction.
+        # even though it's guaranteed to run since sequences cannot be empty by construction.
         idx = 0
 
         for idx, label in enumerate(labels):
@@ -432,7 +424,7 @@ class BIO(Encoding):
         # All of this is essentially the same as validation, but the labels can change during
         # iteration, so the design is slightly different.
 
-        # Treat sentence as if preceded by outside
+        # Treat sequence as if preceded by outside
         prev_label = outside
         prev_state, prev_entity_type = self.split_label(prev_label)
 
@@ -468,7 +460,7 @@ class BIO(Encoding):
                 entity_type,
             )
 
-        # Since BIO cannot have an illegal end-of sentence transition, no need to check
+        # Since BIO cannot have an illegal end-of sequence transition, no need to check
         return repaired_labels
 
 
