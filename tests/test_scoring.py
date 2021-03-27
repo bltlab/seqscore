@@ -1,6 +1,7 @@
 import pytest
 
-from seqscore.encoding import EncodingError, Mention, Span
+from seqscore.encoding import EncodingError
+from seqscore.model import Mention, Span
 from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,

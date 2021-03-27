@@ -6,17 +6,11 @@ from typing import Any, Iterable, List, Optional, Sequence, TextIO, Tuple
 from attr import attrib, attrs
 from tabulate import tabulate
 
-from seqscore.encoding import (
-    Encoding,
-    EncodingError,
-    LabeledSentence,
-    SentenceProvenance,
-    ValidationResult,
-    get_encoding,
-    validate_sentence,
-)
+from seqscore.encoding import Encoding, EncodingError, get_encoding
+from seqscore.model import LabeledSentence, SentenceProvenance
 from seqscore.scoring import AccuracyScore, ClassificationScore, compute_scores
 from seqscore.util import PathType
+from seqscore.validation import ValidationResult, validate_labels
 
 DOCSTART = "-DOCSTART-"
 
@@ -86,8 +80,8 @@ class CoNLLIngester:
             tokens, labels, line_nums = self._decompose_sentence(source_sentence)
 
             # Validate before decoding
-            validation = validate_sentence(
-                tokens, labels, line_nums, self.encoding, repair=repair
+            validation = validate_labels(
+                labels, self.encoding, repair=repair, tokens=tokens, line_nums=line_nums
             )
             if not validation.is_valid():
                 if repair:
@@ -110,19 +104,21 @@ class CoNLLIngester:
                         + "\n".join(err.msg for err in validation.errors)
                     )
 
-            orig_sentence = LabeledSentence(
-                tokens, labels, provenance=SentenceProvenance(line_nums[0], source_name)
-            )
             try:
-                mentions = self.encoding.decode_mentions(orig_sentence)
+                mentions = self.encoding.decode_labels(labels)
             except EncodingError as e:
                 raise ValueError(
                     "Encountered an error decoding this sequence despite passing validation: "
                     + " ".join(labels),
                 ) from e
 
-            final_sentence = orig_sentence.with_mentions(mentions)
-            document.append(final_sentence)
+            sentences = LabeledSentence(
+                tokens,
+                labels,
+                mentions,
+                provenance=SentenceProvenance(line_nums[0], source_name),
+            )
+            document.append(sentences)
 
         # Yield final document if non-empty
         if document:
@@ -155,7 +151,7 @@ class CoNLLIngester:
 
             # Validate
             document_results.append(
-                validate_sentence(tokens, labels, line_nums, self.encoding)
+                validate_labels(labels, self.encoding, tokens=tokens, line_nums=line_nums)
             )
 
         if document_results:
@@ -355,7 +351,7 @@ def write_doc_using_encoding(
         print(file=file)
 
     for sentence in doc:
-        labels = encoding.encode_mentions(sentence, sentence.mentions)
+        labels = encoding.encode_sentence(sentence)
         for token, label in zip(sentence.tokens, labels):
             print(f"{token}{delim}{label}", file=file)
         print(file=file)

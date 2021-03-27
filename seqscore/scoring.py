@@ -3,14 +3,9 @@ from typing import DefaultDict, Optional, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
 
-from seqscore.encoding import (
-    Encoding,
-    EncodingError,
-    LabeledSentence,
-    Mention,
-    get_encoding,
-    validate_sentence,
-)
+from seqscore.encoding import Encoding, EncodingError, get_encoding
+from seqscore.model import LabeledSentence, Mention
+from seqscore.validation import validate_labels
 
 
 def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore"]:
@@ -208,7 +203,7 @@ def score_sentence_mentions(
             score.type_scores[pred.type].false_neg += 1
 
 
-# TODO: Consider taking an iterable and checking lengths
+# TODO: Consider taking an iterable and checking sentence lengths
 def score_label_sequences(
     pred_label_sequences: Sequence[Sequence[str]],
     ref_label_sequences: Sequence[Sequence[str]],
@@ -224,22 +219,17 @@ def score_label_sequences(
     for pred_labels, ref_labels in zip(pred_label_sequences, ref_label_sequences):
         # This takes care of checking that the lengths match
         score_sentence_labels(pred_labels, ref_labels, accuracy_score)
-        pred_sentence = _repair_label_sequence(pred_labels, encoder, repair)
-        ref_sentence = _repair_label_sequence(ref_labels, encoder, repair)
-        score_sentence_mentions(
-            pred_sentence.mentions, ref_sentence.mentions, classifcation_score
-        )
+        pred_mentions = _repair_label_sequence(pred_labels, encoder, repair)
+        ref_mentions = _repair_label_sequence(ref_labels, encoder, repair)
+        score_sentence_mentions(pred_mentions, ref_mentions, classifcation_score)
 
     return classifcation_score, accuracy_score
 
 
 def _repair_label_sequence(
     labels: Sequence[str], encoder: Encoding, repair: Optional[str]
-) -> LabeledSentence:
-    # To score the mentions, we need to make a fake sentence
-    tokens = ["<token>"] * len(labels)
-    line_nums = list(range(len(labels)))
-    validation = validate_sentence(tokens, labels, line_nums, encoder, repair=repair)
+) -> Sequence[Mention]:
+    validation = validate_labels(labels, encoder, repair=repair)
     if not validation.is_valid():
         if repair:
             labels = validation.repaired_labels
@@ -250,6 +240,4 @@ def _repair_label_sequence(
                 + "Errors:\n"
                 + "\n".join(err.msg for err in validation.errors)
             )
-    orig_sentence = LabeledSentence(tokens, labels)
-    final_sentence = orig_sentence.with_mentions(encoder.decode_mentions(orig_sentence))
-    return final_sentence
+    return encoder.decode_labels(labels)

@@ -1,185 +1,86 @@
 from abc import abstractmethod
-from typing import (
-    AbstractSet,
-    Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Protocol,
-    Sequence,
-    Tuple,
-    Union,
-    overload,
-)
+from typing import AbstractSet, Dict, List, Optional, Protocol, Sequence, Tuple
 
-from attr import Attribute, attrib, attrs, validators
+from attr import Factory, attrib, attrs
+
+from seqscore.model import LabeledSentence, Mention, Span
 
 REPAIR_CONLL = "conlleval"
 REPAIR_DISCARD = "discard"
 REPAIR_NONE = "none"
-SUPPORTED_REPAIRS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
+SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
 
 
-def _validator_nonnegative(_inst: Any, _attr: Attribute, value: Any) -> None:
-    if value < 0:
-        raise ValueError(f"Negative value: {repr(value)}")
+class EncodingDialect(Protocol):
+    label_delim: str
+    outside: str
+    begin: Optional[str]
+    inside: Optional[str]
+    end: Optional[str]
+    single: Optional[str]
 
 
-# Instantiate in advance for _validator_optional_nonempty_str
-_optional_instance_of_str = validators.optional(validators.instance_of(str))
+class BIOESDialect(EncodingDialect):
+    def __init__(self):
+        self.label_delim = "-"
+        self.begin = "B"
+        self.inside = "I"
+        self.outside = "O"
+        self.end = "E"
+        self.single = "S"
 
 
-def _validator_optional_nonempty_str(_inst: Any, attr: Attribute, value: Any) -> None:
-    # Check type
-    _optional_instance_of_str(value, attr, value)
-    # Check string isn't empty
-    if not value:
-        raise ValueError(f"Empty string: {repr(value)}")
+class BILOUDialect(BIOESDialect):
+    def __init__(self):
+        super().__init__()
+        self.end = "L"
+        self.single = "U"
 
 
-# Type-specific implementations to work around type checker limitations. No, writing these as
-# generic functions with type variables does not satisfy all type checkers.
-def _tuplify_strs(strs: Iterable[str]) -> Tuple[str, ...]:
-    return tuple(strs)
+class BMESDialect(BIOESDialect):
+    def __init__(self):
+        super().__init__()
+        self.inside = "M"
 
 
-def _tuplify_mentions(
-    mentions: Iterable["Mention"],
-) -> Tuple["Mention", ...]:
-    return tuple(mentions)
-
-
-@attrs(frozen=True, slots=True)
-class Span:
-    start: int = attrib(validator=_validator_nonnegative)
-    end: int = attrib(validator=_validator_nonnegative)
-
-
-@attrs(frozen=True, slots=True)
-class Mention:
-    span: Span = attrib()
-    type: str = attrib()
-
-
-@attrs(frozen=True, slots=True)
-class SentenceProvenance:
-    starting_line: int = attrib()
-    source: Optional[str] = attrib()
-
-
-@attrs(frozen=True, slots=True)
-class LabeledSentence(Sequence[str]):
-    tokens: Tuple[str, ...] = attrib(converter=_tuplify_strs)
-    labels: Tuple[str, ...] = attrib(converter=_tuplify_strs)
-    mentions: Tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
-    provenance: Optional[SentenceProvenance] = attrib(
-        default=None, eq=False, kw_only=True
-    )
-
-    def __attrs_post_init__(self):
-        if len(self.tokens) != len(self.labels):
-            raise ValueError(
-                f"Tokens ({len(self.tokens)}) and labels ({len(self.labels)}) "
-                "must be of the same length"
-            )
-        if not self.tokens:
-            raise ValueError("Tokens and labels must be non-empty")
-
-        for label in self.labels:
-            # Labels cannot be None or an empty string
-            if not label:
-                raise ValueError(f"Invalid label: {repr(label)}")
-
-        for token in self.tokens:
-            # Labels cannot be None or an empty string
-            if not token:
-                raise ValueError(f"Invalid token: {repr(token)}")
-
-    def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSentence":
-        return LabeledSentence(
-            self.tokens, self.labels, mentions, provenance=self.provenance
-        )
-
-    @overload
-    def __getitem__(self, index: int) -> str:
-        raise NotImplementedError
-
-    @overload
-    def __getitem__(self, index: slice) -> Tuple[str, ...]:
-        raise NotImplementedError
-
-    def __getitem__(self, i: Union[int, slice]) -> Union[str, Tuple[str, ...]]:
-        return self.tokens[i]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.tokens)
-
-    def __len__(self) -> int:
-        # Guaranteed that labels and tokens are same length by construction
-        return len(self.tokens)
-
-    def __str__(self) -> str:
-        return " ".join(
-            "/".join((token, label)) for token, label in zip(self.tokens, self.labels)
-        )
-
-    def tokens_with_labels(self) -> Tuple[Tuple[str, str], ...]:
-        return tuple(zip(self.tokens, self.labels))
-
-    def span_tokens(self, span: Span) -> Tuple[str, ...]:
-        return self.tokens[span.start : span.end]
-
-    def mention_tokens(self, mention: Mention) -> Tuple[str, ...]:
-        return self.span_tokens(mention.span)
-
-
-@attrs
-class _EncoderToken:
-    entity_type: Optional[str] = attrib(validator=_validator_optional_nonempty_str)
-    begin: bool = attrib(default=False, kw_only=True)
-    inside: bool = attrib(default=False, kw_only=True)
-    end: bool = attrib(default=False, kw_only=True)
-    only: bool = attrib(default=False, kw_only=True)
-
-    def __attrs_post_init__(self) -> None:
-        # Make sure that exactly one of the flags is set
-        count = (
-            self.begin,
-            self.inside,
-            self.end,
-            self.only,
-        ).count(True)
-        if count != 1:
-            raise ValueError(
-                f"Exactly one token flag should be set, found {count}: {repr(self)}"
-            )
+class BMEOWDialect(BMESDialect):
+    def __init__(self):
+        super().__init__()
+        self.single = "W"
 
 
 class Encoding(Protocol):
-    label_delim: str = "-"
-    outside: str = "O"
+    dialect: EncodingDialect
 
     valid_same_type_transitions: AbstractSet[Tuple[str, str]]
     valid_different_type_transitions: AbstractSet[Tuple[str, str]]
 
     def split_label(self, label: str) -> Tuple[str, Optional[str]]:
-        splits = label.split(self.label_delim, maxsplit=1)
+        splits = label.split(self.dialect.label_delim, maxsplit=1)
         if len(splits) == 1:
+            if label != self.dialect.outside:
+                raise ValueError(f"Label {label} has no entity type but is not outside")
             return (label, None)
         elif len(splits) == 2:
             # Manually unpack just to appease type checking
             state, entity_type = splits
+            if state == self.dialect.outside:
+                raise ValueError(f"Label {label} has an entity type but is outside")
             return (state, entity_type)
-        else:
+        else:  # pragma: no cover
+            # Since maxsplit=1 for split, this is unreachable
             raise ValueError("Cannot parse label {!r}".format(label))
 
-    def join_label(self, state: str, entity_type: str) -> str:
+    def join_label(self, state: str, entity_type: Optional[str]) -> str:
         if entity_type:
-            return state + self.label_delim + entity_type
+            assert (
+                state != self.dialect.outside
+            ), "Entity type must be None for outside state"
+            return state + self.dialect.label_delim + entity_type
         else:
-            assert state == self.outside
+            assert (
+                state == self.dialect.outside
+            ), "Entity type cannot be None for non-outside states"
             return state
 
     def is_valid_transition(
@@ -196,6 +97,10 @@ class Encoding(Protocol):
             return transition in self.valid_different_type_transitions
 
     @abstractmethod
+    def is_valid_state(self, state: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def repair_labels(
         self,
         labels: Sequence[str],
@@ -203,188 +108,292 @@ class Encoding(Protocol):
     ) -> Sequence[str]:
         raise NotImplementedError
 
-    # TODO: Consider getting the mentions from the sentence
     @abstractmethod
     def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[Mention]
+        self, mentions: Sequence[Mention], sequence_length: int
     ) -> Sequence[str]:
         raise NotImplementedError
 
+    def encode_sentence(
+        self,
+        sentence: LabeledSentence,
+    ) -> Sequence[str]:
+        return self.encode_mentions(sentence.mentions, len(sentence))
+
     @abstractmethod
-    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
         raise NotImplementedError
+
+    def decode_sentence(self, sentence: LabeledSentence) -> List[Mention]:
+        return self.decode_labels(sentence.labels)
 
 
 class EncodingError(Exception):
     pass
 
 
-@attrs
-class MentionBuilder:
-    tokens: Tuple[str, ...] = attrib(converter=_tuplify_strs)
-
-    start_idx: Optional[int] = attrib(default=None, init=False)
-    entity_type: Optional[str] = attrib(default=None, init=False)
-
-    def start_mention(self, start_idx: int, entity_type: str) -> None:
-        # Check arguments
-        assert start_idx >= 0
-        assert entity_type
-
-        # Check state
-        if self.start_idx is not None:
-            raise EncodingError(
-                f"Mention has already been started at index {self.start_idx}"
-            )
-        if self.entity_type is not None:
-            raise EncodingError(
-                f"Mention has already been started with type {self.entity_type}"
-            )
-
-        self.start_idx = start_idx
-        self.entity_type = entity_type
-
-    def end_mention(self, end_idx: int) -> Mention:
-        # Since end index is exclusive, cannot be zero
-        assert end_idx > 0
-
-        # Check state
-        if self.start_idx is None:
-            raise ValueError("No mention start index")
-        if self.entity_type is None:
-            raise ValueError("No mention entity type")
-
-        mention = Mention(Span(self.start_idx, end_idx), self.entity_type)
-
-        self.start_idx = None
-        self.entity_type = None
-
-        return mention
-
-    def in_mention(self) -> bool:
-        return self.start_idx is not None
-
-
 class IO(Encoding):
-    def __init__(self):
-        self.inside = "I"
+    def __init__(self, dialect: EncodingDialect):
+        self.dialect: EncodingDialect = dialect
 
-        self.valid_same_type_transitions = frozenset((("I", "I"), ("O", "O")))
+        inside = dialect.inside
+        outside = dialect.outside
+
+        self.valid_same_type_transitions = frozenset(
+            ((inside, inside), (outside, outside))
+        )
         self.valid_different_type_transitions = frozenset(
-            (("I", "I"), ("O", "I"), ("I", "O"))
+            ((inside, inside), (outside, inside), (inside, outside))
         )
 
+        self._valid_states = {inside, outside}
+
+    def is_valid_state(self, state: str) -> bool:
+        return state in self._valid_states
+
     def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[Mention]
+        self, mentions: Sequence[Mention], sequence_length: int
     ) -> Sequence[str]:
-        length = len(sentence)
-        output_labels = [self.outside] * length
+        inside = self.dialect.inside
+        outside = self.dialect.outside
+        output_labels = [outside] * sequence_length
 
         for mention in mentions:
             span = mention.span
-            label = self.join_label(self.inside, mention.type)
+            label = self.join_label(inside, mention.type)
             output_labels[span.start] = label
             for idx in range(span.start + 1, span.end):
                 output_labels[idx] = label
 
         return output_labels
 
-    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
+    def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
         raise NotImplementedError
 
-    def repair_labels(
-        self,
-        labels: Sequence[str],
-        method: str,
-    ) -> Sequence[str]:
-        raise NotImplementedError
+    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+        builder = _MentionBuilder()
 
-
-class IOB(IO):
-    def __init__(self):
-        super().__init__()
-        self.begin = "B"
-
-        self.valid_same_type_transitions = frozenset(
-            (("B", "B"), ("B", "I"), ("I", "I"), ("I", "B"), ("O", "O"))
-        )
-        self.valid_different_type_transitions = frozenset(
-            (
-                # You might think I->B is allowed for different types, but it isn't.
-                # Correctly-encoded IOB only uses B for I-X to B-X (same-type) transitions.
-                ("B", "I"),
-                ("B", "O"),
-                ("I", "I"),
-                ("I", "O"),
-                ("O", "I"),
-            )
-        )
-
-    def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[Mention]
-    ) -> Sequence[str]:
-        raise NotImplementedError
-
-    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
-        raise NotImplementedError
-
-    def repair_labels(
-        self,
-        labels: Sequence[str],
-        method: str,
-    ) -> Sequence[str]:
-        raise NotImplementedError
-
-
-class BIO(IO):
-    def __init__(self):
-        super().__init__()
-        self.begin = "B"
-
-        self.valid_same_type_transitions = frozenset(
-            (("B", "I"), ("B", "B"), ("I", "I"), ("I", "B"), ("O", "O"))
-        )
-        self.valid_different_type_transitions = frozenset(
-            (("B", "B"), ("B", "O"), ("I", "B"), ("I", "O"), ("O", "B"))
-        )
-
-    def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[Mention]
-    ) -> Sequence[str]:
-        length = len(sentence)
-        output_labels = [self.outside] * length
-
-        for mention in mentions:
-            span = mention.span
-            start_label = self.join_label(self.begin, mention.type)
-            output_labels[span.start] = start_label
-            inside_label = self.join_label(self.inside, mention.type)
-            for idx in range(span.start + 1, span.end):
-                output_labels[idx] = inside_label
-
-        return output_labels
-
-    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
-        mentions: List[Mention] = []
-        builder = MentionBuilder(sentence.tokens)
+        inside = self.dialect.inside
+        outside = self.dialect.outside
 
         # We define this just to make it clear it will be defined regardless of the loop running,
         # even though it's guaranteed to run since sentences cannot be empty by construction.
         idx = 0
 
-        for idx, (token, label) in enumerate(zip(sentence.tokens, sentence.labels)):
+        for idx, label in enumerate(labels):
+            state, entity_type = self.split_label(label)
+
+            if state == inside:
+                if builder.in_mention():
+                    if entity_type != builder.entity_type:
+                        # End mention, start new one
+                        builder.end_mention(idx)
+                        builder.start_mention(idx, entity_type)
+                    # Otherwise, nothing to do, just continue
+                else:
+                    # Begin new mention
+                    builder.start_mention(idx, entity_type)
+            else:
+                assert state == outside
+                # End previous mention if needed
+                if builder.in_mention():
+                    builder.end_mention(idx)
+
+        # Finish the last mention if needed
+        if builder.in_mention():
+            builder.end_mention(idx + 1)
+
+        assert not builder.in_mention()
+        return builder.mentions
+
+
+class IOB(Encoding):
+    def __init__(self, dialect: EncodingDialect):
+        self.dialect = dialect
+
+        inside = dialect.inside
+        outside = dialect.outside
+        begin = dialect.begin
+
+        self.valid_same_type_transitions = frozenset(
+            (
+                (begin, begin),
+                (begin, inside),
+                (inside, inside),
+                (inside, begin),
+                (outside, outside),
+            )
+        )
+        self.valid_different_type_transitions = frozenset(
+            (
+                # You might think I->B is allowed for different types, but it isn't.
+                # Correctly-encoded IOB only uses B for I-X to B-X (same-type) transitions.
+                (begin, inside),
+                (begin, outside),
+                (inside, inside),
+                (inside, outside),
+                (outside, inside),
+            )
+        )
+
+        self._valid_states = {inside, outside, begin}
+
+    def is_valid_state(self, state: str) -> bool:
+        return state in self._valid_states
+
+    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+        builder = _MentionBuilder()
+
+        inside = self.dialect.inside
+        outside = self.dialect.outside
+        begin = self.dialect.begin
+
+        # We define this just to make it clear it will be defined regardless of the loop running,
+        # even though it's guaranteed to run since sentences cannot be empty by construction.
+        idx = 0
+
+        for idx, label in enumerate(labels):
+            state, entity_type = self.split_label(label)
+
+            if state == begin:
+                # Begin only allowed if previous entity type is the same as current
+                if not builder.in_mention() or (
+                    builder.in_mention() and entity_type != builder.entity_type
+                ):
+                    raise EncodingError(
+                        "Begin only allowed after a mention of the same type"
+                    )
+                builder.end_mention(idx)
+                builder.start_mention(idx, entity_type)
+            elif state == inside:
+                if builder.in_mention():
+                    if entity_type != builder.entity_type:
+                        # End mention, start new one
+                        builder.end_mention(idx)
+                        builder.start_mention(idx, entity_type)
+                    # Otherwise, nothing to do, just continue
+                else:
+                    # Begin new mention
+                    builder.start_mention(idx, entity_type)
+            else:
+                assert state == outside
+                # End previous mention if needed
+                if builder.in_mention():
+                    builder.end_mention(idx)
+
+        # Finish the last mention if needed
+        if builder.in_mention():
+            builder.end_mention(idx + 1)
+
+        assert not builder.in_mention()
+        return builder.mentions
+
+    def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
+        raise NotImplementedError
+
+    def encode_mentions(
+        self, mentions: Sequence[Mention], sequence_length: int
+    ) -> Sequence[str]:
+        begin = self.dialect.begin
+        inside = self.dialect.inside
+        outside = self.dialect.outside
+        output_labels = [outside] * sequence_length
+
+        last_end: Optional[int] = None
+        last_type: Optional[str] = None
+        for mention in mentions:
+            span = mention.span
+
+            start_state = (
+                begin if span.start == last_end and mention.type == last_type else inside
+            )
+            start_label = self.join_label(start_state, mention.type)
+            output_labels[span.start] = start_label
+
+            inside_label = self.join_label(inside, mention.type)
+            for idx in range(span.start + 1, span.end):
+                output_labels[idx] = inside_label
+
+            last_end = span.end
+            last_type = mention.type
+
+        return output_labels
+
+
+class BIO(Encoding):
+    def __init__(self, dialect: EncodingDialect):
+        self.dialect = dialect
+
+        inside = dialect.inside
+        outside = dialect.outside
+        begin = dialect.begin
+
+        self.valid_same_type_transitions = frozenset(
+            (
+                (begin, inside),
+                (begin, begin),
+                (inside, inside),
+                (inside, begin),
+                (outside, outside),
+            )
+        )
+        self.valid_different_type_transitions = frozenset(
+            (
+                (begin, begin),
+                (begin, outside),
+                (inside, begin),
+                (inside, outside),
+                (outside, begin),
+            )
+        )
+        self._valid_states = {begin, inside, outside}
+
+    def is_valid_state(self, state: str) -> bool:
+        return state in self._valid_states
+
+    def encode_mentions(
+        self, mentions: Sequence[Mention], sequence_length: int
+    ) -> Sequence[str]:
+        begin = self.dialect.begin
+        inside = self.dialect.inside
+        outside = self.dialect.outside
+        output_labels = [outside] * sequence_length
+
+        for mention in mentions:
+            span = mention.span
+            start_label = self.join_label(begin, mention.type)
+            output_labels[span.start] = start_label
+
+            inside_label = self.join_label(inside, mention.type)
+            for idx in range(span.start + 1, span.end):
+                output_labels[idx] = inside_label
+
+        return output_labels
+
+    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+        builder = _MentionBuilder()
+
+        begin = self.dialect.begin
+        inside = self.dialect.inside
+        outside = self.dialect.outside
+
+        # We define this just to make it clear it will be defined regardless of the loop running,
+        # even though it's guaranteed to run since sentences cannot be empty by construction.
+        idx = 0
+
+        for idx, label in enumerate(labels):
             state, entity_type = self.split_label(label)
 
             # End mention if needed. This is independent of whether we choose to begin a new one.
             # We end a mention if we are in a mention and the current state is not continue.
-            if builder.in_mention() and state != self.inside:
-                mentions.append(builder.end_mention(idx))
+            if builder.in_mention() and state != inside:
+                builder.end_mention(idx)
 
             # Begin a mention if needed
-            if state == self.begin:
+            if state == begin:
                 builder.start_mention(idx, entity_type)
             # Check for valid continuation
-            elif state == self.inside:
+            elif state == inside:
                 if entity_type != builder.entity_type:
                     if builder.entity_type:
                         raise EncodingError(
@@ -396,27 +405,35 @@ class BIO(IO):
                 assert builder.in_mention()
             # No action needed for outside (since ending mentions is mentioned above) other than
             # checking state.
-            elif state == self.outside:
+            elif state == outside:
                 assert not builder.in_mention()
 
         # Finish the last mention if needed
         if builder.in_mention():
-            mentions.append(builder.end_mention(idx + 1))
+            builder.end_mention(idx + 1)
 
         assert not builder.in_mention()
-
-        return mentions
+        return builder.mentions
 
     def repair_labels(
         self,
         labels: Sequence[str],
         method: str,
     ) -> Sequence[str]:
+        if method == REPAIR_NONE:
+            raise ValueError(f"Cannot perform repair with method {repr(method)}")
+
+        if method not in SUPPORTED_REPAIR_METHODS:
+            raise ValueError(f"Unknown repair method {repr(method)}")
+
+        begin = self.dialect.begin
+        outside = self.dialect.outside
+
         # All of this is essentially the same as validation, but the labels can change during
         # iteration, so the design is slightly different.
 
-        # Treat sentence as if preceded by "O"
-        prev_label = self.outside
+        # Treat sentence as if preceded by outside
+        prev_label = outside
         prev_state, prev_entity_type = self.split_label(prev_label)
 
         # Range loop since we will modify the labels
@@ -432,12 +449,14 @@ class BIO(IO):
                 assert entity_type
                 if method == REPAIR_CONLL:
                     # Treat this as the beginning of a new chunk
-                    state = self.begin
+                    state = begin
                 elif method == REPAIR_DISCARD:
                     # Treat this as O
-                    state = self.outside
+                    state = outside
                     entity_type = None
-                else:
+                else:  # pragma: no cover
+                    # We can only hit this if we add something to SUPPORTED_REPAIR_METHODS but
+                    # fail to create a case for it
                     raise ValueError(f"Unrecognized repair method: {method}")
 
                 label = self.join_label(state, entity_type)
@@ -453,60 +472,129 @@ class BIO(IO):
         return repaired_labels
 
 
-class BIOES(BIO):
-    def __init__(self):
-        super().__init__()
-        self.end = "E"
-        self.only = "S"
+class BIOES(Encoding):
+    def __init__(self, dialect: EncodingDialect):
+        self.dialect = dialect
+
+        begin = dialect.begin
+        inside = dialect.inside
+        outside = dialect.outside
+        end = dialect.end
+        single = dialect.single
 
         self.valid_same_type_transitions = frozenset(
             (
-                ("B", "I"),
-                ("B", "E"),
-                ("B", "B"),
-                ("B", "S"),
-                ("I", "I"),
-                ("I", "E"),
-                ("E", "B"),
-                ("E", "S"),
-                ("O", "O"),
+                (begin, inside),
+                (begin, end),
+                (begin, begin),
+                (begin, single),
+                (inside, inside),
+                (inside, end),
+                (end, begin),
+                (end, single),
+                (single, begin),
+                (single, single),
+                (outside, outside),
             )
         )
         self.valid_different_type_transitions = frozenset(
             (
-                ("E", "B"),
-                ("E", "O"),
-                ("S", "S"),
-                ("S", "B"),
-                ("S", "O"),
-                ("S", "S"),
-                ("O", "B"),
-                ("O", "S"),
+                (end, begin),
+                (end, outside),
+                (end, single),
+                (single, begin),
+                (single, outside),
+                (single, single),
+                (outside, begin),
+                (outside, single),
             )
         )
 
-    def decode_mentions(self, sentence: LabeledSentence) -> List[Mention]:
+        self._valid_states = {begin, inside, outside, end, single}
+
+    def is_valid_state(self, state: str) -> bool:
+        return state in self._valid_states
+
+    def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
         raise NotImplementedError
 
+    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+        builder = _MentionBuilder()
+
+        begin = self.dialect.begin
+        inside = self.dialect.inside
+        outside = self.dialect.outside
+        end = self.dialect.end
+        single = self.dialect.single
+
+        for idx, label in enumerate(labels):
+            state, entity_type = self.split_label(label)
+
+            if state == single:
+                assert not builder.in_mention()
+                # Begin and end a mention
+                builder.start_mention(idx, entity_type)
+                builder.end_mention(idx + 1)
+            elif state == begin:
+                assert not builder.in_mention()
+                builder.start_mention(idx, entity_type)
+            elif state == end:
+                assert builder.in_mention()
+                builder.end_mention(idx + 1)
+            elif state == inside:
+                # Nothing to do but check state
+                assert builder.in_mention()
+            else:
+                # Nothing to do but check state
+                assert state == outside
+                assert not builder.in_mention()
+
+        # Since mentions are ended by single or end, we can't still be in a mention at the end
+        assert not builder.in_mention()
+
+        return builder.mentions
+
     def encode_mentions(
-        self, sentence: LabeledSentence, mentions: Sequence[Mention]
+        self, mentions: Sequence[Mention], sequence_length: int
     ) -> Sequence[str]:
-        raise NotImplementedError
+        begin = self.dialect.begin
+        inside = self.dialect.inside
+        end = self.dialect.end
+        single = self.dialect.single
+        outside = self.dialect.outside
+        output_labels = [outside] * sequence_length
+
+        for mention in mentions:
+            span = mention.span
+
+            if len(mention) == 1:
+                output_labels[span.start] = self.join_label(single, mention.type)
+            else:
+                start_label = self.join_label(begin, mention.type)
+                output_labels[span.start] = start_label
+
+                for idx in range(span.start + 1, span.end):
+                    # span.end is exclusive, so the index of the final label is -1
+                    state = end if idx == span.end - 1 else inside
+                    output_labels[idx] = self.join_label(state, mention.type)
+
+        return output_labels
 
 
 # Declared mid-file so it can refer to classes in file
 _ENCODING_NAMES: Dict[str, Encoding] = {
-    "BIO": BIO(),
-    "IO": IO(),
-    "IOB": IOB(),
-    "BIOES": BIOES(),
+    "BIO": BIO(BIOESDialect()),
+    "BIOES": BIOES(BIOESDialect()),
+    "BILOU": BIOES(BILOUDialect()),
+    "BMES": BIOES(BMESDialect()),
+    "BMEOW": BIOES(BMEOWDialect()),
+    "IO": IO(BIOESDialect()),
+    "IOB": IOB(BIOESDialect()),
 }
-VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(sorted(_ENCODING_NAMES))
-DECODING_SUPPORTED_ENCODINGS = ("BIO",)
-ENCODING_SUPPORTED_ENCODINGS = (
-    "BIO",
-    "IO",
-)
+# Note that the ordering here is what will appear on the command line options
+# All are supported for encoding and decoding, but in theory things could change
+ENCODING_SUPPORTED_ENCODINGS = tuple(_ENCODING_NAMES)
+DECODING_SUPPORTED_ENCODINGS = tuple(_ENCODING_NAMES)
 
 
 def get_encoding(name: str) -> Encoding:
@@ -518,87 +606,40 @@ def get_encoding(name: str) -> Encoding:
 
 
 @attrs
-class ValidationError:
-    msg: str = attrib()
-    label: str = attrib()
-    type: str = attrib()
-    state: str = attrib()
-    token: str = attrib()
-    line_num: int = attrib()
+class _MentionBuilder:
+    start_idx: Optional[int] = attrib(default=None, init=False)
+    entity_type: Optional[str] = attrib(default=None, init=False)
+    mentions: List[Mention] = attrib(default=Factory(list), init=False)
 
+    def start_mention(self, start_idx: int, entity_type: str) -> None:
+        # Check arguments
+        assert start_idx >= 0
+        assert entity_type
 
-@attrs
-class ValidationResult:
-    errors: Sequence[ValidationError] = attrib()
-    n_tokens: int = attrib()
-    repaired_labels: Optional[Tuple[str, ...]] = attrib(
-        converter=_tuplify_strs, default=()
-    )
+        # Check state
+        assert (
+            self.start_idx is None
+        ), f"Mention has already been started at index {self.start_idx}"
+        assert (
+            self.entity_type is None
+        ), f"Mention has already been started with type {self.entity_type}"
 
-    def is_valid(self) -> bool:
-        return not self.errors
+        self.start_idx = start_idx
+        self.entity_type = entity_type
 
-    def __len__(self):
-        return self.n_tokens
+    def end_mention(self, end_idx: int) -> None:
+        # Since end index is exclusive, cannot be zero
+        assert end_idx > 0
 
+        # Check state
+        assert self.start_idx is not None, "No mention start index"
+        assert self.entity_type is not None, "No mention entity type"
 
-def validate_sentence(
-    tokens: Sequence[str],
-    labels: Sequence[str],
-    line_nums: Sequence[int],
-    encoding: Encoding,
-    *,
-    repair: Optional[str] = None,
-) -> ValidationResult:
-    if not (len(tokens) == len(labels) == len(line_nums)):
-        raise ValueError("Tokens, labels, and line numbers must be the same length")
-    if not tokens:
-        raise ValueError("Cannot validate empty sequences")
+        mention = Mention(Span(self.start_idx, end_idx), self.entity_type)
+        self.mentions.append(mention)
 
-    errors: List[ValidationError] = []
+        self.start_idx = None
+        self.entity_type = None
 
-    # Treat sentence as if preceded by "O"
-    prev_label = encoding.outside
-    prev_state, prev_entity_type = encoding.split_label(prev_label)
-    # We initialize these to avoid warnings about them being uninitialized if the loop doesn't
-    # run, but since we have checked for an empty sequence, the loop is guaranteed to run.
-    token, label, line_num = "DUMMY_TOKEN", "DUMMY_LABEL", -1
-    prev_token = token
-    for token, label, line_num in zip(tokens, labels, line_nums):
-        state, entity_type = encoding.split_label(label)
-        if not encoding.is_valid_transition(
-            prev_state, prev_entity_type, state, entity_type
-        ):
-            msg = (
-                f"Invalid transition {prev_label} -> {label} for token {repr(token)} "
-                + f"on line {line_num}"
-            )
-            errors.append(
-                ValidationError(msg, label, entity_type, state, token, line_num)
-            )
-        prev_label, prev_state, prev_entity_type, prev_token = (
-            label,
-            state,
-            entity_type,
-            token,
-        )
-
-    # Treat sentence as if followed by "O"
-    label = encoding.outside
-    state, entity_type = encoding.split_label(label)
-    if not encoding.is_valid_transition(prev_state, prev_entity_type, state, entity_type):
-        msg = (
-            f"Invalid transition {prev_label} -> {label} "
-            + f"after token {prev_token} on line {line_num} at end of sentence"
-        )
-        errors.append(
-            ValidationError(
-                msg, prev_label, prev_entity_type, prev_state, prev_token, line_num
-            )
-        )
-
-    if errors and repair:
-        repaired_labels = encoding.repair_labels(labels, repair)
-        return ValidationResult(errors, len(tokens), repaired_labels)
-    else:
-        return ValidationResult(errors, len(tokens))
+    def in_mention(self) -> bool:
+        return self.start_idx is not None

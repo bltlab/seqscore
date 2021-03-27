@@ -14,9 +14,9 @@ from seqscore.encoding import (
     DECODING_SUPPORTED_ENCODINGS,
     ENCODING_SUPPORTED_ENCODINGS,
     REPAIR_NONE,
-    SUPPORTED_REPAIRS,
-    VALIDATION_SUPPORTED_ENCODINGS,
+    SUPPORTED_REPAIR_METHODS,
 )
+from seqscore.validation import VALIDATION_SUPPORTED_ENCODINGS
 
 
 @click.group()
@@ -42,7 +42,9 @@ def _input_file_arguments(func: Callable) -> Callable:
 
 def _repair_option() -> Callable:
     return click.option(
-        "--repair-method", default="conlleval", type=click.Choice(SUPPORTED_REPAIRS)
+        "--repair-method",
+        default="conlleval",
+        type=click.Choice(SUPPORTED_REPAIR_METHODS),
     )
 
 
