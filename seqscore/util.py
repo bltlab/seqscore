@@ -11,3 +11,7 @@ PathType = Union[str, Path, PathLike]
 # generic function with type variables does not satisfy all type checkers.
 def tuplify_strs(strs: Iterable[str]) -> Tuple[str, ...]:
     return tuple(strs)
+
+
+def tuplify_ints(ints: Iterable[int]) -> Tuple[int, ...]:
+    return tuple(ints)

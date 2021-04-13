@@ -3,7 +3,7 @@ from typing import Iterable, List, Optional, Sequence, Tuple
 from attr import attrib, attrs
 
 from seqscore.encoding import _ENCODING_NAMES, Encoding
-from seqscore.util import tuplify_strs
+from seqscore.util import tuplify_strs, tuplify_ints
 
 # All encodings can be validated
 VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(_ENCODING_NAMES)
@@ -38,6 +38,9 @@ class SequenceValidationResult:
     repaired_labels: Optional[Tuple[str, ...]] = attrib(
         converter=tuplify_strs, default=()
     )
+    tokens: Optional[Tuple[str, ...]] = attrib(converter=tuplify_strs, default=None)
+    labels: Optional[Tuple[str, ...]] = attrib(converter=tuplify_strs, default=None)
+    line_nums: Optional[Tuple[int, ...]] = attrib(converter=tuplify_ints, default=None)
 
     def is_valid(self) -> bool:
         return not self.errors
@@ -153,6 +156,10 @@ def validate_labels(
 
     if errors and repair:
         repaired_labels = encoding.repair_labels(labels, repair)
-        return SequenceValidationResult(errors, len(labels), repaired_labels)
+        return SequenceValidationResult(errors, len(labels), repaired_labels,
+                                tokens=tokens, labels=labels, line_nums=line_nums
+                                )
     else:
-        return SequenceValidationResult(errors, len(labels))
+        return SequenceValidationResult(errors, len(labels),
+                                tokens=tokens, labels=labels, line_nums=line_nums
+                                )
