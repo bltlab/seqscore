@@ -26,7 +26,7 @@ def cli():
 
 def _input_file_options() -> List[Callable]:
     return [
-        click.option("--file-encoding", default="UTF-8"),
+        click.option("--file-encoding", default="UTF-8", show_default=True),
         click.option("--ignore-comment-lines", is_flag=True),
         click.option(
             "--ignore-document-boundaries/--use-document-boundaries", default=True
@@ -61,6 +61,7 @@ def _repair_option() -> Callable:
         "--repair-method",
         default="conlleval",
         type=click.Choice(SUPPORTED_REPAIR_METHODS),
+        show_default=True,
     )
 
 
@@ -90,7 +91,7 @@ def validate(
 @_single_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
-@click.option("--output-delim", default=" ")
+@click.option("--output-delim", default=" ", help="[default: space")
 def repair(
     file: str,
     output_file: str,
@@ -118,7 +119,7 @@ def repair(
 @cli.command()
 @_single_input_file_arguments
 @click.argument("output_file")
-@click.option("--output-delim", default=" ")
+@click.option("--output-delim", default=" ", help="[default: space]")
 @click.option(
     "--input-labels", required=True, type=click.Choice(DECODING_SUPPORTED_ENCODINGS)
 )
@@ -157,7 +158,7 @@ def convert(
 @click.argument("output_file")
 @_repair_option()
 @click.option("--labels", required=True, type=click.Choice(DECODING_SUPPORTED_ENCODINGS))
-@click.option("--delim", default="\t")
+@click.option("--delim", default="\t", help="[default: tab]")
 def dump(
     file: str,
     file_encoding: str,
@@ -198,9 +199,12 @@ def dump(
 @click.option("--reference", required=True)
 @_repair_option()
 @click.option(
-    "--score-format", default="pretty", type=click.Choice(SUPPORTED_SCORE_FORMATS)
+    "--score-format",
+    default="pretty",
+    type=click.Choice(SUPPORTED_SCORE_FORMATS),
+    show_default=True,
 )
-@click.option("--delim", default="\t")
+@click.option("--delim", default="\t", help="[default: tab]")
 @click.option("--quiet", "-q", is_flag=True)
 def score(
     file: List[str],
