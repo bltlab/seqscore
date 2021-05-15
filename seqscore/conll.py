@@ -55,7 +55,12 @@ class CoNLLIngester:
     ignore_document_boundaries: bool = attrib(default=True, kw_only=True)
 
     def ingest(
-        self, source: TextIO, source_name: str, repair: Optional[str]
+        self,
+        source: TextIO,
+        source_name: str,
+        repair: Optional[str],
+        *,
+        quiet: bool = False,
     ) -> Iterable[List[LabeledSequence]]:
         document_counter = 0
         document: List[LabeledSequence] = []
@@ -85,18 +90,19 @@ class CoNLLIngester:
             )
             if not validation.is_valid():
                 if repair:
-                    msg = (
-                        [
-                            f"Validation errors in sequence at line {line_nums[0]} of {source_name}:"
-                        ]
-                        + [error.msg for error in validation.errors]
-                        + [
-                            f"Used method {repair} to repair:",
-                            f"Old: {labels}",
-                            f"New: {validation.repaired_labels}",
-                        ]
-                    )
-                    print("\n".join(msg), file=sys.stderr)
+                    if not quiet:
+                        msg = (
+                            [
+                                f"Validation errors in sequence at line {line_nums[0]} of {source_name}:"
+                            ]
+                            + [error.msg for error in validation.errors]
+                            + [
+                                f"Used method {repair} to repair:",
+                                f"Old: {labels}",
+                                f"New: {validation.repaired_labels}",
+                            ]
+                        )
+                        print("\n".join(msg), file=sys.stderr)
                     labels = validation.repaired_labels
                 else:
                     raise EncodingError(
@@ -229,6 +235,7 @@ def ingest_conll_file(
     repair: Optional[str] = None,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
+    quiet: bool = False,
 ) -> List[List[LabeledSequence]]:
     mention_encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
@@ -237,7 +244,7 @@ def ingest_conll_file(
         ignore_document_boundaries=ignore_document_boundaries,
     )
     with open(input_path, encoding=file_encoding) as input_file:
-        docs = list(ingester.ingest(input_file, str(input_path), repair))
+        docs = list(ingester.ingest(input_file, str(input_path), repair, quiet=quiet))
     return docs
 
 
@@ -358,7 +365,7 @@ def write_doc_using_encoding(
 
 
 def score_conll_files(
-    pred_file: PathType,
+    pred_files: Sequence[PathType],
     reference_file: PathType,
     repair: Optional[str],
     file_encoding: str,
@@ -367,17 +374,12 @@ def score_conll_files(
     ignore_comment_lines: bool,
     output_format: str,
     delim: str,
+    quiet: bool = False,
 ) -> None:
+    assert len(pred_files) > 0, "List of files to score cannot be empty"
+
     # We only support scoring BIO
     mention_encoding_name = "BIO"
-    pred_docs = ingest_conll_file(
-        pred_file,
-        mention_encoding_name,
-        file_encoding,
-        repair=repair,
-        ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
-    )
 
     ref_docs = ingest_conll_file(
         reference_file,
@@ -386,26 +388,80 @@ def score_conll_files(
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
+        quiet=quiet,
     )
 
-    class_scores, acc_scores = compute_scores(pred_docs, ref_docs)
+    # Flag for whether we're scoring multiple files
+    multi_files = len(pred_files) > 1
+    score_summaries = []
+    # Used to track whether this is the first summary for including the header for delim
+    first_summary = True
+    # Used to track how many field as in the header
+    header_len = -1
 
-    if output_format == FORMAT_CONLL:
-        summary = format_output_conlleval(class_scores, acc_scores)
-    elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
-        header, rows = format_output_table(class_scores)
-        if output_format == FORMAT_PRETTY:
-            summary = tabulate(rows, header, tablefmt="github", floatfmt="6.2f")
+    for pred_file in pred_files:
+        pred_docs = ingest_conll_file(
+            pred_file,
+            mention_encoding_name,
+            file_encoding,
+            repair=repair,
+            ignore_document_boundaries=ignore_document_boundaries,
+            ignore_comment_lines=ignore_comment_lines,
+            quiet=quiet,
+        )
+
+        class_scores, acc_scores = compute_scores(pred_docs, ref_docs)
+
+        if output_format == FORMAT_CONLL:
+            score_summaries.append(format_output_conlleval(class_scores, acc_scores))
+        elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
+            header, rows = format_output_table(class_scores)
+            if output_format == FORMAT_PRETTY:
+                score_summaries.append(
+                    tabulate(rows, header, tablefmt="github", floatfmt="6.2f")
+                )
+            else:
+                # Delimited output
+                # Write the header if needed
+                if first_summary:
+                    # Add filename to header if needed
+                    if multi_files:
+                        header = ["File"] + header
+                    score_summaries.append(delim.join(header))
+                    header_len = len(header)
+                    first_summary = False
+                else:
+                    # Add filename to row if needed
+                    if multi_files:
+                        rows = [[pred_file] + row for row in rows]
+                    # Double check that we have the same number of columns as the header. This
+                    # should be the case as long as the system doesn't produce a type that doesn't
+                    # exist in the reference.
+                    # TODO: Figure out how to handle a system producing a type not in the reference
+                    for row in rows:
+                        assert (
+                            len(row) == header_len
+                        ), "Row column count does not match header"
+                    score_summaries.extend(
+                        delim.join(str(item) for item in row) for row in rows
+                    )
         else:
-            # Since rows are a mix of types, we need to convert to string
-            summary = "\n".join(
-                [delim.join(header)]
-                + [delim.join(str(item) for item in row) for row in rows]
-            )
-    else:
-        raise ValueError(f"Unrecognized output format: {output_format}")
+            raise ValueError(f"Unrecognized output format: {output_format}")
 
-    print(summary)
+    # For delimited, just join all the rows
+    if output_format == FORMAT_DELIM:
+        print("\n".join(score_summaries))
+    else:
+        if not multi_files:
+            print(score_summaries[0])
+        else:
+            # Index because we care about when we're at the last entry
+            for idx, (filename, summary) in enumerate(zip(pred_files, score_summaries)):
+                print(filename)
+                print(summary)
+                # Don't print an extra trailing newline
+                if idx != len(pred_files) - 1:
+                    print()
 
 
 def format_output_conlleval(

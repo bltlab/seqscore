@@ -1,4 +1,4 @@
-from typing import Callable, Counter, Tuple
+from typing import Callable, Counter, List, Tuple
 
 import click
 
@@ -24,16 +24,32 @@ def cli():
     pass
 
 
-def _input_file_arguments(func: Callable) -> Callable:
-    # In order they can be used on the command line
-    decorators = [
-        click.argument("file", type=click.Path(dir_okay=False)),
+def _input_file_options() -> List[Callable]:
+    return [
         click.option("--file-encoding", default="UTF-8"),
         click.option("--ignore-comment-lines", is_flag=True),
         click.option(
             "--ignore-document-boundaries/--use-document-boundaries", default=True
         ),
     ]
+
+
+def _single_input_file_arguments(func: Callable) -> Callable:
+    # In order they can be used on the command line
+    decorators = [
+        click.argument("file", type=click.Path(dir_okay=False)),
+    ] + _input_file_options()
+    # Need to apply these backwards to match decorator application order
+    for decorator in decorators[::-1]:
+        func = decorator(func)
+    return func
+
+
+def _multi_input_file_arguments(func: Callable) -> Callable:
+    # In order they can be used on the command line
+    decorators = [
+        click.argument("file", type=click.Path(dir_okay=False), nargs=-1, required=True),
+    ] + _input_file_options()
     # Need to apply these backwards to match decorator application order
     for decorator in decorators[::-1]:
         func = decorator(func)
@@ -49,7 +65,7 @@ def _repair_option() -> Callable:
 
 
 @cli.command()
-@_input_file_arguments
+@_single_input_file_arguments
 @click.option(
     "--labels", required=True, type=click.Choice(VALIDATION_SUPPORTED_ENCODINGS)
 )
@@ -57,6 +73,7 @@ def validate(
     file: str,
     labels: str,
     file_encoding: str,
+    *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ):
@@ -70,7 +87,7 @@ def validate(
 
 
 @cli.command()
-@_input_file_arguments
+@_single_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
 @click.option("--output-delim", default=" ")
@@ -80,6 +97,7 @@ def repair(
     file_encoding: str,
     repair_method: str,
     output_delim: str,
+    *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ):
@@ -98,7 +116,7 @@ def repair(
 
 
 @cli.command()
-@_input_file_arguments
+@_single_input_file_arguments
 @click.argument("output_file")
 @click.option("--output-delim", default=" ")
 @click.option(
@@ -114,6 +132,7 @@ def convert(
     output_delim: str,
     input_labels: str,
     output_labels: str,
+    *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ):
@@ -134,7 +153,7 @@ def convert(
 
 
 @cli.command()
-@_input_file_arguments
+@_single_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
 @click.option("--labels", required=True, type=click.Choice(DECODING_SUPPORTED_ENCODINGS))
@@ -144,6 +163,7 @@ def dump(
     file_encoding: str,
     output_file: str,
     labels: str,
+    *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
     delim: str,
@@ -174,22 +194,25 @@ def dump(
 
 
 @cli.command()
-@_input_file_arguments
+@_multi_input_file_arguments
 @click.option("--reference", required=True)
 @_repair_option()
 @click.option(
     "--score-format", default="pretty", type=click.Choice(SUPPORTED_SCORE_FORMATS)
 )
 @click.option("--delim", default="\t")
+@click.option("--quiet", "-q", is_flag=True)
 def score(
-    file: str,
+    file: List[str],
     file_encoding: str,
+    *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
     reference: str,
     score_format: str,
     delim: str,
     repair_method: str,
+    quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
         repair_method = None
@@ -203,6 +226,7 @@ def score(
         ignore_comment_lines=ignore_comment_lines,
         output_format=score_format,
         delim=delim,
+        quiet=quiet,
     )
 
 
