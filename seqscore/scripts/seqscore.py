@@ -221,6 +221,9 @@ def score(
     if repair_method == REPAIR_NONE:
         repair_method = None
 
+    # Clean up the string r"\t" if it's been specified as the delim
+    delim = delim.replace(r"\t", "\t")
+
     score_conll_files(
         file,
         reference,
