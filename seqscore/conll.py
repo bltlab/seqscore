@@ -6,16 +6,11 @@ from typing import Any, Iterable, List, Optional, Sequence, TextIO, Tuple
 from attr import attrib, attrs
 from tabulate import tabulate
 
-from seqscore.encoding import (
-    SUPPORTED_REPAIR_ENCODINGS,
-    Encoding,
-    EncodingError,
-    get_encoding,
-)
+from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import LabeledSequence, SequenceProvenance
 from seqscore.scoring import AccuracyScore, ClassificationScore, compute_scores
 from seqscore.util import PathType
-from seqscore.validation import InvalidStateError, ValidationResult, validate_labels
+from seqscore.validation import ValidationResult, validate_labels
 
 DOCSTART = "-DOCSTART-"
 
@@ -252,13 +247,14 @@ def ingest_conll_file(
     ignore_comment_lines: bool,
     quiet: bool = False,
 ) -> List[List[LabeledSequence]]:
-    if repair and mention_encoding_name not in SUPPORTED_REPAIR_ENCODINGS:
+    mention_encoding = get_encoding(mention_encoding_name)
+
+    if repair and repair not in mention_encoding.supported_repair_methods():
         raise ValueError(
-            f"Cannot repair mention encoding {mention_encoding_name}.\n"
+            f"Cannot repair mention encoding {mention_encoding_name} using method {repair}.\n"
             + 'Set --repair-method to "none" for this encoding.'
         )
 
-    mention_encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         mention_encoding,
         ignore_comment_lines=ignore_comment_lines,
@@ -311,6 +307,7 @@ def validate_conll_file(
 def repair_conll_file(
     input_file: PathType,
     output_file: PathType,
+    mention_encoding_name: str,
     repair: Optional[str],
     file_encoding: str,
     output_delim: str,
@@ -318,8 +315,6 @@ def repair_conll_file(
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ) -> None:
-    # We only support repairing BIO
-    mention_encoding_name = "BIO"
     docs = ingest_conll_file(
         input_file,
         mention_encoding_name,

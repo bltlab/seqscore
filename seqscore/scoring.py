@@ -3,16 +3,9 @@ from typing import DefaultDict, Optional, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
 
-from seqscore.encoding import (
-    DECODING_SUPPORTED_ENCODINGS,
-    Encoding,
-    EncodingError,
-    get_encoding,
-)
+from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import LabeledSequence, Mention
 from seqscore.validation import validate_labels
-
-SCORING_SUPPORTED_ENCODINGS = DECODING_SUPPORTED_ENCODINGS
 
 
 def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore"]:

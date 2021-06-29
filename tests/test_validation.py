@@ -3,7 +3,7 @@ from typing import Dict, List
 import pytest
 from attr import attrs
 
-from seqscore.encoding import REPAIR_NONE, SUPPORTED_REPAIR_METHODS, get_encoding
+from seqscore.encoding import REPAIR_NONE, get_encoding
 from seqscore.validation import validate_labels
 
 
@@ -15,6 +15,11 @@ class RepairTest:
 
 
 BIO_REPAIRS = [
+    RepairTest(
+        ["I-PER"],
+        1,
+        {"conlleval": ["B-PER"], "discard": ["O"]},
+    ),
     RepairTest(
         ["I-PER", "I-PER"],
         1,
@@ -49,30 +54,80 @@ BIO_REPAIRS = [
         },
     ),
 ]
+IOB_REPAIRS = [
+    RepairTest(
+        ["B-PER"],
+        1,
+        {"conlleval": ["I-PER"]},
+    ),
+    RepairTest(
+        ["B-PER", "I-PER"],
+        1,
+        {"conlleval": ["I-PER", "I-PER"]},
+    ),
+    RepairTest(
+        ["O", "B-PER", "I-PER"],
+        1,
+        {"conlleval": ["O", "I-PER", "I-PER"]},
+    ),
+    RepairTest(
+        ["B-ORG", "B-PER", "I-PER"],
+        2,
+        {"conlleval": ["I-ORG", "I-PER", "I-PER"]},
+    ),
+    RepairTest(
+        ["I-ORG", "B-PER", "I-PER"],
+        1,
+        {"conlleval": ["I-ORG", "I-PER", "I-PER"]},
+    ),
+    RepairTest(
+        ["O", "I-ORG", "B-PER", "I-ORG"],
+        1,
+        {"conlleval": ["O", "I-ORG", "I-PER", "I-ORG"]},
+    ),
+    RepairTest(
+        ["O", "B-ORG", "B-PER", "I-PER"],
+        2,
+        {
+            "conlleval": ["O", "I-ORG", "I-PER", "I-PER"],
+        },
+    ),
+    RepairTest(
+        ["O", "B-ORG", "B-ORG", "I-PER"],
+        1,
+        {
+            "conlleval": ["O", "I-ORG", "B-ORG", "I-PER"],
+        },
+    ),
+]
+
+REPAIRS = {
+    "BIO": BIO_REPAIRS,
+    "IOB": IOB_REPAIRS,
+}
 
 
 def test_repair() -> None:
-    encoding = get_encoding("BIO")
-    for case in BIO_REPAIRS:
-        result = validate_labels(case.original_labels, encoding)
-        assert len(result) == case.n_errors
-        if case.n_errors:
-            assert not result.is_valid()
+    for encoding_name, repairs in REPAIRS.items():
+        encoding = get_encoding(encoding_name)
 
-        for method in SUPPORTED_REPAIR_METHODS:
-            if method == REPAIR_NONE:
-                # Cannot repair with method none
+        # Invalid repair method name
+        with pytest.raises(ValueError):
+            encoding.repair_labels(["O"], "unk")
+        assert "unk" not in encoding.supported_repair_methods()
+
+        for case in repairs:
+            result = validate_labels(case.original_labels, encoding)
+            assert len(result) == case.n_errors
+            if case.n_errors:
+                assert not result.is_valid()
+
+            for method, repaired in case.repaired_labels.items():
+                assert encoding.repair_labels(case.original_labels, method) == repaired
+
+                # Check that using no repair method raises an error
                 with pytest.raises(ValueError):
-                    encoding.repair_labels(case.original_labels, method)
-            else:
-                assert (
-                    encoding.repair_labels(case.original_labels, method)
-                    == case.repaired_labels[method]
-                )
-
-    # Invalid repair method name
-    with pytest.raises(ValueError):
-        encoding.repair_labels(["O"], "unk")
+                    encoding.repair_labels(case.original_labels, REPAIR_NONE)
 
 
 def test_validation_invalid_state() -> None:

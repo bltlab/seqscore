@@ -10,13 +10,7 @@ from seqscore.conll import (
     validate_conll_file,
     write_docs_using_encoding,
 )
-from seqscore.encoding import (
-    DECODING_SUPPORTED_ENCODINGS,
-    ENCODING_SUPPORTED_ENCODINGS,
-    REPAIR_NONE,
-    SUPPORTED_REPAIR_METHODS,
-)
-from seqscore.scoring import SCORING_SUPPORTED_ENCODINGS
+from seqscore.encoding import REPAIR_NONE, SUPPORTED_ENCODINGS, SUPPORTED_REPAIR_METHODS
 from seqscore.validation import VALIDATION_SUPPORTED_ENCODINGS
 
 
@@ -66,11 +60,13 @@ def _repair_option() -> Callable:
     )
 
 
+def _labels_option() -> Callable:
+    return click.option("--labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
+
+
 @cli.command()
 @_single_input_file_arguments
-@click.option(
-    "--labels", required=True, type=click.Choice(VALIDATION_SUPPORTED_ENCODINGS)
-)
+@_labels_option()
 def validate(
     file: str,
     labels: str,
@@ -92,10 +88,12 @@ def validate(
 @_single_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
+@_labels_option()
 @click.option("--output-delim", default=" ", help="[default: space")
 def repair(
     file: str,
     output_file: str,
+    labels: str,
     file_encoding: str,
     repair_method: str,
     output_delim: str,
@@ -109,6 +107,7 @@ def repair(
     repair_conll_file(
         file,
         output_file,
+        labels,
         repair_method,
         file_encoding,
         output_delim,
@@ -121,12 +120,8 @@ def repair(
 @_single_input_file_arguments
 @click.argument("output_file")
 @click.option("--output-delim", default=" ", help="[default: space]")
-@click.option(
-    "--input-labels", required=True, type=click.Choice(DECODING_SUPPORTED_ENCODINGS)
-)
-@click.option(
-    "--output-labels", required=True, type=click.Choice(ENCODING_SUPPORTED_ENCODINGS)
-)
+@click.option("--input-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
+@click.option("--output-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 def convert(
     file: str,
     output_file: str,
@@ -158,7 +153,7 @@ def convert(
 @_single_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
-@click.option("--labels", required=True, type=click.Choice(DECODING_SUPPORTED_ENCODINGS))
+@_labels_option()
 @click.option("--delim", default="\t", help="[default: tab]")
 def dump(
     file: str,
@@ -198,7 +193,7 @@ def dump(
 @cli.command()
 @_multi_input_file_arguments
 @click.option("--reference", required=True)
-@click.option("--labels", required=True, type=click.Choice(SCORING_SUPPORTED_ENCODINGS))
+@_labels_option()
 @_repair_option()
 @click.option(
     "--score-format",

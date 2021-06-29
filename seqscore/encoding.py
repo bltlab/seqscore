@@ -9,7 +9,6 @@ REPAIR_CONLL = "conlleval"
 REPAIR_DISCARD = "discard"
 REPAIR_NONE = "none"
 SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
-SUPPORTED_REPAIR_ENCODINGS = ("BIO",)
 
 
 class EncodingDialect(Protocol):
@@ -127,6 +126,9 @@ class Encoding(Protocol):
 
     def decode_sequence(self, sequence: LabeledSequence) -> List[Mention]:
         return self.decode_labels(sequence.labels)
+
+    def supported_repair_methods(self) -> Tuple[str, ...]:
+        return ()
 
 
 class EncodingError(Exception):
@@ -281,8 +283,50 @@ class IOB(Encoding):
         assert not builder.in_mention()
         return builder.mentions
 
-    def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
-        raise NotImplementedError
+    def repair_labels(
+        self,
+        labels: Sequence[str],
+        method: str,
+    ) -> Sequence[str]:
+        if method == REPAIR_NONE:
+            raise ValueError(f"Cannot perform repair with method {repr(method)}")
+
+        if method != REPAIR_CONLL:
+            raise ValueError(f"Only repair method {REPAIR_CONLL} is supported for IOB")
+
+        begin = self.dialect.begin
+        inside = self.dialect.inside
+
+        # Treat sequence as if preceded by outside
+        prev_label = self.dialect.outside
+        prev_state, prev_entity_type = self.split_label(prev_label)
+
+        # Range loop since we will modify the labels during iteration
+        repaired_labels = list(labels)
+        for idx in range(len(repaired_labels)):
+            label = repaired_labels[idx]
+
+            state, entity_type = self.split_label(label)
+            if not self.is_valid_transition(
+                prev_state, prev_entity_type, state, entity_type
+            ):
+                # The only invalid transition is O-B or mismatched type I-B or B-B. In all cases,
+                # the solution is changing B to I.
+                assert state == begin
+                assert entity_type
+                state = inside
+
+                label = self.join_label(state, entity_type)
+                repaired_labels[idx] = label
+
+            prev_label, prev_state, prev_entity_type = (
+                label,
+                state,
+                entity_type,
+            )
+
+        # Since IOB cannot have an illegal end-of sequence transition, no need to check
+        return repaired_labels
 
     def encode_mentions(
         self, mentions: Sequence[Mention], sequence_length: int
@@ -311,6 +355,9 @@ class IOB(Encoding):
             last_type = mention.type
 
         return output_labels
+
+    def supported_repair_methods(self) -> Tuple[str, ...]:
+        return (REPAIR_CONLL,)
 
 
 class BIO(Encoding):
@@ -422,14 +469,11 @@ class BIO(Encoding):
         begin = self.dialect.begin
         outside = self.dialect.outside
 
-        # All of this is essentially the same as validation, but the labels can change during
-        # iteration, so the design is slightly different.
-
         # Treat sequence as if preceded by outside
         prev_label = outside
         prev_state, prev_entity_type = self.split_label(prev_label)
 
-        # Range loop since we will modify the labels
+        # Range loop since we will modify the labels during iteration
         repaired_labels = list(labels)
         for idx in range(len(repaired_labels)):
             label = repaired_labels[idx]
@@ -463,6 +507,9 @@ class BIO(Encoding):
 
         # Since BIO cannot have an illegal end-of sequence transition, no need to check
         return repaired_labels
+
+    def supported_repair_methods(self) -> Tuple[str, ...]:
+        return (REPAIR_CONLL, REPAIR_DISCARD)
 
 
 class BIOES(Encoding):
@@ -586,8 +633,7 @@ _ENCODING_NAMES: Dict[str, Encoding] = {
 }
 # Note that the ordering here is what will appear on the command line options
 # All are supported for encoding and decoding, but in theory things could change
-ENCODING_SUPPORTED_ENCODINGS = tuple(_ENCODING_NAMES)
-DECODING_SUPPORTED_ENCODINGS = tuple(_ENCODING_NAMES)
+SUPPORTED_ENCODINGS = tuple(_ENCODING_NAMES)
 
 
 def get_encoding(name: str) -> Encoding:

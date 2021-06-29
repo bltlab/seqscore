@@ -7,10 +7,9 @@ from seqscore.encoding import (
     _ENCODING_NAMES,
     BIO,
     BIOES,
-    DECODING_SUPPORTED_ENCODINGS,
-    ENCODING_SUPPORTED_ENCODINGS,
     IO,
     IOB,
+    SUPPORTED_ENCODINGS,
     BILOUDialect,
     BIOESDialect,
     BMEOWDialect,
@@ -142,7 +141,7 @@ EDGE_TEST_SENTENCES = [
 
 
 def test_basic_decoding() -> None:
-    for encoding_name in DECODING_SUPPORTED_ENCODINGS:
+    for encoding_name in SUPPORTED_ENCODINGS:
         encoding = get_encoding(encoding_name)
         labels = FULL_SENTENCE_LABELS[encoding_name]
         mentions = (
@@ -152,7 +151,7 @@ def test_basic_decoding() -> None:
 
 
 def test_basic_encoding() -> None:
-    for encoding_name in ENCODING_SUPPORTED_ENCODINGS:
+    for encoding_name in SUPPORTED_ENCODINGS:
         encoding = get_encoding(encoding_name)
         labels = FULL_SENTENCE_LABELS[encoding_name]
         mentions = (
@@ -167,9 +166,7 @@ def test_basic_encoding() -> None:
 
 
 def test_round_trip() -> None:
-    for encoding_name in set(DECODING_SUPPORTED_ENCODINGS) & set(
-        ENCODING_SUPPORTED_ENCODINGS
-    ):
+    for encoding_name in set(SUPPORTED_ENCODINGS) & set(SUPPORTED_ENCODINGS):
         # Skip IO since it can't round-trip
         if encoding_name == "IO":
             continue
