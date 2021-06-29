@@ -6,11 +6,16 @@ from typing import Any, Iterable, List, Optional, Sequence, TextIO, Tuple
 from attr import attrib, attrs
 from tabulate import tabulate
 
-from seqscore.encoding import Encoding, EncodingError, get_encoding
+from seqscore.encoding import (
+    SUPPORTED_REPAIR_ENCODINGS,
+    Encoding,
+    EncodingError,
+    get_encoding,
+)
 from seqscore.model import LabeledSequence, SequenceProvenance
 from seqscore.scoring import AccuracyScore, ClassificationScore, compute_scores
 from seqscore.util import PathType
-from seqscore.validation import ValidationResult, validate_labels
+from seqscore.validation import InvalidStateError, ValidationResult, validate_labels
 
 DOCSTART = "-DOCSTART-"
 
@@ -89,6 +94,16 @@ class CoNLLIngester:
                 labels, self.encoding, repair=repair, tokens=tokens, line_nums=line_nums
             )
             if not validation.is_valid():
+                # Exit immediately if there are state errors
+                state_errors = validation.invalid_state_errors()
+                if state_errors:
+                    raise EncodingError(
+                        "Stopping due to invalid label(s) in sequence "
+                        + f"at line {line_nums[0]} of {source_name}:\n"
+                        + "\n".join(err.msg for err in state_errors)
+                        + "\nInvalid label errors cannot be repaired; correct your data instead."
+                    )
+
                 if repair:
                     if not quiet:
                         msg = (
@@ -237,6 +252,12 @@ def ingest_conll_file(
     ignore_comment_lines: bool,
     quiet: bool = False,
 ) -> List[List[LabeledSequence]]:
+    if repair and repair not in SUPPORTED_REPAIR_ENCODINGS:
+        raise ValueError(
+            f"Cannot repair mention encoding {mention_encoding_name}.\n"
+            + 'Set --repair-method to "none" for this encoding.'
+        )
+
     mention_encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         mention_encoding,
@@ -367,6 +388,7 @@ def write_doc_using_encoding(
 def score_conll_files(
     pred_files: Sequence[PathType],
     reference_file: PathType,
+    mention_encoding_name: str,
     repair: Optional[str],
     file_encoding: str,
     *,
@@ -377,9 +399,6 @@ def score_conll_files(
     quiet: bool = False,
 ) -> None:
     assert len(pred_files) > 0, "List of files to score cannot be empty"
-
-    # We only support scoring BIO
-    mention_encoding_name = "BIO"
 
     ref_docs = ingest_conll_file(
         reference_file,

@@ -19,6 +19,14 @@ class ValidationError:
     line_num: Optional[int] = attrib()
 
 
+class InvalidStateError(ValidationError):
+    pass
+
+
+class InvalidTransitionError(ValidationError):
+    pass
+
+
 @attrs
 class ValidationResult:
     errors: Sequence[ValidationError] = attrib()
@@ -29,6 +37,9 @@ class ValidationResult:
 
     def is_valid(self) -> bool:
         return not self.errors
+
+    def invalid_state_errors(self) -> List[InvalidStateError]:
+        return [error for error in self.errors if isinstance(error, InvalidStateError)]
 
     def __len__(self):
         return len(self.errors)
@@ -75,7 +86,7 @@ def validate_labels(
                 line_num = None
 
             errors.append(
-                ValidationError(msg, label, entity_type, state, token, line_num)
+                InvalidStateError(msg, label, entity_type, state, token, line_num)
             )
 
         if not encoding.is_valid_transition(
@@ -95,7 +106,7 @@ def validate_labels(
                 line_num = None
 
             errors.append(
-                ValidationError(msg, label, entity_type, state, token, line_num)
+                InvalidTransitionError(msg, label, entity_type, state, token, line_num)
             )
         prev_label, prev_state, prev_entity_type = (
             label,
@@ -123,7 +134,7 @@ def validate_labels(
         msg += " at end of sequence"
 
         errors.append(
-            ValidationError(
+            InvalidTransitionError(
                 msg, prev_label, prev_entity_type, prev_state, token, line_num
             )
         )

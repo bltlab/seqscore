@@ -16,6 +16,7 @@ from seqscore.encoding import (
     REPAIR_NONE,
     SUPPORTED_REPAIR_METHODS,
 )
+from seqscore.scoring import SCORING_SUPPORTED_ENCODINGS
 from seqscore.validation import VALIDATION_SUPPORTED_ENCODINGS
 
 
@@ -197,6 +198,7 @@ def dump(
 @cli.command()
 @_multi_input_file_arguments
 @click.option("--reference", required=True)
+@click.option("--labels", required=True, type=click.Choice(SCORING_SUPPORTED_ENCODINGS))
 @_repair_option()
 @click.option(
     "--score-format",
@@ -209,6 +211,7 @@ def dump(
 def score(
     file: List[str],
     file_encoding: str,
+    labels: str,
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
@@ -227,6 +230,7 @@ def score(
     score_conll_files(
         file,
         reference,
+        labels,
         repair_method,
         file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
