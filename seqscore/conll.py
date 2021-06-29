@@ -252,7 +252,7 @@ def ingest_conll_file(
     ignore_comment_lines: bool,
     quiet: bool = False,
 ) -> List[List[LabeledSequence]]:
-    if repair and repair not in SUPPORTED_REPAIR_ENCODINGS:
+    if repair and mention_encoding_name not in SUPPORTED_REPAIR_ENCODINGS:
         raise ValueError(
             f"Cannot repair mention encoding {mention_encoding_name}.\n"
             + 'Set --repair-method to "none" for this encoding.'
