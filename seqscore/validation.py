@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Iterable
 
 from attr import attrib, attrs
 
@@ -27,9 +27,13 @@ class InvalidTransitionError(ValidationError):
     pass
 
 
+def tuplify_errors(errors: Iterable[ValidationError]) -> Tuple[ValidationError, ...]:
+    return tuple(errors)
+
+
 @attrs
-class ValidationResult:
-    errors: Sequence[ValidationError] = attrib()
+class SequenceValidationResult:
+    errors: Sequence[ValidationError] = attrib(converter=tuplify_errors)
     n_tokens: int = attrib()
     repaired_labels: Optional[Tuple[str, ...]] = attrib(
         converter=tuplify_strs, default=()
@@ -45,6 +49,14 @@ class ValidationResult:
         return len(self.errors)
 
 
+@attrs(frozen=True)
+class ValidationResult:
+    errors: Sequence[ValidationError] = attrib(converter=tuplify_errors)
+    n_tokens: int = attrib()
+    n_sequences: int = attrib()
+    n_docs: int = attrib()
+
+
 def validate_labels(
     labels: Sequence[str],
     encoding: Encoding,
@@ -52,7 +64,7 @@ def validate_labels(
     repair: Optional[str] = None,
     tokens: Optional[Sequence[str]] = None,
     line_nums: Optional[Sequence[int]] = None,
-) -> ValidationResult:
+) -> SequenceValidationResult:
     assert not tokens or len(tokens) == len(
         labels
     ), "Tokens and labels must be the same length"
@@ -141,6 +153,6 @@ def validate_labels(
 
     if errors and repair:
         repaired_labels = encoding.repair_labels(labels, repair)
-        return ValidationResult(errors, len(labels), repaired_labels)
+        return SequenceValidationResult(errors, len(labels), repaired_labels)
     else:
-        return ValidationResult(errors, len(labels))
+        return SequenceValidationResult(errors, len(labels))

@@ -1,4 +1,5 @@
-from typing import Callable, Counter, List, Tuple
+import sys
+from typing import Callable, Counter, Tuple, List
 
 import click
 
@@ -11,7 +12,6 @@ from seqscore.conll import (
     write_docs_using_encoding,
 )
 from seqscore.encoding import REPAIR_NONE, SUPPORTED_ENCODINGS, SUPPORTED_REPAIR_METHODS
-from seqscore.validation import VALIDATION_SUPPORTED_ENCODINGS
 
 
 @click.group()
@@ -75,13 +75,25 @@ def validate(
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
 ):
-    validate_conll_file(
+    result = validate_conll_file(
         file,
         labels,
         file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
     )
+    if result.errors:
+        print(
+            f"Encountered {len(result.errors)} errors in {result.n_tokens} tokens, {result.n_sequences} sequences, "
+            + f"and {result.n_docs} documents in {file}"
+        )
+        print("\n".join(err.msg for err in result.errors))
+        sys.exit(1)
+    else:
+        print(
+            f"No errors found in {result.n_tokens} tokens, {result.n_sequences} sequences, "
+            + f"and {result.n_docs} documents in {file}"
+        )
 
 
 @cli.command()

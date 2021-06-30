@@ -10,7 +10,11 @@ from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import LabeledSequence, SequenceProvenance
 from seqscore.scoring import AccuracyScore, ClassificationScore, compute_scores
 from seqscore.util import PathType
-from seqscore.validation import ValidationResult, validate_labels
+from seqscore.validation import (
+    SequenceValidationResult,
+    validate_labels,
+    ValidationResult,
+)
 
 DOCSTART = "-DOCSTART-"
 
@@ -141,9 +145,11 @@ class CoNLLIngester:
             document_counter += 1
             yield document
 
-    def validate(self, source: TextIO, source_name: str) -> List[List[ValidationResult]]:
-        all_results: List[List[ValidationResult]] = []
-        document_results: List[ValidationResult] = []
+    def validate(
+        self, source: TextIO, source_name: str
+    ) -> List[List[SequenceValidationResult]]:
+        all_results: List[List[SequenceValidationResult]] = []
+        document_results: List[SequenceValidationResult] = []
 
         for source_sequence in self._parse_file(
             source, source_name, ignore_comments=self.ignore_comment_lines
@@ -272,7 +278,7 @@ def validate_conll_file(
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
-) -> None:
+) -> ValidationResult:
     encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         encoding,
@@ -290,18 +296,7 @@ def validate_conll_file(
                 result.errors for doc_results in results for result in doc_results
             )
         )
-        if errors:
-            print(
-                f"Encountered {len(errors)} errors in {n_tokens} tokens, {n_sequences} sequences, "
-                + f"and {n_docs} documents in {input_path}"
-            )
-            print("\n".join(err.msg for err in errors))
-            sys.exit(1)
-        else:
-            print(
-                f"No errors found in {n_tokens} tokens, {n_sequences} sequences, "
-                + f"and {n_docs} documents in {input_path}"
-            )
+        return ValidationResult(errors, n_tokens, n_sequences, n_docs)
 
 
 def repair_conll_file(
