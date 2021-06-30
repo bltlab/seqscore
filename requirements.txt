@@ -1,6 +1,7 @@
 attrs>=19.2.0
 click
 tabulate
+types-tabulate
 
 # For testing
 pytest
@@ -9,6 +10,6 @@ seqeval==1.2.2
 
 # For development
 black==21.5b1
-mypy==0.812
+mypy==0.910
 isort==5.8.0
 flake8==3.9.2
