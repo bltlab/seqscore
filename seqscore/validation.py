@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Tuple, Iterable
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 from attr import attrib, attrs
 

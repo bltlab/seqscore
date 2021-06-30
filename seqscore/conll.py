@@ -12,8 +12,8 @@ from seqscore.scoring import AccuracyScore, ClassificationScore, compute_scores
 from seqscore.util import PathType
 from seqscore.validation import (
     SequenceValidationResult,
-    validate_labels,
     ValidationResult,
+    validate_labels,
 )
 
 DOCSTART = "-DOCSTART-"

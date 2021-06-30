@@ -1,5 +1,5 @@
 import sys
-from typing import Callable, Counter, Tuple, List
+from typing import Callable, Counter, List, Tuple
 
 import click
 
