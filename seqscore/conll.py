@@ -1,7 +1,9 @@
 import decimal
 import sys
+from collections import defaultdict
 from itertools import chain
-from typing import Any, Iterable, List, Optional, Sequence, TextIO, Tuple
+from statistics import mean, stdev
+from typing import Any, DefaultDict, Iterable, List, Optional, Sequence, TextIO, Tuple
 
 from attr import attrib, attrs
 from tabulate import tabulate
@@ -375,6 +377,7 @@ def write_doc_using_encoding(
         print(file=file)
 
 
+# TODO: Refactor to remove CoNLL-specific file loading so that this can move to the scoring module
 def score_conll_files(
     pred_files: Sequence[PathType],
     reference_file: PathType,
@@ -402,10 +405,15 @@ def score_conll_files(
 
     # Flag for whether we're scoring multiple files
     multi_files = len(pred_files) > 1
+
+    # Data to accumulate across files
     score_summaries = []
+    all_class_scores = []
+    all_acc_scores = []
+
     # Used to track whether this is the first summary for including the header for delim
     first_summary = True
-    # Used to track how many field as in the header
+    # Used to track how many fields are in the header
     header_len = -1
 
     for pred_file in pred_files:
@@ -420,6 +428,8 @@ def score_conll_files(
         )
 
         class_scores, acc_scores = compute_scores(pred_docs, ref_docs)
+        all_class_scores.append(class_scores)
+        all_acc_scores.append(class_scores)
 
         if output_format == FORMAT_CONLL:
             score_summaries.append(format_output_conlleval(class_scores, acc_scores))
@@ -452,19 +462,68 @@ def score_conll_files(
                     assert (
                         len(row) == header_len
                     ), "Row column count does not match header"
-                score_summaries.extend(
-                    delim.join(str(item) for item in row) for row in rows
-                )
+                score_summaries.extend(_join_delim(row, delim) for row in rows)
         else:
             raise ValueError(f"Unrecognized output format: {output_format}")
 
     # For delimited, just join all the rows
     if output_format == FORMAT_DELIM:
+        if multi_files:
+            # Compute summary statistics
+            type_scores: DefaultDict[str, List] = defaultdict(list)
+            for class_score in all_class_scores:
+                for entity_type, entity_score in class_score.type_scores.items():
+                    type_scores[entity_type].append(entity_score.f1)
+
+            entity_type_means = {
+                entity_type: mean(scores) for entity_type, scores in type_scores.items()
+            }
+            entity_type_means["ALL"] = mean(score.f1 for score in all_class_scores)
+            entity_type_sds = {
+                entity_type: stdev(scores) for entity_type, scores in type_scores.items()
+            }
+            entity_type_sds["ALL"] = stdev(score.f1 for score in all_class_scores)
+
+            for entity_type, num in entity_type_sds.items():
+                score_summaries.append(
+                    # TODO: Change SD precision
+                    _join_delim(
+                        [
+                            "SD",
+                            entity_type,
+                            "NA",
+                            "NA",
+                            _pretty_format_num(num),
+                            "NA",
+                            "NA",
+                            "NA",
+                        ],
+                        delim,
+                    )
+                )
+            # Add aggregates
+            for entity_type, num in entity_type_means.items():
+                score_summaries.append(
+                    _join_delim(
+                        [
+                            "Mean",
+                            entity_type,
+                            "NA",
+                            "NA",
+                            _pretty_format_num(num),
+                            "NA",
+                            "NA",
+                            "NA",
+                        ],
+                        delim,
+                    )
+                )
         print("\n".join(score_summaries))
     else:
         if not multi_files:
             print(score_summaries[0])
         else:
+            # TODO: Sort out aggregates here?
             # Index because we care about when we're at the last entry
             for idx, (filename, summary) in enumerate(zip(pred_files, score_summaries)):
                 print(filename)
@@ -549,6 +608,7 @@ def format_output_table(
     return header, rows
 
 
+# TODO: This isn't correct for values < .10, it will add extra significant digits
 def _pretty_format_num(num: float) -> decimal.Decimal:
     with decimal.localcontext() as ctx:
         ctx.rounding = decimal.ROUND_HALF_UP
@@ -556,3 +616,10 @@ def _pretty_format_num(num: float) -> decimal.Decimal:
         dec = decimal.Decimal(num) * decimal.Decimal(100)
 
     return dec
+
+
+def _join_delim(items: Iterable[Any], delim: str) -> str:
+    return delim.join(str(item) for item in items)
+
+
+print(_pretty_format_num(0.0512345))

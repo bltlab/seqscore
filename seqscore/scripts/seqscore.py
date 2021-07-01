@@ -216,7 +216,7 @@ def dump(
 @click.option("--delim", default="\t", help="[default: tab]")
 @click.option("--quiet", "-q", is_flag=True)
 def score(
-    file: List[str],
+    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     labels: str,
     *,
