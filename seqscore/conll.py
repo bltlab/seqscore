@@ -620,6 +620,3 @@ def _pretty_format_num(num: float) -> decimal.Decimal:
 
 def _join_delim(items: Iterable[Any], delim: str) -> str:
     return delim.join(str(item) for item in items)
-
-
-print(_pretty_format_num(0.0512345))
