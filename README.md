@@ -19,9 +19,9 @@ For a list of commands, run `seqscore --help`.
 
 Some examples:
 ```
-seqscore score prediction_conll_file --reference reference_conll_file
-seqscore validate encoding input_conll_file
-seqscore dump encoding input_conll_file output_delim_file
+seqscore score --labels BIO --reference reference_conll_file prediction_conll_file 
+seqscore validate --labels BIO input_conll_file
+seqscore dump --labels BIO input_conll_file output_delim_file
 ```
 
 Scoring only supports BIO chunk encoding. Validation can be done for IO, BIO, and BIOES.
@@ -31,7 +31,6 @@ At the moment, `dump` only supports BIO, but support will be added for IO and BI
 # Features coming soon!
 
 * More documentation
-* Conversion between encodings (e.g. BIO<->BIOES)
 * More error analysis tools
 
 
