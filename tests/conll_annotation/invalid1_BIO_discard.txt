@@ -1,0 +1,17 @@
+This	O
+is	O
+a	O
+sentence	O
+.	O
+
+University	O
+of	O
+Pennsylvania	O
+is	O
+in	O
+West	O
+Philadelphia	O
+,	O
+Pennsylvania	O
+.	O
+
