@@ -60,8 +60,8 @@ class Encoding(Protocol):
         if len(splits) == 1:
             if label != self.dialect.outside:
                 raise EncodingError(
-                    f"Label {repr(label)} does not have a state and entity type " +
-                    f"but is not outside ({repr(self.dialect.outside)})"
+                    f"Label {repr(label)} does not have a state and entity type "
+                    + f"but is not outside ({repr(self.dialect.outside)})"
                 )
             return (label, None)
         elif len(splits) == 2:
