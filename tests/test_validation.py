@@ -147,7 +147,7 @@ def test_validation_errors() -> None:
     assert len(result) == 1
     assert (
         result.errors[0].msg
-        == "Invalid transition O -> I-PER for token 'Jonas' on line 8"
+        == "Invalid transition 'O' -> 'I-PER' for token 'Jonas' on line 8"
     )
 
     tokens = ["foo"]
@@ -157,12 +157,14 @@ def test_validation_errors() -> None:
     assert not result.is_valid()
     assert len(result) == 3
     assert (
-        result.errors[0].msg == "Invalid state S in label S-FOO for token 'foo' on line 7"
+        result.errors[0].msg
+        == "Invalid state 'S' in label 'S-FOO' for token 'foo' on line 7"
     )
     assert (
-        result.errors[1].msg == "Invalid transition O -> S-FOO for token 'foo' on line 7"
+        result.errors[1].msg
+        == "Invalid transition 'O' -> 'S-FOO' for token 'foo' on line 7"
     )
     assert (
         result.errors[2].msg
-        == "Invalid transition S-FOO -> O after token 'foo' on line 7 at end of sequence"
+        == "Invalid transition 'S-FOO' -> 'O' after token 'foo' on line 7 at end of sequence"
     )

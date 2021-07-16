@@ -2,7 +2,7 @@ from typing import Iterable, List, Optional, Sequence, Tuple
 
 from attr import attrib, attrs
 
-from seqscore.encoding import _ENCODING_NAMES, Encoding
+from seqscore.encoding import _ENCODING_NAMES, Encoding, EncodingError
 from seqscore.util import tuplify_strs
 
 # All encodings can be validated
@@ -81,10 +81,17 @@ def validate_labels(
 
     # Enumerate so we can look up tokens and labels if needed
     for idx, label in enumerate(labels):
-        state, entity_type = encoding.split_label(label)
+        try:
+            state, entity_type = encoding.split_label(label)
+        except EncodingError as e:
+            line_msg = f" on line {line_nums[idx]}" if line_nums else ""
+            raise EncodingError(
+                f"Could not parse label {repr(label)}{line_msg} during validation: "
+                + str(e)
+            ) from e
 
         if not encoding.is_valid_state(state):
-            msg = f"Invalid state {state} in label {label}"
+            msg = f"Invalid state {repr(state)} in label {repr(label)}"
             if tokens:
                 token = tokens[idx]
                 msg += f" for token {repr(token)}"
@@ -104,7 +111,7 @@ def validate_labels(
         if not encoding.is_valid_transition(
             prev_state, prev_entity_type, state, entity_type
         ):
-            msg = f"Invalid transition {prev_label} -> {label}"
+            msg = f"Invalid transition {repr(prev_label)} -> {repr(label)}"
             if tokens:
                 token = tokens[idx]
                 msg += f" for token {repr(token)}"
@@ -130,7 +137,7 @@ def validate_labels(
     label = outside
     state, entity_type = encoding.split_label(label)
     if not encoding.is_valid_transition(prev_state, prev_entity_type, state, entity_type):
-        msg = f"Invalid transition {prev_label} -> {label}"
+        msg = f"Invalid transition {repr(prev_label)} -> {repr(label)}"
         if tokens:
             token = tokens[-1]
             msg += f" after token {repr(token)}"

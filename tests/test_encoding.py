@@ -265,13 +265,13 @@ def test_split_label() -> None:
     # Only splits the first delim
     assert encoding.split_label("I-ORG-CORP") == ("I", "ORG-CORP")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(EncodingError):
         assert encoding.split_label("B")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(EncodingError):
         assert encoding.split_label("O-ORG")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(EncodingError):
         assert encoding.split_label("")
 
 

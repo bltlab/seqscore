@@ -59,17 +59,22 @@ class Encoding(Protocol):
         splits = label.split(self.dialect.label_delim, maxsplit=1)
         if len(splits) == 1:
             if label != self.dialect.outside:
-                raise ValueError(f"Label {label} has no entity type but is not outside")
+                raise EncodingError(
+                    f"Label {repr(label)} does not have a state and entity type " +
+                    f"but is not outside ({repr(self.dialect.outside)})"
+                )
             return (label, None)
         elif len(splits) == 2:
             # Manually unpack just to appease type checking
             state, entity_type = splits
             if state == self.dialect.outside:
-                raise ValueError(f"Label {label} has an entity type but is outside")
+                raise EncodingError(
+                    f"Label {repr(label)} has an entity type but is outside"
+                )
             return (state, entity_type)
         else:  # pragma: no cover
             # Since maxsplit=1 for split, this is unreachable
-            raise ValueError("Cannot parse label {!r}".format(label))
+            raise EncodingError(f"Cannot parse label {repr(label)}")
 
     def join_label(self, state: str, entity_type: Optional[str]) -> str:
         if entity_type:
