@@ -3,7 +3,7 @@ from typing import Dict, List
 import pytest
 from attr import attrs
 
-from seqscore.encoding import REPAIR_NONE, get_encoding
+from seqscore.encoding import REPAIR_NONE, EncodingError, get_encoding
 from seqscore.validation import validate_labels
 
 
@@ -132,8 +132,15 @@ def test_repair() -> None:
 
 def test_validation_invalid_state() -> None:
     encoding = get_encoding("BIO")
+
     result = validate_labels(["O", "S-PER"], encoding)
     assert not result.is_valid()
+
+    with pytest.raises(EncodingError):
+        validate_labels(["OUTSIDE", "B-PER"], encoding)
+
+    with pytest.raises(EncodingError):
+        validate_labels(["O", "PER"], encoding)
 
 
 def test_validation_errors() -> None:

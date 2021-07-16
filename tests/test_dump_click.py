@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import dump
-from seqscore.util import dump_files_match
+from seqscore.util import file_lines_match
 
 
 def test_dump_BIO() -> None:
@@ -16,7 +16,7 @@ def test_dump_BIO() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert dump_files_match("tests/dump_BIO_out.txt", "tests/dump_minimal_ref.txt")
+    assert file_lines_match("tests/dump_BIO_out.txt", "tests/dump_minimal_ref.txt")
 
 
 def test_dump_BIOES() -> None:
@@ -33,7 +33,7 @@ def test_dump_BIOES() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert dump_files_match("tests/dump_BIOES_out.txt", "tests/dump_minimal_ref.txt")
+    assert file_lines_match("tests/dump_BIOES_out.txt", "tests/dump_minimal_ref.txt")
 
 
 def test_dump_IO() -> None:
@@ -50,7 +50,7 @@ def test_dump_IO() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert dump_files_match("tests/dump_IO_out.txt", "tests/dump_minimal_ref.txt")
+    assert file_lines_match("tests/dump_IO_out.txt", "tests/dump_minimal_ref.txt")
 
 
 def test_dump_BIO_invalid_conlleval() -> None:
@@ -67,7 +67,7 @@ def test_dump_BIO_invalid_conlleval() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert dump_files_match(
+    assert file_lines_match(
         "tests/dump_BIO_conlleval_out.txt", "tests/dump_minimal_ref.txt"
     )
 

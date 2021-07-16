@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import convert
-from seqscore.util import files_match
+from seqscore.util import file_fields_match
 
 
 def test_invalid_conversion_BIO() -> None:
@@ -50,7 +50,9 @@ def test_BIO_to_BIOES() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert files_match("tests/BIOtoBIOES.txt", "tests/conll_annotation/minimal.bioes")
+    assert file_fields_match(
+        "tests/BIOtoBIOES.txt", "tests/conll_annotation/minimal.bioes"
+    )
 
 
 def test_BIOES_to_BIO() -> None:
@@ -67,7 +69,7 @@ def test_BIOES_to_BIO() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert files_match("tests/BIOEStoBIO.txt", "tests/conll_annotation/minimal.bio")
+    assert file_fields_match("tests/BIOEStoBIO.txt", "tests/conll_annotation/minimal.bio")
 
 
 def test_BIO_to_IO() -> None:
@@ -84,7 +86,7 @@ def test_BIO_to_IO() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert files_match("tests/BIOtoIO.txt", "tests/conll_annotation/minimal.io")
+    assert file_fields_match("tests/BIOtoIO.txt", "tests/conll_annotation/minimal.io")
 
 
 def test_IO_to_BIO() -> None:
@@ -102,7 +104,7 @@ def test_IO_to_BIO() -> None:
     )
     assert result.exit_code == 0
     # conversion will not necessarily reproduce BIO correctly but does in this case
-    assert files_match("tests/IOtoBIO.txt", "tests/conll_annotation/minimal.bio")
+    assert file_fields_match("tests/IOtoBIO.txt", "tests/conll_annotation/minimal.bio")
 
 
 def test_IO_to_BIOES() -> None:
@@ -120,7 +122,9 @@ def test_IO_to_BIOES() -> None:
     )
     assert result.exit_code == 0
     # conversion will not necessarily reproduce BIOES correctly but does in this case
-    assert files_match("tests/IOtoBIOES.txt", "tests/conll_annotation/minimal.bioes")
+    assert file_fields_match(
+        "tests/IOtoBIOES.txt", "tests/conll_annotation/minimal.bioes"
+    )
 
 
 def test_BIOES_to_IO() -> None:
@@ -137,7 +141,7 @@ def test_BIOES_to_IO() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert files_match("tests/BIOEStoIO.txt", "tests/conll_annotation/minimal.io")
+    assert file_fields_match("tests/BIOEStoIO.txt", "tests/conll_annotation/minimal.io")
 
 
 def test_same_input_and_output_labels_raises_error() -> None:

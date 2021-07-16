@@ -14,8 +14,9 @@ from seqscore.conll import (
 from seqscore.encoding import REPAIR_NONE, SUPPORTED_ENCODINGS, SUPPORTED_REPAIR_METHODS
 
 
+# This is tested by a subprocess call in test_seqscore_main so coverage will miss it
 @click.group()
-def cli():
+def cli():  # pragma: no cover
     pass
 
 
@@ -84,8 +85,8 @@ def validate(
     )
     if result.errors:
         print(
-            f"Encountered {len(result.errors)} errors in {result.n_tokens} tokens, {result.n_sequences} sequences, "
-            + f"and {result.n_docs} documents in {file}"
+            f"Encountered {len(result.errors)} errors in {result.n_tokens} tokens, "
+            + f"{result.n_sequences} sequences, and {result.n_docs} documents in {file}"
         )
         print("\n".join(err.msg for err in result.errors))
         sys.exit(1)
@@ -248,5 +249,6 @@ def score(
     )
 
 
-if __name__ == "__main__":
+# This is tested by a subprocess call in test_seqscore_main so coverage will miss it
+if __name__ == "__main__":  # pragma: no cover
     cli()

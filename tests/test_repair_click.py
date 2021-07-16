@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import repair
-from seqscore.util import files_match
+from seqscore.util import file_fields_match
 
 
 def test_repair_BIO_conlleval() -> None:
@@ -40,7 +40,7 @@ def test_repair_BIO_conlleval() -> None:
         "New: ('B-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')"
         in result.output
     )
-    assert files_match(
+    assert file_fields_match(
         "tests/invalid_BIO_repaired_conlleval.txt", "tests/conll_annotation/minimal.bio"
     )
 
@@ -80,7 +80,7 @@ def test_repair_BIO_discard() -> None:
         in result.output
     )
     assert "New: ('O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O')" in result.output
-    assert files_match(
+    assert file_fields_match(
         "tests/invalid_BIO_repaired_discard.txt",
         "tests/conll_annotation/invalid1_BIO_discard.txt",
     )

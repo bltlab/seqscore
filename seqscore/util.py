@@ -14,19 +14,19 @@ def tuplify_strs(strs: Iterable[str]) -> Tuple[str, ...]:
     return tuple(strs)
 
 
-# Test whether two files have the same tokens and labels, disregarding whether they are separated by space or tab.
-def files_match(file1, file2) -> bool:
-    with open(file1, encoding="utf8") as f1, open(file2, encoding="utf8") as f2:
+def file_fields_match(path1: PathType, path2: PathType) -> bool:
+    """Return whether the whitespace-delimited fields of two files are identical."""
+    with open(path1, encoding="utf8") as f1, open(path2, encoding="utf8") as f2:
         for l1, l2 in zip_longest(f1, f2):
-            if l1.split() != l2.split():
+            if l1 is None or l2 is None or l1.split() != l2.split():
                 return False
         return True
 
 
-# Test whether dump output files match
-def dump_files_match(file1, file2) -> bool:
-    with open(file1, encoding="utf8") as f1, open(file2, encoding="utf8") as f2:
+def file_lines_match(path1: PathType, path2: PathType) -> bool:
+    """Return whether lines of two files are identical ignoring line endings."""
+    with open(path1, encoding="utf8") as f1, open(path2, encoding="utf8") as f2:
         for l1, l2 in zip_longest(f1, f2):
-            if l1 != l2:
+            if l1 is None or l2 is None or l1.rstrip("\r\n") != l2.rstrip("\r\n"):
                 return False
         return True

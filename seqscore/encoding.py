@@ -133,7 +133,7 @@ class Encoding(Protocol):
         return self.decode_labels(sequence.labels)
 
     def supported_repair_methods(self) -> Tuple[str, ...]:
-        return ()
+        raise NotImplementedError
 
 
 class EncodingError(Exception):
