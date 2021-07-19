@@ -1,3 +1,5 @@
+import os
+
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import repair
@@ -11,13 +13,13 @@ def test_repair_BIO_conlleval() -> None:
         [
             "--labels",
             "BIO",
-            "tests/conll_annotation/invalid1.bio",
-            "tests/invalid_BIO_repaired_conlleval.txt",
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
+            os.path.join("tests", "invalid_BIO_repaired_conlleval.txt"),
         ],
     )
     assert result.exit_code == 0
     assert (
-        "Validation errors in sequence at line 7 of tests/conll_annotation/invalid1.bio:"
+        "Validation errors in sequence at line 7 of tests\\conll_annotation\\invalid1.bio:"
         in result.output
     )
     assert (
@@ -41,7 +43,8 @@ def test_repair_BIO_conlleval() -> None:
         in result.output
     )
     assert file_fields_match(
-        "tests/invalid_BIO_repaired_conlleval.txt", "tests/conll_annotation/minimal.bio"
+        os.path.join("tests", "invalid_BIO_repaired_conlleval.txt"),
+        os.path.join("tests", "conll_annotation", "minimal.bio"),
     )
 
 
@@ -54,13 +57,13 @@ def test_repair_BIO_discard() -> None:
             "BIO",
             "--repair-method",
             "discard",
-            "tests/conll_annotation/invalid1.bio",
-            "tests/invalid_BIO_repaired_discard.txt",
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
+            os.path.join("tests", "invalid_BIO_repaired_discard.txt"),
         ],
     )
     assert result.exit_code == 0
     assert (
-        "Validation errors in sequence at line 7 of tests/conll_annotation/invalid1.bio:"
+        "Validation errors in sequence at line 7 of tests\\conll_annotation\\invalid1.bio:"
         in result.output
     )
     assert (
@@ -81,15 +84,21 @@ def test_repair_BIO_discard() -> None:
     )
     assert "New: ('O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O')" in result.output
     assert file_fields_match(
-        "tests/invalid_BIO_repaired_discard.txt",
-        "tests/conll_annotation/invalid1_BIO_discard.txt",
+        os.path.join("tests", "invalid_BIO_repaired_discard.txt"),
+        os.path.join("tests", "conll_annotation", "invalid1_BIO_discard.txt"),
     )
 
 
 def test_invalid_label() -> None:
     runner = CliRunner()
     result = runner.invoke(
-        repair, ["--labels", "BIO", "tests/conll_annotation/invalid1.bioes", "temp.txt"]
+        repair,
+        [
+            "--labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "invalid1.bioes"),
+            "temp.txt",
+        ],
     )
     assert result.exit_code != 0
 
@@ -103,7 +112,7 @@ def test_repair_none_raises_error() -> None:
             "BIO",
             "--repair-method",
             "none",
-            "tests/conll_annotation/invalid1.bio",
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
             "temp.txt",
         ],
     )

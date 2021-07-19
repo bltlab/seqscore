@@ -1,3 +1,5 @@
+import os
+
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import validate
@@ -6,7 +8,8 @@ from seqscore.scripts.seqscore import validate
 def test_valid_BIO() -> None:
     runner = CliRunner()
     result = runner.invoke(
-        validate, ["--labels", "BIO", "tests/conll_annotation/minimal.bio"]
+        validate,
+        ["--labels", "BIO", os.path.join("tests", "conll_annotation", "minimal.bio")],
     )
     assert result.exit_code == 0
 
@@ -14,7 +17,8 @@ def test_valid_BIO() -> None:
 def test_valid_BIOES() -> None:
     runner = CliRunner()
     result = runner.invoke(
-        validate, ["--labels", "BIOES", "tests/conll_annotation/minimal.bioes"]
+        validate,
+        ["--labels", "BIOES", os.path.join("tests", "conll_annotation", "minimal.bioes")],
     )
     assert result.exit_code == 0
 
@@ -22,11 +26,12 @@ def test_valid_BIOES() -> None:
 def test_invalid_BIO() -> None:
     runner = CliRunner()
     result = runner.invoke(
-        validate, ["--labels", "BIO", "tests/conll_annotation/invalid1.bio"]
+        validate,
+        ["--labels", "BIO", os.path.join("tests", "conll_annotation", "invalid1.bio")],
     )
     assert result.exit_code != 0
     assert (
-        "Encountered 3 errors in 3 tokens, 2 sequences, and 1 documents in tests/conll_annotation/invalid1.bio"
+        "Encountered 3 errors in 3 tokens, 2 sequences, and 1 documents in tests\\conll_annotation\\invalid1.bio"
         in result.output
     )
     assert (
@@ -45,11 +50,11 @@ def test_invalid_BIO() -> None:
 def test_invalid_BIOES() -> None:
     runner = CliRunner()
     result = runner.invoke(
-        validate, ["--labels", "BIOES", "tests/conll_annotation/invalid1.bioes"]
+        validate, ["--labels", "BIOES", "tests\\conll_annotation\\invalid1.bioes"]
     )
     assert result.exit_code != 0
     assert (
-        "Encountered 9 errors in 9 tokens, 6 sequences, and 1 documents in tests/conll_annotation/invalid1.bioes"
+        "Encountered 9 errors in 9 tokens, 6 sequences, and 1 documents in tests\\conll_annotation\\invalid1.bioes"
         in result.output
     )
     assert "Invalid transition 'I-ORG' -> 'O' for token 'is' on line 10" in result.output

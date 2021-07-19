@@ -1,4 +1,5 @@
 import glob
+import os
 
 from click.testing import CliRunner
 
@@ -13,10 +14,10 @@ def test_score_correct_labels() -> None:
             "--labels",
             "BIO",
             "--reference",
-            "tests/conll_annotation/minimal.bio",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
             "--score-format",
             "delim",
-            "tests/conll_predictions/correct1.bio",
+            os.path.join("tests", "conll_predictions", "correct1.bio"),
         ],
     )
     assert result.exit_code == 0
@@ -34,10 +35,12 @@ def test_score_invalid_sequence_conlleval() -> None:
             "--labels",
             "BIO",
             "--reference",
-            "tests/conll_annotation/minimal.bio",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
             "--score-format",
             "delim",
-            "tests/conll_predictions/correct1_improper_sequence_pred.txt",
+            os.path.join(
+                "tests", "conll_predictions", "correct1_improper_sequence_pred.txt"
+            ),
         ],
     )
     assert result.exit_code == 0
@@ -58,10 +61,12 @@ def test_score_invalid_sequence_discard() -> None:
             "--repair-method",
             "discard",
             "--reference",
-            "tests/conll_annotation/minimal.bio",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
             "--score-format",
             "delim",
-            "tests/conll_predictions/correct1_improper_sequence_pred.txt",
+            os.path.join(
+                "tests", "conll_predictions", "correct1_improper_sequence_pred.txt"
+            ),
         ],
     )
     assert result.exit_code == 0
@@ -82,10 +87,12 @@ def test_score_invalid_sequence_none() -> None:
             "--repair-method",
             "none",
             "--reference",
-            "tests/conll_annotation/minimal.bio",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
             "--score-format",
             "delim",
-            "tests/conll_predictions/correct1_improper_sequence_pred.txt",
+            os.path.join(
+                "tests", "conll_predictions", "correct1_improper_sequence_pred.txt"
+            ),
         ],
     )
     assert result.exit_code != 0
@@ -99,10 +106,10 @@ def test_score_valid_incorrect_sequence() -> None:
             "--labels",
             "BIO",
             "--reference",
-            "tests/conll_annotation/minimal.bio",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
             "--score-format",
             "delim",
-            "tests/conll_predictions/incorrect1.bio",
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
         ],
     )
     assert result.exit_code == 0
@@ -120,10 +127,10 @@ def test_score_invalid_labels() -> None:
             "--labels",
             "BIO",
             "--reference",
-            "tests/conll_annotation/minimal.bioes",
+            os.path.join("tests", "conll_annotation", "minimal.bioes"),
             "--score-format",
             "delim",
-            "tests/conll_predictions/incorrect1.bio",
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
         ],
     )
     assert result.exit_code != 0
@@ -137,11 +144,11 @@ def test_score_multiple_files() -> None:
             "--labels",
             "BIO",
             "--reference",
-            "tests/conll_annotation/minimal.bio",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
             "--score-format",
             "delim",
         ]
-        + glob.glob("tests/conll_predictions/*1.bio"),
+        + glob.glob(os.path.join("tests", "conll_predictions", "*1.bio")),
     )
     assert result.exit_code == 0
     assert "SD\tALL\tNA\tNA\t30.30\tNA\tNA\tNA" in result.output
