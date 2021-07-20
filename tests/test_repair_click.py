@@ -3,7 +3,7 @@ import os
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import repair
-from seqscore.util import file_fields_match
+from seqscore.util import file_fields_match, normalize_str_with_path
 
 
 def test_repair_BIO_conlleval() -> None:
@@ -19,7 +19,9 @@ def test_repair_BIO_conlleval() -> None:
     )
     assert result.exit_code == 0
     assert (
-        "Validation errors in sequence at line 7 of tests\\conll_annotation\\invalid1.bio:"
+        normalize_str_with_path(
+            "Validation errors in sequence at line 7 of tests/conll_annotation/invalid1.bio:"
+        )
         in result.output
     )
     assert (
@@ -63,7 +65,9 @@ def test_repair_BIO_discard() -> None:
     )
     assert result.exit_code == 0
     assert (
-        "Validation errors in sequence at line 7 of tests\\conll_annotation\\invalid1.bio:"
+        normalize_str_with_path(
+            "Validation errors in sequence at line 7 of tests/conll_annotation/invalid1.bio:"
+        )
         in result.output
     )
     assert (

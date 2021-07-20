@@ -1,3 +1,4 @@
+import os
 from itertools import zip_longest
 from os import PathLike
 from pathlib import Path
@@ -30,3 +31,8 @@ def file_lines_match(path1: PathType, path2: PathType) -> bool:
             if l1 is None or l2 is None or l1.rstrip("\r\n") != l2.rstrip("\r\n"):
                 return False
         return True
+
+
+def normalize_str_with_path(s: str) -> str:
+    """Normalize the OS path separator to '/'."""
+    return s.replace(os.path.sep, "/")

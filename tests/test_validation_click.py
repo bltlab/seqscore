@@ -3,6 +3,7 @@ import os
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import validate
+from seqscore.util import normalize_str_with_path
 
 
 def test_valid_BIO() -> None:
@@ -31,7 +32,9 @@ def test_invalid_BIO() -> None:
     )
     assert result.exit_code != 0
     assert (
-        "Encountered 3 errors in 3 tokens, 2 sequences, and 1 documents in tests\\conll_annotation\\invalid1.bio"
+        normalize_str_with_path(
+            "Encountered 3 errors in 3 tokens, 2 sequences, and 1 documents in tests/conll_annotation/invalid1.bio"
+        )
         in result.output
     )
     assert (
@@ -50,11 +53,18 @@ def test_invalid_BIO() -> None:
 def test_invalid_BIOES() -> None:
     runner = CliRunner()
     result = runner.invoke(
-        validate, ["--labels", "BIOES", "tests\\conll_annotation\\invalid1.bioes"]
+        validate,
+        [
+            "--labels",
+            "BIOES",
+            os.path.join("tests", "conll_annotation", "invalid1.bioes"),
+        ],
     )
     assert result.exit_code != 0
     assert (
-        "Encountered 9 errors in 9 tokens, 6 sequences, and 1 documents in tests\\conll_annotation\\invalid1.bioes"
+        normalize_str_with_path(
+            "Encountered 9 errors in 9 tokens, 6 sequences, and 1 documents in tests/conll_annotation/invalid1.bioes"
+        )
         in result.output
     )
     assert "Invalid transition 'I-ORG' -> 'O' for token 'is' on line 10" in result.output
