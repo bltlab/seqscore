@@ -19,9 +19,12 @@ For a list of commands, run `seqscore --help`.
 
 Some examples:
 ```
-seqscore score --labels BIO --reference reference_conll_file prediction_conll_file 
-seqscore validate --labels BIO input_conll_file
-seqscore dump --labels BIO input_conll_file output_delim_file
+# Score like conlleval
+seqscore score --labels BIO --repair-method conlleval --reference <reference_conll_file> <prediction_conll_file>
+# Score discarding invalid chunks, which sometimes produces higher scores
+seqscore score --labels BIO --repair-method discard --reference <reference_conll_file> <prediction_conll_file>
+seqscore validate --labels BIO <input_conll_file>
+seqscore dump --labels BIO <input_conll_file> <output_delim_file>
 ```
 
 Scoring only supports BIO chunk encoding. Validation can be done for IO, BIO, and BIOES.

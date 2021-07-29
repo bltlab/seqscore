@@ -11,6 +11,8 @@ def test_repair_BIO_conlleval() -> None:
     result = runner.invoke(
         repair,
         [
+            "--repair-method",
+            "conlleval",
             "--labels",
             "BIO",
             os.path.join("tests", "conll_annotation", "invalid1.bio"),
@@ -100,6 +102,8 @@ def test_invalid_label() -> None:
         [
             "--labels",
             "BIO",
+            "--repair-method",
+            "conlleval",
             os.path.join("tests", "conll_annotation", "invalid1.bioes"),
             "temp.txt",
         ],

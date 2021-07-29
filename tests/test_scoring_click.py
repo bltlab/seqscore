@@ -32,6 +32,8 @@ def test_score_invalid_sequence_conlleval() -> None:
     result = runner.invoke(
         score,
         [
+            "--repair-method",
+            "conlleval",
             "--labels",
             "BIO",
             "--reference",
@@ -103,6 +105,8 @@ def test_score_valid_incorrect_sequence() -> None:
     result = runner.invoke(
         score,
         [
+            "--repair-method",
+            "conlleval",
             "--labels",
             "BIO",
             "--reference",

@@ -55,7 +55,6 @@ def _multi_input_file_arguments(func: Callable) -> Callable:
 def _repair_option() -> Callable:
     return click.option(
         "--repair-method",
-        default="conlleval",
         type=click.Choice(SUPPORTED_REPAIR_METHODS),
         show_default=True,
     )
