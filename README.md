@@ -37,6 +37,17 @@ At the moment, `dump` only supports BIO, but support will be added for IO and BI
 * More error analysis tools
 
 
+# Citation
+
+If you use SeqScore, please cite
+[Addressing Barriers to Reproducible Named Entity Recognition Evaluation](https://arxiv.org/abs/2107.14154).
+
+
+# License
+
+SeqScore is distributed under the MIT License.
+
+
 # Setting up for development
 
 1. Create environment: `conda create -y -n seqscore python=3.8`
