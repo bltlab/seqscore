@@ -5,10 +5,18 @@ SeqScore: Scoring for named entity recognition and other sequence labeling tasks
 
 # Installation
 
-Normal installation: `pip install seqscore`
+To install the latest release of SeqScore, run:
+`pip install seqscore`
 
-If you need to install from a copy of this repository, use: `pip install
--e .`
+At this point, the released version is relatively out-of-date, but
+will be updated once new documentation is ready.
+
+For the latest version, check out the `main` branch (stable, but
+sometimes newer than the version on PyPI), or the `dev` branch
+(latest, but less tested).
+
+To install from a clone of this repository, use:
+`pip install -e .`
 
 
 # Usage
