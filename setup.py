@@ -12,7 +12,7 @@ def setup_package() -> None:
 
     setup(
         name="seqscore",
-        version="0.3",
+        version="0.3.1",
         packages=find_packages(include=("seqscore", "seqscore.*")),
         # Package type information
         package_data={"seqscore": ["py.typed"]},
@@ -31,10 +31,11 @@ def setup_package() -> None:
             seqscore=seqscore.scripts.seqscore:cli
         """,
         classifiers=[
-            "Development Status :: 2 - Pre-Alpha",
+            "Development Status :: 4 - Beta",
             "License :: OSI Approved :: MIT License",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
         ],
         url="https://github.com/bltlab/seqscore",
