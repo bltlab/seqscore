@@ -4,6 +4,8 @@ from os import path
 
 from setuptools import find_packages, setup
 
+from seqscore import __version__
+
 
 def setup_package() -> None:
     root = path.abspath(path.dirname(__file__))
@@ -12,7 +14,7 @@ def setup_package() -> None:
 
     setup(
         name="seqscore",
-        version="0.3.1",
+        version=__version__,
         packages=find_packages(include=("seqscore", "seqscore.*")),
         # Package type information
         package_data={"seqscore": ["py.typed"]},

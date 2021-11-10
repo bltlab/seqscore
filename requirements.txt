@@ -12,3 +12,7 @@ black==21.10b0
 mypy==0.910
 isort==5.10.1
 flake8==4.0.1
+
+# Documentation build
+sphinx
+sphinx-rtd-theme
