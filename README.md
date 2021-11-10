@@ -99,9 +99,9 @@ A few things to note:
 * The chunk encoding (BIO, BIOES, etc.) must be specified
   using the `--labels` flag.
 * Both files need to use the same chunk encoding. If you have
-  files that use different chunk encodings, use the `convert` command
+  files that use different chunk encodings, use the `convert` command.
 * You can get output in a different format using the `--score-format`
-  flag
+  flag.
 
 The above scoring command will work for files that do not have any
 invalid transitions, that is, those that perfectly follow what the
