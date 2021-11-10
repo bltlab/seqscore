@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from seqscore.encoding import EncodingError
@@ -7,6 +9,7 @@ from seqscore.scoring import (
     ClassificationScore,
     TokenCountError,
     compute_scores,
+    convert_score,
     score_label_sequences,
     score_sequence_label_accuracy,
     score_sequence_mentions,
@@ -235,3 +238,24 @@ def test_differing_pred_and_ref_tokens() -> None:
     )
     with pytest.raises(ValueError):
         compute_scores([[pred_sequence]], [[ref_sequence]])
+
+
+def test_convert_score() -> None:
+    # Check basic rounding up/down
+    assert convert_score(0.92156) == Decimal("92.16")
+    assert convert_score(0.92154) == Decimal("92.15")
+
+    # Check half rounding
+    # Note: due to inexact float representation, changing the test values
+    # can lead to unexpected failures. If the final 5 is actually represented
+    # as 49999 instead, it will cause rounding down.
+    # See: https://docs.python.org/3/library/functions.html#round
+    assert convert_score(0.03205) == Decimal("3.21")
+    assert convert_score(0.03225) == Decimal("3.23")
+    assert convert_score(0.02205) == Decimal("2.21")
+    assert convert_score(0.02245) == Decimal("2.25")
+
+    # Check that the number of decimal places is constant
+    assert convert_score(1.0) == Decimal("100.00")
+    assert convert_score(0.5) == Decimal("50.00")
+    assert convert_score(0.0) == Decimal("0.00")

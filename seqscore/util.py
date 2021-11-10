@@ -2,7 +2,7 @@ import os
 from itertools import zip_longest
 from os import PathLike
 from pathlib import Path
-from typing import Iterable, Tuple, Union
+from typing import Any, Iterable, Tuple, Union
 
 # Union[str, Path] isn't enough to appease PyCharm's type checker, so adding Path here
 # avoids warnings.

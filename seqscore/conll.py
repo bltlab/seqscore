@@ -1,4 +1,3 @@
-import decimal
 import sys
 from collections import defaultdict
 from itertools import chain
@@ -10,7 +9,12 @@ from tabulate import tabulate
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import LabeledSequence, SequenceProvenance
-from seqscore.scoring import AccuracyScore, ClassificationScore, compute_scores
+from seqscore.scoring import (
+    AccuracyScore,
+    ClassificationScore,
+    compute_scores,
+    convert_score,
+)
 from seqscore.util import PathType
 from seqscore.validation import (
     SequenceValidationResult,
@@ -493,7 +497,7 @@ def score_conll_files(
                             entity_type,
                             "NA",
                             "NA",
-                            _pretty_format_num(num),
+                            convert_score(num),
                             "NA",
                             "NA",
                             "NA",
@@ -510,7 +514,7 @@ def score_conll_files(
                             entity_type,
                             "NA",
                             "NA",
-                            _pretty_format_num(num),
+                            convert_score(num),
                             "NA",
                             "NA",
                             "NA",
@@ -582,9 +586,9 @@ def format_output_table(
     rows = [
         [
             "ALL",
-            _pretty_format_num(class_scores.precision),
-            _pretty_format_num(class_scores.recall),
-            _pretty_format_num(class_scores.f1),
+            convert_score(class_scores.precision),
+            convert_score(class_scores.recall),
+            convert_score(class_scores.f1),
             class_scores.total_ref,
             class_scores.total_pos,
             class_scores.true_pos,
@@ -596,9 +600,9 @@ def format_output_table(
         rows.append(
             [
                 type_name,
-                _pretty_format_num(score.precision),
-                _pretty_format_num(score.recall),
-                _pretty_format_num(score.f1),
+                convert_score(score.precision),
+                convert_score(score.recall),
+                convert_score(score.f1),
                 score.total_ref,
                 score.total_pos,
                 score.true_pos,
@@ -606,16 +610,6 @@ def format_output_table(
         )
 
     return header, rows
-
-
-# TODO: This isn't correct for values < .10, it will add extra significant digits
-def _pretty_format_num(num: float) -> decimal.Decimal:
-    with decimal.localcontext() as ctx:
-        ctx.rounding = decimal.ROUND_HALF_UP
-        ctx.prec = 4
-        dec = decimal.Decimal(num) * decimal.Decimal(100)
-
-    return dec
 
 
 def _join_delim(items: Iterable[Any], delim: str) -> str:

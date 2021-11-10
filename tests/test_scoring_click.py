@@ -22,9 +22,9 @@ def test_score_correct_labels() -> None:
     )
     assert result.exit_code == 0
     assert "Type\tPrecision\tRecall\tF1\tReference\tPredicted\tCorrect" in result.output
-    assert "ALL\t100\t100\t100\t3\t3\t3" in result.output
-    assert "LOC\t100\t100\t100\t2\t2\t2" in result.output
-    assert "ORG\t100\t100\t100\t1\t1\t1" in result.output
+    assert "ALL\t100.00\t100.00\t100.00\t3\t3\t3" in result.output
+    assert "LOC\t100.00\t100.00\t100.00\t2\t2\t2" in result.output
+    assert "ORG\t100.00\t100.00\t100.00\t1\t1\t1" in result.output
 
 
 def test_score_invalid_sequence_conlleval() -> None:
@@ -48,9 +48,9 @@ def test_score_invalid_sequence_conlleval() -> None:
     assert result.exit_code == 0
     assert "Used method conlleval to repair:" in result.output
     assert "Type\tPrecision\tRecall\tF1\tReference\tPredicted\tCorrect" in result.output
-    assert "ALL\t100\t100\t100\t3\t3\t3" in result.output
-    assert "LOC\t100\t100\t100\t2\t2\t2" in result.output
-    assert "ORG\t100\t100\t100\t1\t1\t1" in result.output
+    assert "ALL\t100.00\t100.00\t100.00\t3\t3\t3" in result.output
+    assert "LOC\t100.00\t100.00\t100.00\t2\t2\t2" in result.output
+    assert "ORG\t100.00\t100.00\t100.00\t1\t1\t1" in result.output
 
 
 def test_score_invalid_sequence_discard() -> None:
@@ -74,9 +74,9 @@ def test_score_invalid_sequence_discard() -> None:
     assert result.exit_code == 0
     assert "Used method discard to repair:" in result.output
     assert "Type\tPrecision\tRecall\tF1\tReference\tPredicted\tCorrect" in result.output
-    assert "ALL\t100\t66.67\t80.00\t3\t2\t2" in result.output
-    assert "LOC\t100\t100\t100\t2\t2\t2" in result.output
-    assert "ORG\t0\t0\t0\t1\t0\t0" in result.output
+    assert "ALL\t100.00\t66.67\t80.00\t3\t2\t2" in result.output
+    assert "LOC\t100.00\t100.00\t100.00\t2\t2\t2" in result.output
+    assert "ORG\t0.00\t0.00\t0.00\t1\t0\t0" in result.output
 
 
 def test_score_invalid_sequence_none() -> None:
@@ -118,9 +118,9 @@ def test_score_valid_incorrect_sequence() -> None:
     )
     assert result.exit_code == 0
     assert "Type\tPrecision\tRecall\tF1\tReference\tPredicted\tCorrect" in result.output
-    assert "ALL\t50.0\t66.67\t57.14\t3\t4\t2" in result.output
-    assert "LOC\t33.33\t50.0\t40.00\t2\t3\t1" in result.output
-    assert "ORG\t100\t100\t100\t1\t1\t1" in result.output
+    assert "ALL\t50.00\t66.67\t57.14\t3\t4\t2" in result.output
+    assert "LOC\t33.33\t50.00\t40.00\t2\t3\t1" in result.output
+    assert "ORG\t100.00\t100.00\t100.00\t1\t1\t1" in result.output
 
 
 def test_score_invalid_labels() -> None:
