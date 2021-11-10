@@ -213,7 +213,11 @@ def count(
     type=click.Choice(SUPPORTED_SCORE_FORMATS),
     show_default=True,
 )
-@click.option("--delim", default="\t", help="[default: tab]")
+@click.option(
+    "--delim",
+    default="\t",
+    help="the delimiter to be used for delimited output (has no effect on input) [default: tab]",
+)
 @click.option("--quiet", "-q", is_flag=True)
 def score(
     file: List[str],  # Name is "file" to make sense on the command line, but it's a list
