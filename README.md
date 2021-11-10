@@ -1,4 +1,5 @@
 # SeqScore
+![Build](https://github.com/bltlab/seqscore/actions/workflows/main.yml/badge.svg)
 
 SeqScore: Scoring for named entity recognition and other sequence labeling tasks
 

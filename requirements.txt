@@ -6,7 +6,6 @@ types-tabulate
 # For testing
 pytest
 pytest-cov
-seqeval==1.2.2
 
 # For development
 black==21.10b0
