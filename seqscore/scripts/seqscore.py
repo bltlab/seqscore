@@ -167,7 +167,7 @@ def convert(
 @_repair_option()
 @_labels_option()
 @click.option("--delim", default="\t", help="[default: tab]")
-def dump(
+def count(
     file: str,
     file_encoding: str,
     output_file: str,

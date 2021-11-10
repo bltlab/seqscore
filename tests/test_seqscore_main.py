@@ -7,7 +7,7 @@ Options:
 
 Commands:
   convert
-  dump
+  count
   repair
   score
   validate
