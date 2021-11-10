@@ -38,10 +38,10 @@ class _CoNLLToken:
     def from_line(cls, line: str, line_num: int, source_name: str) -> "_CoNLLToken":
         # Note: The caller must strip the line of any trailing whitespace
         # TODO: Sense the file rather than the line so we get consistency across lines
-        # Try space, then tab
-        splits = line.split(" ")
+        # Try tab first since it's safer, then space
+        splits = line.split("\t")
         if len(splits) == 1:
-            splits = line.split("\t")
+            splits = line.split(" ")
 
         if len(splits) < 2:
             raise ValueError(
