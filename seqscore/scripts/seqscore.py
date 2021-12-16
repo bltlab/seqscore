@@ -3,15 +3,27 @@ from typing import Callable, Counter, List, Tuple
 
 import click
 
+from seqscore.adjudication import (
+    adjudicate_documents,
+    print_results,
+    write_adjudicated_doc,
+    write_entropy_info,
+)
 from seqscore.conll import (
     SUPPORTED_SCORE_FORMATS,
     ingest_conll_file,
+    ingest_conll_file_multiple_annotators,
     repair_conll_file,
     score_conll_files,
     validate_conll_file,
     write_docs_using_encoding,
 )
-from seqscore.encoding import REPAIR_NONE, SUPPORTED_ENCODINGS, SUPPORTED_REPAIR_METHODS
+from seqscore.encoding import (
+    BIO,
+    REPAIR_NONE,
+    SUPPORTED_ENCODINGS,
+    SUPPORTED_REPAIR_METHODS,
+)
 
 
 # This is tested by a subprocess call in test_seqscore_main so coverage will miss it
@@ -250,6 +262,49 @@ def score(
         delim=delim,
         quiet=quiet,
     )
+
+
+@cli.command()
+@_single_input_file_arguments
+@click.argument("output_file")
+@click.option("--output-delim", default="\t", help="[default: tab]")
+@click.option("--input-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
+@click.option("--entropy-out-dir")
+def adjudicate(
+    file: str,
+    output_file: str,
+    file_encoding: str,
+    output_delim: str,
+    input_labels: str,
+    entropy_out_dir: str,
+    *,
+    ignore_document_boundaries: bool,
+    ignore_comment_lines: bool,
+):
+    # Takes a conll file with multiple annotations by different annotators and
+    # computes inter-annotator agreement scores and other metrics as well as produces
+    # a majority vote based file with single annotations.
+    docs_by_annotator = ingest_conll_file_multiple_annotators(
+        file,
+        input_labels,
+        file_encoding,
+        ignore_document_boundaries=ignore_document_boundaries,
+        ignore_comment_lines=ignore_comment_lines,
+    )
+
+    adjudication_results = adjudicate_documents(docs_by_annotator)
+
+    print_results(adjudication_results)
+
+    write_adjudicated_doc(
+        adjudication_results.disagreements.majority_vote_sequences,
+        file_encoding,
+        output_delim,
+        output_file,
+    )
+
+    if entropy_out_dir:
+        write_entropy_info(entropy_out_dir, adjudication_results)
 
 
 # This is tested by a subprocess call in test_seqscore_main so coverage will miss it

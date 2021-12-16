@@ -1,8 +1,19 @@
 import sys
 from collections import defaultdict
+from io import StringIO
 from itertools import chain
 from statistics import mean, stdev
-from typing import Any, DefaultDict, Iterable, List, Optional, Sequence, TextIO, Tuple
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    TextIO,
+    Tuple,
+)
 
 from attr import attrib, attrs
 from tabulate import tabulate
@@ -610,6 +621,64 @@ def format_output_table(
         )
 
     return header, rows
+
+
+def _split_multi_annotator_file(input_file: TextIO) -> Tuple[TextIO, ...]:
+    separated_inputs = []
+    for i, line in enumerate(input_file):
+        fields = line.rstrip().split()
+        if fields:
+            token = fields[0]
+            labels = fields[1:]
+            if i == 0:
+                # On first line, set number of separate annotators
+                for _ in labels:
+                    separated_inputs.append(StringIO())
+            assert len(labels) == len(
+                separated_inputs
+            ), "Labels and separated input lengths differ"
+            for input, label in zip(separated_inputs, labels):
+                input.write(f"{token} {label}\n")
+        else:
+            for input in separated_inputs:
+                input.write("\n")
+    # Set each StringIO to the beginning to act like an opened file
+    for sep_input in separated_inputs:
+        sep_input.seek(0)
+    return tuple(separated_inputs)
+
+
+def ingest_conll_file_multiple_annotators(
+    input_path: PathType,
+    mention_encoding_name: str,
+    file_encoding: str,
+    *,
+    repair: Optional[str] = None,
+    ignore_document_boundaries: bool,
+    ignore_comment_lines: bool,
+    quiet: bool = False,
+) -> Dict[int, List[List[LabeledSequence]]]:
+    mention_encoding = get_encoding(mention_encoding_name)
+
+    if repair and repair not in mention_encoding.supported_repair_methods():
+        raise ValueError(
+            f"Cannot repair mention encoding {mention_encoding_name} using method {repair}.\n"
+            + 'Set --repair-method to "none" for this encoding.'
+        )
+
+    with open(input_path, encoding=file_encoding) as input_file:
+        separate_inputs = _split_multi_annotator_file(input_file)
+    ingester = CoNLLIngester(
+        mention_encoding,
+        ignore_comment_lines=ignore_comment_lines,
+        ignore_document_boundaries=ignore_document_boundaries,
+    )
+
+    docs_by_annotator = {
+        annotator_num: list(ingester.ingest(input, str(input_path), repair, quiet=quiet))
+        for annotator_num, input in enumerate(separate_inputs)
+    }
+    return docs_by_annotator
 
 
 def _join_delim(items: Iterable[Any], delim: str) -> str:
