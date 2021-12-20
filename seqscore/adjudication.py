@@ -515,9 +515,11 @@ def print_results(adjudication_results: AdjudicationResult) -> None:
     total_disagree = adjudication_results.disagreements.disagreements
     by_type = adjudication_results.disagreements.disaggrements_by_type
     by_span = adjudication_results.disagreements.disagreements_by_span
+    type_disagreement = by_type / total_disagree if total_disagree else 0.0
+    span_disagreement = by_span / total_disagree if total_disagree else 0.0
     print(f"\tDisagreements: {total_disagree}")
-    print(f"\tDisagreements by type: {by_type} {by_type / total_disagree:.3f}")
-    print(f"\tDisagreements by span: {by_span} {by_span / total_disagree:.3f}")
+    print(f"\tDisagreements by type: {by_type} {type_disagreement:.3f}")
+    print(f"\tDisagreements by span: {by_span} {span_disagreement:.3f}")
     print()
 
 
