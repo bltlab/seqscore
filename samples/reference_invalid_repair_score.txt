@@ -1,0 +1,12 @@
+Validation errors in sequence at line 7 of samples/invalid.bio:
+Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
+Used method conlleval to repair:
+Old: ('I-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
+New: ('B-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
+| Type   |   Precision |   Recall |     F1 |   Reference |   Predicted |   Correct |
+|--------|-------------|----------|--------|-------------|-------------|-----------|
+| ALL    |      100.00 |   100.00 | 100.00 |           3 |           3 |         3 |
+| LOC    |      100.00 |   100.00 | 100.00 |           2 |           2 |         2 |
+| ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |
+
+

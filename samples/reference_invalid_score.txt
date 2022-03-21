@@ -1,0 +1,4 @@
+seqscore.encoding.EncodingError: Stopping due to validation errors in invalid.bio:
+Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
+
+
