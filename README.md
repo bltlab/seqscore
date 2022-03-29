@@ -1,7 +1,5 @@
 # SeqScore
 ![Build Status](https://github.com/bltlab/seqscore/actions/workflows/main.yml/badge.svg)
-[![Documentation Status](https://readthedocs.org/projects/seqscore/badge/?version=latest)](https://seqscore.readthedocs.io/en/latest/?badge=latest)
-
 
 SeqScore provides scoring for named entity recognition and other
 chunking tasks evaluated over sequence labels.
