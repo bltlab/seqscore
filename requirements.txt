@@ -1,6 +1,8 @@
-attrs>=19.2.0
-click
-tabulate
+# This file only contains dependencies needed for development.
+# setup.py contains the actual package dependencies, and the package
+# should be installed before these requirements.
+
+# Type annotations for tabulate
 types-tabulate
 
 # For testing

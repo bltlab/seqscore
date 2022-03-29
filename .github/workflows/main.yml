@@ -28,13 +28,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Install package
       run: |
+        python -m pip install --upgrade pip
         pip install .
+    - name: Install development dependencies
+      run: |
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run all tests
       run: |
         ./tests/test_all.sh
