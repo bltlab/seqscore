@@ -1,9 +1,24 @@
 import os
+import tempfile
+from typing import Optional
 
 from click.testing import CliRunner
 
 from seqscore.scripts.seqscore import repair
 from seqscore.util import file_fields_match, normalize_str_with_path
+
+TMP_DIR: Optional[tempfile.TemporaryDirectory] = None
+
+
+def setup_module(_) -> None:
+    """Create temporary directory used by tests."""
+    global TMP_DIR
+    TMP_DIR = tempfile.TemporaryDirectory()
+
+
+def teardown_module(_) -> None:
+    """Remove temporary directory used by tests."""
+    TMP_DIR.cleanup()
 
 
 def test_repair_BIO_conlleval() -> None:
@@ -16,7 +31,7 @@ def test_repair_BIO_conlleval() -> None:
             "--labels",
             "BIO",
             os.path.join("tests", "conll_annotation", "invalid1.bio"),
-            os.path.join("tests", "invalid_BIO_repaired_conlleval.txt"),
+            os.path.join(TMP_DIR.name, "invalid_BIO_repaired_conlleval.txt"),
         ],
     )
     assert result.exit_code == 0
@@ -47,7 +62,7 @@ def test_repair_BIO_conlleval() -> None:
         in result.output
     )
     assert file_fields_match(
-        os.path.join("tests", "invalid_BIO_repaired_conlleval.txt"),
+        os.path.join(TMP_DIR.name, "invalid_BIO_repaired_conlleval.txt"),
         os.path.join("tests", "conll_annotation", "minimal.bio"),
     )
 
@@ -62,7 +77,7 @@ def test_repair_BIO_discard() -> None:
             "--repair-method",
             "discard",
             os.path.join("tests", "conll_annotation", "invalid1.bio"),
-            os.path.join("tests", "invalid_BIO_repaired_discard.txt"),
+            os.path.join(TMP_DIR.name, "invalid_BIO_repaired_discard.txt"),
         ],
     )
     assert result.exit_code == 0
@@ -90,7 +105,7 @@ def test_repair_BIO_discard() -> None:
     )
     assert "New: ('O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O')" in result.output
     assert file_fields_match(
-        os.path.join("tests", "invalid_BIO_repaired_discard.txt"),
+        os.path.join(TMP_DIR.name, "invalid_BIO_repaired_discard.txt"),
         os.path.join("tests", "conll_annotation", "invalid1_BIO_discard.txt"),
     )
 
@@ -105,7 +120,7 @@ def test_invalid_label() -> None:
             "--repair-method",
             "conlleval",
             os.path.join("tests", "conll_annotation", "invalid1.bioes"),
-            "temp.txt",
+            os.path.join(TMP_DIR.name, "temp.txt"),
         ],
     )
     assert result.exit_code != 0
@@ -121,7 +136,7 @@ def test_repair_none_raises_error() -> None:
             "--repair-method",
             "none",
             os.path.join("tests", "conll_annotation", "invalid1.bio"),
-            "temp.txt",
+            os.path.join(TMP_DIR.name, "temp.txt"),
         ],
     )
     assert result.exit_code != 0

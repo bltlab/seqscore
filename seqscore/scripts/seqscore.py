@@ -64,6 +64,11 @@ def _labels_option() -> Callable:
     return click.option("--labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 
 
+def _normalize_tab(s: str) -> str:
+    # Clean up the string r"\t" if it's been given
+    return s.replace(r"\t", "\t")
+
+
 @cli.command()
 @_single_input_file_arguments
 @_labels_option()
@@ -166,7 +171,11 @@ def convert(
 @click.argument("output_file")
 @_repair_option()
 @_labels_option()
-@click.option("--delim", default="\t", help="[default: tab]")
+@click.option(
+    "--delim",
+    default="\t",
+    help="the delimiter to be used for output (has no effect on input) [default: tab]",
+)
 def count(
     file: str,
     file_encoding: str,
@@ -180,6 +189,13 @@ def count(
 ):
     if repair_method == REPAIR_NONE:
         repair_method = None
+
+    delim = _normalize_tab(delim)
+    if delim != "\t":
+        print(
+            "Warning: Using a delimiter other than tab is not recommended as fields are not quoted",
+            file=sys.stderr,
+        )
 
     docs = ingest_conll_file(
         file,
@@ -235,8 +251,7 @@ def score(
     if repair_method == REPAIR_NONE:
         repair_method = None
 
-    # Clean up the string r"\t" if it's been specified as the delim
-    delim = delim.replace(r"\t", "\t")
+    delim = _normalize_tab(delim)
 
     score_conll_files(
         file,
