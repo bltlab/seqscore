@@ -3,6 +3,7 @@ from typing import Callable, Counter, List, Tuple
 
 import click
 
+import seqscore
 from seqscore.conll import (
     SUPPORTED_SCORE_FORMATS,
     ingest_conll_file,
@@ -16,6 +17,7 @@ from seqscore.encoding import REPAIR_NONE, SUPPORTED_ENCODINGS, SUPPORTED_REPAIR
 
 # This is tested by a subprocess call in test_seqscore_main so coverage will miss it
 @click.group()
+@click.version_option(seqscore.__version__)
 def cli():  # pragma: no cover
     pass
 
