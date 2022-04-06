@@ -192,10 +192,10 @@ Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
 ## Convert
 
 We can convert a file from one chunk encoding to another. For example,
-`seqscore convert --input-labels BIO --output-labels BIOES samples/reference.bio samples/reference_convert_BIO_BIOES.bio`
-will convert [samples/reference.bio](samples/reference.bio) from BIO
-encoding to BIOES, writing the converted file to
-[reference_convert_BIO_BIOES.bio](samples/reference_convert_BIO_BIOES.bio):
+`seqscore convert --input-labels BIO --output-labels BIOES samples/reference.bio samples/reference.bioes`
+will read [samples/reference.bio](samples/reference.bio) in BIO
+encoding and write the BIOES-converted file to
+[samples/reference_convert.bioes](samples/reference_convert.bioes):
 ```
 This O
 is O
