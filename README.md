@@ -5,13 +5,41 @@ SeqScore provides scoring for named entity recognition and other
 chunking tasks evaluated over sequence labels.
 
 
-# Installation
+## Installation
 
 To install the latest official release of SeqScore, run:
-`pip install seqscore`
-
-This will install the package and add the command `seqscore` in your
+`pip install seqscore`. This will install the package and add the command `seqscore` in your
 Python environment.
+
+SeqScore requires a Python version of 3.7 or higher. It is tested on
+Python 3.7, 3.8, 3.9, and 3.10.
+
+## License
+
+SeqScore is distributed under the MIT License.
+
+
+## Citation
+
+If you use SeqScore, please cite
+[SeqScore: Addressing Barriers to Reproducible Named Entity Recognition Evaluation](https://aclanthology.org/2021.eval4nlp-1.5/).
+
+BibTeX:
+```
+@inproceedings{palen-michel-etal-2021-seqscore,
+    title = "{S}eq{S}core: Addressing Barriers to Reproducible Named Entity Recognition Evaluation",
+    author = "Palen-Michel, Chester  and
+      Holley, Nolan  and
+      Lignos, Constantine",
+    booktitle = "Proceedings of the 2nd Workshop on Evaluation and Comparison of NLP Systems",
+    month = nov,
+    year = "2021",
+    address = "Punta Cana, Dominican Republic",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.eval4nlp-1.5",
+    pages = "40--50",
+}
+```
 
 
 # Usage
@@ -309,6 +337,12 @@ The output is given in [samples/invalid_count.csv](samples/invalid_count.csv):
 ```
 
 
+# Features coming soon!
+
+* More documentation
+* More error analysis tools
+
+
 # FAQ
 
 ## Why can't I score output files that are in the format `conlleval` expects?
@@ -333,39 +367,6 @@ Pennsylvania B-LOC B-LOC
 We do not support this format because we have found that creating
 predictions in this format is a common source of errors in scoring
 pipelines.
-
-
-# Features coming soon!
-
-* More documentation
-* More error analysis tools
-
-
-# Citation
-
-If you use SeqScore, please cite
-[SeqScore: Addressing Barriers to Reproducible Named Entity Recognition Evaluation](https://aclanthology.org/2021.eval4nlp-1.5/).
-
-BibTeX:
-```
-@inproceedings{palen-michel-etal-2021-seqscore,
-    title = "{S}eq{S}core: Addressing Barriers to Reproducible Named Entity Recognition Evaluation",
-    author = "Palen-Michel, Chester  and
-      Holley, Nolan  and
-      Lignos, Constantine",
-    booktitle = "Proceedings of the 2nd Workshop on Evaluation and Comparison of NLP Systems",
-    month = nov,
-    year = "2021",
-    address = "Punta Cana, Dominican Republic",
-    publisher = "Association for Computational Linguistics",
-    url = "https://aclanthology.org/2021.eval4nlp-1.5",
-    pages = "40--50",
-}
-```
-
-# License
-
-SeqScore is distributed under the MIT License.
 
 
 # Development
