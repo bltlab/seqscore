@@ -64,6 +64,12 @@ def _labels_option() -> Callable:
     return click.option("--labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 
 
+def _quiet_option() -> Callable:
+    return click.option(
+        "--quiet", "-q", is_flag=True, help="do not log the repairs performed"
+    )
+
+
 def _normalize_tab(s: str) -> str:
     # Clean up the string r"\t" if it's been given
     return s.replace(r"\t", "\t")
@@ -107,6 +113,7 @@ def validate(
 @_repair_option()
 @_labels_option()
 @click.option("--output-delim", default=" ", help="[default: space")
+@_quiet_option()
 def repair(
     file: str,
     output_file: str,
@@ -117,6 +124,7 @@ def repair(
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
+    quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
         raise ValueError("Cannot repair if 'none' is specified as repair strategy")
@@ -130,6 +138,7 @@ def repair(
         output_delim,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
+        quiet=quiet,
     )
 
 
@@ -176,6 +185,7 @@ def convert(
     default="\t",
     help="the delimiter to be used for output (has no effect on input) [default: tab]",
 )
+@_quiet_option()
 def count(
     file: str,
     file_encoding: str,
@@ -186,6 +196,7 @@ def count(
     ignore_comment_lines: bool,
     delim: str,
     repair_method: str,
+    quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
         repair_method = None
@@ -204,6 +215,7 @@ def count(
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
         repair=repair_method,
+        quiet=quiet,
     )
 
     counts: Counter[Tuple[str, Tuple[str, ...]]] = Counter()
@@ -234,7 +246,7 @@ def count(
     default="\t",
     help="the delimiter to be used for delimited output (has no effect on input) [default: tab]",
 )
-@click.option("--quiet", "-q", is_flag=True)
+@_quiet_option()
 def score(
     file: List[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,

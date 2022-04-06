@@ -315,6 +315,7 @@ def repair_conll_file(
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
+    quiet: bool,
 ) -> None:
     docs = ingest_conll_file(
         input_file,
@@ -323,6 +324,7 @@ def repair_conll_file(
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
         ignore_comment_lines=ignore_comment_lines,
+        quiet=quiet,
     )
 
     output_docstart = len(docs) > 1
