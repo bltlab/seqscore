@@ -293,16 +293,17 @@ def validate_conll_file(
     )
     with open(input_path, encoding=file_encoding) as input_file:
         results = ingester.validate(input_file, input_path)
-        n_docs = len(results)
-        n_sequences = sum(len(doc_results) for doc_results in results)
-        n_tokens = sum(len(sent) for doc_results in results for sent in doc_results)
 
-        errors = list(
-            chain.from_iterable(
-                result.errors for doc_results in results for result in doc_results
-            )
+    n_docs = len(results)
+    n_sequences = sum(len(doc_results) for doc_results in results)
+    n_tokens = sum(sent.n_tokens for doc_results in results for sent in doc_results)
+
+    errors = list(
+        chain.from_iterable(
+            result.errors for doc_results in results for result in doc_results
         )
-        return ValidationResult(errors, n_tokens, n_sequences, n_docs)
+    )
+    return ValidationResult(errors, n_tokens, n_sequences, n_docs)
 
 
 def repair_conll_file(

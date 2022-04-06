@@ -33,7 +33,7 @@ def test_invalid_BIO() -> None:
     assert result.exit_code != 0
     assert (
         normalize_str_with_path(
-            "Encountered 3 errors in 3 tokens, 2 sequences, and 1 documents in tests/conll_annotation/invalid1.bio"
+            "Encountered 3 errors in 15 tokens, 2 sequences, and 1 documents in tests/conll_annotation/invalid1.bio"
         )
         in result.output
     )
@@ -63,7 +63,7 @@ def test_invalid_BIOES() -> None:
     assert result.exit_code != 0
     assert (
         normalize_str_with_path(
-            "Encountered 9 errors in 9 tokens, 6 sequences, and 1 documents in tests/conll_annotation/invalid1.bioes"
+            "Encountered 9 errors in 25 tokens, 6 sequences, and 1 documents in tests/conll_annotation/invalid1.bioes"
         )
         in result.output
     )
