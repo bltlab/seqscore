@@ -6,7 +6,7 @@ from seqscore.scripts.seqscore import validate
 from seqscore.util import normalize_str_with_path
 
 
-def test_valid_BIO() -> None:
+def test_valid_bio() -> None:
     runner = CliRunner()
     result = runner.invoke(
         validate,
@@ -15,7 +15,7 @@ def test_valid_BIO() -> None:
     assert result.exit_code == 0
 
 
-def test_valid_BIOES() -> None:
+def test_valid_bioes() -> None:
     runner = CliRunner()
     result = runner.invoke(
         validate,
@@ -24,7 +24,7 @@ def test_valid_BIOES() -> None:
     assert result.exit_code == 0
 
 
-def test_invalid_BIO() -> None:
+def test_invalid_bio() -> None:
     runner = CliRunner()
     result = runner.invoke(
         validate,
@@ -50,7 +50,7 @@ def test_invalid_BIO() -> None:
     )
 
 
-def test_invalid_BIOES() -> None:
+def test_invalid_bioes() -> None:
     runner = CliRunner()
     result = runner.invoke(
         validate,
