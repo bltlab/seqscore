@@ -41,7 +41,7 @@ predictions. Let's assume you have two files, one containing the
 correct labels (annotation) and the other containing the predictions
 (system output).
 
-The correct labels are in the file [samples/reference.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/reference.bio):
+The correct labels are in the file [samples/reference.bio](samples/reference.bio):
 ```
 This O
 is O
@@ -59,9 +59,10 @@ Philadelphia I-LOC
 , O
 Pennsylvania B-LOC
 . O
+
 ```
 
-The predictions are in the file [samples/predicted.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/predicted.bio):
+The predictions are in the file [samples/predicted.bio](samples/predicted.bio):
 ```
 This O
 is O
@@ -79,6 +80,7 @@ Philadelphia B-LOC
 , O
 Pennsylvania B-LOC
 . O
+
 ```
 
 To score the predictions, run:
@@ -105,7 +107,7 @@ A few things to note:
 The above scoring command will work for files that do not have any
 invalid transitions, that is, those that perfectly follow what the
 encoding allows. However, consider this BIO-encoded file, which we'll
-call [samples/invalid.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/invalid.bio):
+call [samples/invalid.bio](samples/invalid.bio):
 
 ```
 This O
@@ -175,14 +177,14 @@ To check if a file has any invalid transitions, we can run `seqscore validate --
  No errors found in 0 tokens, 2 sequences, and 1 documents in reference.bio
  ```
 
-For the example of the [samples/invalid.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/invalid.bio), we can run `seqscore validate --labels BIO samples/invalid.bio`:
+For the example of the [samples/invalid.bio](samples/invalid.bio), we can run `seqscore validate --labels BIO samples/invalid.bio`:
  ```
 Encountered 1 errors in 1 tokens, 2 sequences, and 1 documents in invalid.bio
 Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
  ```
 ## Convert
 
-We can convert a file from one encoding to another. For example, we can run `seqscore convert --input-labels BIO --output-labels BIOES samples/reference.bio samples/reference_convert_BIO_BIOES.bio` to convert the [samples/reference.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/reference.bio) from BIO encoding to BIOES encoding. The result is in [reference_convert_BIO_BIOES.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/reference_convert_BIO_BIOES.bio):
+We can convert a file from one encoding to another. For example, we can run `seqscore convert --input-labels BIO --output-labels BIOES samples/reference.bio samples/reference_convert_BIO_BIOES.bio` to convert the [samples/reference.bio](samples/reference.bio) from BIO encoding to BIOES encoding. The result is in [reference_convert_BIO_BIOES.bio](samples/reference_convert_BIO_BIOES.bio):
 ```
 This O
 is O
@@ -220,7 +222,7 @@ Options:
 
 ## Repair
 
-We can also apply repair methods to a file, creating an output file with only valid transitions. For example, we can run `seqscore repair --labels BIO --repair-method conlleval samples/invalid.bio samples/invalid_repair_conlleval.bio`, which will apply the conlleval repair method to the [samples/invalid.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/invalid.bio). The output would be the file [samples/invalid_repair_conlleval.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/invalid_repair_conlleval.bio):
+We can also apply repair methods to a file, creating an output file with only valid transitions. For example, we can run `seqscore repair --labels BIO --repair-method conlleval samples/invalid.bio samples/invalid_repair_conlleval.bio`, which will apply the conlleval repair method to the [samples/invalid.bio](samples/invalid.bio). The output would be the file [samples/invalid_repair_conlleval.bio](samples/invalid_repair_conlleval.bio):
 ```
 This O
 is O
@@ -240,7 +242,7 @@ Pennsylvania B-LOC
 . O
 ```
 
-If we want to apply the discard repair method, we can run `seqscore repair --labels BIO --repair-method discard samples/invalid.bio samples/invalid_repair_discard.bio` and the output is the file [samples/invalid_repair_discard.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/invalid_repair_discard.bio):
+If we want to apply the discard repair method, we can run `seqscore repair --labels BIO --repair-method discard samples/invalid.bio samples/invalid_repair_discard.bio` and the output is the file [samples/invalid_repair_discard.bio](samples/invalid_repair_discard.bio):
 ```
 This O
 is O
@@ -261,14 +263,14 @@ Pennsylvania B-LOC
 ```
 
 ## Count
-We can ouput counts of chunks in the input file. For example, if we run `seqscore count --labels BIO samples/reference.bio samples/reference_count.csv`, the output would be [samples/reference_count.csv](https://github.com/bltlab/seqscore/blob/tutorial/samples/reference_count.csv):
+We can ouput counts of chunks in the input file. For example, if we run `seqscore count --labels BIO samples/reference.bio samples/reference_count.csv`, the output would be [samples/reference_count.csv](samples/reference_count.csv):
 ```
 1	ORG	University of Pennsylvania
 1	LOC	West Philadelphia
 1	LOC	Pennsylvania
 ```
 
-We can specify the repair method being used in the input file. For example, if we run `seqscore count --repair-method conlleval --labels BIO samples/invalid.bio samples/invalid_count.csv`, we specified the conlleval repair method on the [samples/invalid.bio](https://github.com/bltlab/seqscore/blob/tutorial/samples/invalid.bio), the output would be [samples/invalid_count.csv](https://github.com/bltlab/seqscore/blob/tutorial/samples/invalid_count.csv):
+We can specify the repair method being used in the input file. For example, if we run `seqscore count --repair-method conlleval --labels BIO samples/invalid.bio samples/invalid_count.csv`, we specified the conlleval repair method on the [samples/invalid.bio](samples/invalid.bio), the output would be [samples/invalid_count.csv](samples/invalid_count.csv):
 ```
 1	ORG	University of Pennsylvania
 1	LOC	West Philadelphia
