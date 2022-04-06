@@ -16,5 +16,6 @@ isort==5.10.1
 flake8==4.0.1
 
 # Documentation build
-sphinx
-sphinx-rtd-theme
+# Disabled for now since we don't need them
+# sphinx
+# sphinx-rtd-theme
