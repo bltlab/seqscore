@@ -8,11 +8,10 @@ chunking tasks evaluated over sequence labels.
 ## Installation
 
 To install the latest official release of SeqScore, run:
-`pip install seqscore`. This will install the package and add the command `seqscore` in your
-Python environment.
+`pip install seqscore`.
+This will install the package and add the command `seqscore` in your Python environment.
 
-SeqScore requires a Python version of 3.7 or higher. It is tested on
-Python 3.7, 3.8, 3.9, and 3.10.
+SeqScore requires Python 3.7 or higher.It is tested on Python 3.7, 3.8, 3.9, and 3.10.
 
 ## License
 
