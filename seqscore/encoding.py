@@ -1,7 +1,8 @@
 from abc import abstractmethod
-from typing import AbstractSet, Dict, List, Optional, Protocol, Sequence, Tuple
+from typing import AbstractSet, Dict, List, Optional, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
+from typing_extensions import Protocol
 
 from seqscore.model import LabeledSequence, Mention, Span
 
