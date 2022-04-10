@@ -34,6 +34,7 @@ Commands:
   repair
   score
   validate
+  adjudicate
 ```
 
 ## Scoring
@@ -158,6 +159,20 @@ You can use the `-q` flag to suppress the logging of all of the repairs
 applied. You may want to also explore the `discard` repair, which can
 produce higher scores for output from models without a CRF or constrained
 decoding as they are more likely to produce invalid transitions.
+
+
+## Adjudication
+Sample call: `seqscore adjudicate <path/to/input/file> <path/to/output/file> --input-labels BIO`
+Currently this only works for BIO encoding.
+It is only tested on the case of three annotators.
+This command takes a conll-format ner file with tokens and three columns for labels
+by each annotator. The output file will have `ADJ` labels for tokens where
+there is a conflict. These need to be corrected manually.
+The final column will tell what the conflict was.
+The final column also has hints to double check for potentially bad sentence breaks
+or spots where the type of a token is uncommon enough to warrant double checking.
+Running the script will also compute Fleiss' kappa and counts of disagreements.
+
 
 ## Other commands
 
