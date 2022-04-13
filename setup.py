@@ -18,8 +18,7 @@ def setup_package() -> None:
         packages=find_packages(include=("seqscore", "seqscore.*")),
         # Package type information
         package_data={"seqscore": ["py.typed"]},
-        # 3.7 and up, but not Python 4
-        python_requires="~=3.7",
+        python_requires=">=3.7",
         license="MIT",
         description="SeqScore: Scoring for named entity recognition and other sequence labeling tasks",
         long_description=long_description,
