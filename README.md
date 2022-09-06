@@ -166,8 +166,10 @@ Sample call: `seqscore adjudicate <path/to/input/file> <path/to/output/file> --i
 Currently this only works for BIO encoding.
 It is only tested on the case of three annotators.
 This command takes a conll-format ner file with tokens and three columns for labels
-by each annotator. The output file will have `ADJ` labels for tokens where
-there is a conflict. These need to be corrected manually.
+by each annotator. 
+The output file will have `ADJ` labels for tokens where
+there is a conflict. 
+These need to be corrected manually.
 The final column will tell what the conflict was.
 The final column also has hints to double check for potentially bad sentence breaks
 or spots where the type of a token is uncommon enough to warrant double checking.
