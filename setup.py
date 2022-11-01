@@ -26,6 +26,7 @@ def setup_package() -> None:
             "attrs>=19.2.0",
             "click",
             "tabulate",
+            "typing_extensions;python_version<'3.8'",
         ],
         entry_points="""
             [console_scripts]
