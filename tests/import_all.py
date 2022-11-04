@@ -7,5 +7,7 @@ to make sure that there are no dependencies that we are accidentally relying on
 pytest to install for us.
 """
 
-from seqscore import conll, encoding, model, scoring, util, validation
 import seqscore.scripts.seqscore
+from seqscore import conll, encoding, model, scoring, util, validation
+
+print(f"{__file__}:", "Successfully imported all top-level modules")
