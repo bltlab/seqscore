@@ -184,6 +184,9 @@ class IO(Encoding):
     def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
         raise NotImplementedError
 
+    def supported_repair_methods(self) -> Tuple[str, ...]:
+        return ()
+
     def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
         builder = _MentionBuilder()
 
@@ -568,6 +571,9 @@ class BIOES(Encoding):
 
     def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
         raise NotImplementedError
+
+    def supported_repair_methods(self) -> Tuple[str, ...]:
+        return ()
 
     def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
         builder = _MentionBuilder()
