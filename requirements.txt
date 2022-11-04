@@ -10,10 +10,10 @@ pytest
 pytest-cov
 
 # For development
-black==22.3.0
-mypy==0.940
+black==22.10.0
+mypy==0.982
 isort==5.10.1
-flake8==4.0.1
+flake8==5.0.4
 
 # Documentation build
 # Disabled for now since we don't need them
