@@ -11,7 +11,7 @@ To install the latest official release of SeqScore, run:
 `pip install seqscore`.
 This will install the package and add the command `seqscore` in your Python environment.
 
-SeqScore requires Python 3.7 or higher. It is tested on Python 3.7, 3.8, 3.9, and 3.10.
+SeqScore requires Python 3.7 or higher. It is tested on Python 3.7, 3.8, 3.9, 3.10, and 3.11.
 
 ## License
 
