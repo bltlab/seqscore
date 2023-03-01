@@ -32,24 +32,43 @@ def _tuplify_mentions(
 class Span:
     start: int = attrib(validator=_validator_nonnegative)
     end: int = attrib(validator=_validator_nonnegative)
+    tokens: tuple = attrib()
 
     def __attrs_post_init__(self) -> None:
         if not self.end > self.start:
             raise ValueError(
                 f"End of span ({self.end}) must be greater than start ({self.start}"
             )
+        if not self.end-self.start == len(self.tokens):
+            raise ValueError(
+                f"The length of tokens ({len(self.tokens)}) and indices difference ({self.end-self.start}) mismatch"
+            )
 
     def __len__(self) -> int:
         return self.end - self.start
 
 
-@attrs(frozen=True, slots=True)
+@attrs(frozen=True, slots=True, repr=False, eq=False)
 class Mention:
     span: Span = attrib()
     type: str = attrib(validator=_validator_nonempty_str)
+    mention_occ_index: int = attrib()
 
     def __len__(self) -> int:
         return len(self.span)
+
+    def __repr__(self):
+        return f'Mention_{self.mention_occ_index}_{self.span.tokens}_{self.type}'
+
+    def __eq__(self, other):
+        return (
+            self.mention_occ_index == other.mention_occ_index and
+            self.span.tokens == other.span.tokens and
+            self.type == other.type
+        )
+
+    def __hash__(self):
+        return hash(self.__repr__())
 
 
 @attrs(frozen=True, slots=True)

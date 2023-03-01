@@ -135,28 +135,14 @@ def compute_scores(
             )
 
         for pred_sequence, ref_sequence in zip(pred_doc, ref_doc):
-            if len(pred_sequence) != len(ref_sequence):
-                raise TokenCountError.from_predicted_sequence(
-                    len(ref_sequence), pred_sequence
-                )
-
-            # Fail if tokens have been changed
-            # TODO: Consider removing this check or providing a flag to disable it
-            # TODO: Change to a more verbose error that uses the provenance
-            if pred_sequence.tokens != ref_sequence.tokens:
-                raise ValueError(
-                    "Tokens do not match between predictions and reference.\n"
-                    f"Prediction: {pred_sequence.tokens}\n"
-                    f"Reference: {ref_sequence.tokens}"
-                )
-
-            score_sequence_label_accuracy(
-                pred_sequence.labels, ref_sequence.labels, accuracy
-            )
+            # score_sequence_label_accuracy(
+            #     pred_sequence.labels, ref_sequence.labels, accuracy
+            # )
             score_sequence_mentions(
                 pred_sequence.mentions, ref_sequence.mentions, classification
             )
-
+        accuracy.hits = classification.true_pos
+        accuracy.total = classification.true_pos+classification.false_pos+classification.false_neg
     return classification, accuracy
 
 
@@ -249,7 +235,7 @@ def _repair_label_sequence(
                 + "Errors:\n"
                 + "\n".join(err.msg for err in validation.errors)
             )
-    return encoder.decode_labels(labels)
+    return encoder.decode_labels(labels, ['X']*len(labels))
 
 
 def convert_score(num: float) -> Decimal:

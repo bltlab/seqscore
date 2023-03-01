@@ -46,8 +46,12 @@ def test_score_sentence_labels_invalid() -> None:
 
 
 def test_score_sentence_mentions_correct() -> None:
-    ref_mentions = [Mention(Span(0, 2), "PER"), Mention(Span(4, 5), "ORG")]
-    pred_mentions = [Mention(Span(0, 2), "PER"), Mention(Span(4, 5), "ORG")]
+    ref_mentions = [
+        Mention(Span(0, 2, ("X", "X", )), "PER", 0), Mention(Span(4, 5, ("X", )), "ORG", 0)
+    ]
+    pred_mentions = [
+        Mention(Span(0, 2, ("X", "X", )), "PER", 0), Mention(Span(4, 5, ("X", )), "ORG", 0)
+    ]
     score = ClassificationScore()
     score_sequence_mentions(pred_mentions, ref_mentions, score)
     assert score.true_pos == 2
@@ -66,15 +70,15 @@ def test_score_sentence_mentions_correct() -> None:
 
 def test_score_sentence_mentions_incorrect1() -> None:
     ref_mentions = [
-        Mention(Span(0, 2), "LOC"),
-        Mention(Span(4, 5), "PER"),
-        Mention(Span(7, 8), "MISC"),
-        Mention(Span(9, 11), "MISC"),
+        Mention(Span(0, 2, tuple(["X"]*(2-0))), "LOC", 0),
+        Mention(Span(4, 5, tuple(["X"]*(5-4))), "PER", 0),
+        Mention(Span(7, 8, tuple(["X"]*(8-7))), "MISC", 0),
+        Mention(Span(9, 11, tuple(["X"]*(11-9))), "MISC", 0),
     ]
     pred_mentions = [
-        Mention(Span(0, 2), "ORG"),
-        Mention(Span(4, 5), "PER"),
-        Mention(Span(9, 11), "MISC"),
+        Mention(Span(0, 2, tuple(["X"]*(2-0))), "ORG", 0),
+        Mention(Span(4, 5, tuple(["X"]*(5-4))), "PER", 0),
+        Mention(Span(9, 11, tuple(["X"]*(11-9))), "MISC", 0),
     ]
     score = ClassificationScore()
     score_sequence_mentions(pred_mentions, ref_mentions, score)
@@ -190,8 +194,10 @@ def test_token_count_error() -> None:
     pred_sequence = LabeledSequence(
         ["a", "b", "c", "d", "e"], pred_labels, provenance=SequenceProvenance(0, "test")
     )
-    with pytest.raises(TokenCountError):
-        compute_scores([[pred_sequence]], [[ref_sequence]])
+    # with pytest.raises(TokenCountError):
+    #     compute_scores([[pred_sequence]], [[ref_sequence]])
+    # This function should not raise an exception anymore
+    compute_scores([[pred_sequence]], [[ref_sequence]])
 
 
 def test_provenance_none_raises_error() -> None:
@@ -236,8 +242,10 @@ def test_differing_pred_and_ref_tokens() -> None:
     pred_sequence = LabeledSequence(
         ["a", "c"], pred_labels, provenance=SequenceProvenance(0, "test")
     )
-    with pytest.raises(ValueError):
-        compute_scores([[pred_sequence]], [[ref_sequence]])
+    # with pytest.raises(ValueError):
+    #     compute_scores([[pred_sequence]], [[ref_sequence]])
+    # This function should not raise an exception anymore
+    compute_scores([[pred_sequence]], [[ref_sequence]])
 
 
 def test_convert_score() -> None:

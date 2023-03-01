@@ -132,11 +132,11 @@ class Encoding(Protocol):
         return self.encode_mentions(sequence.mentions, len(sequence))
 
     @abstractmethod
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
         raise NotImplementedError
 
     def decode_sequence(self, sequence: LabeledSequence) -> List[Mention]:
-        return self.decode_labels(sequence.labels)
+        return self.decode_labels(sequence.labels, sequence.tokens)
 
     def supported_repair_methods(self) -> Tuple[str, ...]:
         raise NotImplementedError
@@ -187,7 +187,7 @@ class IO(Encoding):
     def supported_repair_methods(self) -> Tuple[str, ...]:
         return ()
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
         builder = _MentionBuilder()
 
         inside = self.dialect.inside
@@ -201,11 +201,13 @@ class IO(Encoding):
                     if entity_type != builder.entity_type:
                         # End mention, start new one
                         builder.end_mention(idx)
-                        builder.start_mention(idx, entity_type)
-                    # Otherwise, nothing to do, just continue
+                        builder.start_mention(idx, entity_type, tokens[idx])
+                    # Otherwise, add the token to in mention tokens
+                    else:
+                        builder.add_in_mention_token(tokens[idx])
                 else:
                     # Begin new mention
-                    builder.start_mention(idx, entity_type)
+                    builder.start_mention(idx, entity_type, tokens[idx])
             else:
                 assert state == outside
                 # End previous mention if needed
@@ -254,7 +256,7 @@ class IOB(Encoding):
     def is_valid_state(self, state: str) -> bool:
         return state in self._valid_states
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
         builder = _MentionBuilder()
 
         inside = self.dialect.inside
@@ -273,23 +275,24 @@ class IOB(Encoding):
                         "Begin only allowed after a mention of the same type"
                     )
                 builder.end_mention(idx)
-                builder.start_mention(idx, entity_type)
+                builder.start_mention(idx, entity_type, tokens[idx])
             elif state == inside:
                 if builder.in_mention():
                     if entity_type != builder.entity_type:
                         # End mention, start new one
                         builder.end_mention(idx)
-                        builder.start_mention(idx, entity_type)
-                    # Otherwise, nothing to do, just continue
+                        builder.start_mention(idx, entity_type, tokens[idx])
+                    # Otherwise, add the token to in mention tokens
+                    else:
+                        builder.add_in_mention_token(tokens[idx])
                 else:
                     # Begin new mention
-                    builder.start_mention(idx, entity_type)
+                    builder.start_mention(idx, entity_type, tokens[idx])
             else:
                 assert state == outside
                 # End previous mention if needed
                 if builder.in_mention():
                     builder.end_mention(idx)
-
         # Finish the last mention if needed
         if builder.in_mention():
             builder.end_mention(len(labels))
@@ -424,7 +427,7 @@ class BIO(Encoding):
 
         return output_labels
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
         builder = _MentionBuilder()
 
         begin = self.dialect.begin
@@ -445,7 +448,7 @@ class BIO(Encoding):
 
             # Begin a mention if needed
             if state == begin:
-                builder.start_mention(idx, entity_type)
+                builder.start_mention(idx, entity_type, tokens[idx])
             # Check for valid continuation
             elif state == inside:
                 if entity_type != builder.entity_type:
@@ -457,6 +460,7 @@ class BIO(Encoding):
                         raise EncodingError(f"Illegal use of {label} to begin a mention")
                 # Check state
                 assert builder.in_mention()
+                builder.add_in_mention_token(tokens[idx])
             # No action needed for outside (since ending mentions is mentioned above) other than
             # checking state.
             elif state == outside:
@@ -575,7 +579,7 @@ class BIOES(Encoding):
     def supported_repair_methods(self) -> Tuple[str, ...]:
         return ()
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
         builder = _MentionBuilder()
 
         begin = self.dialect.begin
@@ -590,17 +594,19 @@ class BIOES(Encoding):
             if state == single:
                 assert not builder.in_mention()
                 # Begin and end a mention
-                builder.start_mention(idx, entity_type)
+                builder.start_mention(idx, entity_type, tokens[idx])
                 builder.end_mention(idx + 1)
             elif state == begin:
                 assert not builder.in_mention()
-                builder.start_mention(idx, entity_type)
+                builder.start_mention(idx, entity_type, tokens[idx])
             elif state == end:
                 assert builder.in_mention()
+                builder.add_in_mention_token(tokens[idx])
                 builder.end_mention(idx + 1)
             elif state == inside:
                 # Nothing to do but check state
                 assert builder.in_mention()
+                builder.add_in_mention_token(tokens[idx])
             else:
                 # Nothing to do but check state
                 assert state == outside
@@ -666,8 +672,9 @@ class _MentionBuilder:
     start_idx: Optional[int] = attrib(default=None, init=False)
     entity_type: Optional[str] = attrib(default=None, init=False)
     mentions: List[Mention] = attrib(default=Factory(list), init=False)
+    mention_tokens: List[str] = attrib(default=Factory(list), init=False)
 
-    def start_mention(self, start_idx: int, entity_type: str) -> None:
+    def start_mention(self, start_idx: int, entity_type: str, token: str) -> None:
         # Check arguments
         assert start_idx >= 0
         assert entity_type
@@ -679,9 +686,13 @@ class _MentionBuilder:
         assert (
             self.entity_type is None
         ), f"Mention has already been started with type {self.entity_type}"
+        assert (
+                len(self.mention_tokens) == 0
+        ), f"Mention tokens list is not empty! {self.mention_tokens}"
 
         self.start_idx = start_idx
         self.entity_type = entity_type
+        self.mention_tokens.append(token)
 
     def end_mention(self, end_idx: int) -> None:
         # Since end index is exclusive, cannot be zero
@@ -690,12 +701,27 @@ class _MentionBuilder:
         # Check state
         assert self.start_idx is not None, "No mention start index"
         assert self.entity_type is not None, "No mention entity type"
+        assert end_idx-self.start_idx == len(self.mention_tokens), "Indices not matching the tokens"
 
-        mention = Mention(Span(self.start_idx, end_idx), self.entity_type)
+        # Handle the case where we have same entity with same tokens multiple times in a sequence
+        occ_counter = 0
+        for mention in self.mentions:
+            if tuple(self.mention_tokens) == mention.span.tokens and self.entity_type == mention.type:
+                occ_counter += 1
+
+        mention = Mention(
+            Span(self.start_idx, end_idx, tuple(self.mention_tokens)),
+            self.entity_type,
+            occ_counter
+        )
         self.mentions.append(mention)
 
         self.start_idx = None
         self.entity_type = None
+        self.mention_tokens = []
 
     def in_mention(self) -> bool:
         return self.start_idx is not None
+
+    def add_in_mention_token(self, token: str):
+        self.mention_tokens.append(token)

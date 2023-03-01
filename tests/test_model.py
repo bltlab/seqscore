@@ -4,29 +4,29 @@ from seqscore.model import LabeledSequence, Mention, SequenceProvenance, Span
 
 
 def test_span() -> None:
-    assert len(Span(0, 1)) == 1
-    assert len(Span(1, 2)) == 1
-    assert len(Span(0, 2)) == 2
+    assert len(Span(0, 1, ("X", ))) == 1
+    assert len(Span(1, 2, ("X", ))) == 1
+    assert len(Span(0, 2, ("X", "X", ))) == 2
 
     with pytest.raises(ValueError):
-        Span(-1, 0)
+        Span(-1, 0, ("X", ))
 
     with pytest.raises(ValueError):
-        Span(0, 0)
+        Span(0, 0, ("X", ))
 
 
 def test_mention() -> None:
-    m1 = Mention(Span(0, 1), "PER")
+    m1 = Mention(Span(0, 1, ("X",)), "PER", 0)
     assert m1.type == "PER"
-    assert m1.span == Span(0, 1)
+    assert m1.span == Span(0, 1, ("X",))
     assert len(m1) == 1
 
     with pytest.raises(ValueError):
-        Mention(Span(0, 1), "")
+        Mention(Span(0, 1, ("X",)), "", 0)
 
     with pytest.raises(TypeError):
         # Intentionally incorrect type
-        Mention(Span(0, 1), None)  # type: ignore
+        Mention(Span(0, 1, ("X",)), None, 0)  # type: ignore
 
 
 def test_labeled_sentence() -> None:
@@ -43,8 +43,8 @@ def test_labeled_sentence() -> None:
     assert s1.provenance == SequenceProvenance(7, "test")
     assert str(s1) == "a/B-PER b/I-PER"
     assert s1.tokens_with_labels() == (("a", "B-PER"), ("b", "I-PER"))
-    assert s1.span_tokens(Span(0, 1)) == ("a",)
-    assert s1.mention_tokens(Mention(Span(0, 1), "PER")) == ("a",)
+    assert s1.span_tokens(Span(0, 1, ("a",))) == ("a",)
+    assert s1.mention_tokens(Mention(Span(0, 1, ("a",)), "PER", 0)) == ("a",)
 
     s2 = LabeledSequence(s1.tokens, s1.labels)
     # Provenance not included in equality
@@ -66,5 +66,5 @@ def test_labeled_sentence() -> None:
         # Bad token
         LabeledSequence([""], ["B-PER"])
 
-    s2 = s1.with_mentions([Mention(Span(0, 2), "PER")])
-    assert s2.mentions == (Mention(Span(0, 2), "PER"),)
+    s2 = s1.with_mentions([Mention(Span(0, 2, ("a", "b", )), "PER", 0)])
+    assert s2.mentions == (Mention(Span(0, 2, ("a", "b", )), "PER", 0),)

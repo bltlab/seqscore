@@ -131,7 +131,7 @@ class CoNLLIngester:
                     )
 
             try:
-                mentions = self.encoding.decode_labels(labels)
+                mentions = self.encoding.decode_labels(labels, tokens)
             except EncodingError as e:
                 raise ValueError(
                     "Encountered an error decoding this sequence despite passing validation: "
