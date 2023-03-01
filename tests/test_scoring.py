@@ -47,10 +47,34 @@ def test_score_sentence_labels_invalid() -> None:
 
 def test_score_sentence_mentions_correct() -> None:
     ref_mentions = [
-        Mention(Span(0, 2, ("X", "X", )), "PER", 0), Mention(Span(4, 5, ("X", )), "ORG", 0)
+        Mention(
+            Span(
+                0,
+                2,
+                (
+                    "X",
+                    "X",
+                ),
+            ),
+            "PER",
+            0,
+        ),
+        Mention(Span(4, 5, ("X",)), "ORG", 0),
     ]
     pred_mentions = [
-        Mention(Span(0, 2, ("X", "X", )), "PER", 0), Mention(Span(4, 5, ("X", )), "ORG", 0)
+        Mention(
+            Span(
+                0,
+                2,
+                (
+                    "X",
+                    "X",
+                ),
+            ),
+            "PER",
+            0,
+        ),
+        Mention(Span(4, 5, ("X",)), "ORG", 0),
     ]
     score = ClassificationScore()
     score_sequence_mentions(pred_mentions, ref_mentions, score)
@@ -70,15 +94,15 @@ def test_score_sentence_mentions_correct() -> None:
 
 def test_score_sentence_mentions_incorrect1() -> None:
     ref_mentions = [
-        Mention(Span(0, 2, tuple(["X"]*(2-0))), "LOC", 0),
-        Mention(Span(4, 5, tuple(["X"]*(5-4))), "PER", 0),
-        Mention(Span(7, 8, tuple(["X"]*(8-7))), "MISC", 0),
-        Mention(Span(9, 11, tuple(["X"]*(11-9))), "MISC", 0),
+        Mention(Span(0, 2, tuple(["X"] * (2 - 0))), "LOC", 0),
+        Mention(Span(4, 5, tuple(["X"] * (5 - 4))), "PER", 0),
+        Mention(Span(7, 8, tuple(["X"] * (8 - 7))), "MISC", 0),
+        Mention(Span(9, 11, tuple(["X"] * (11 - 9))), "MISC", 0),
     ]
     pred_mentions = [
-        Mention(Span(0, 2, tuple(["X"]*(2-0))), "ORG", 0),
-        Mention(Span(4, 5, tuple(["X"]*(5-4))), "PER", 0),
-        Mention(Span(9, 11, tuple(["X"]*(11-9))), "MISC", 0),
+        Mention(Span(0, 2, tuple(["X"] * (2 - 0))), "ORG", 0),
+        Mention(Span(4, 5, tuple(["X"] * (5 - 4))), "PER", 0),
+        Mention(Span(9, 11, tuple(["X"] * (11 - 9))), "MISC", 0),
     ]
     score = ClassificationScore()
     score_sequence_mentions(pred_mentions, ref_mentions, score)

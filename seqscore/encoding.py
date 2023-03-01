@@ -132,7 +132,9 @@ class Encoding(Protocol):
         return self.encode_mentions(sequence.mentions, len(sequence))
 
     @abstractmethod
-    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
+    def decode_labels(
+        self, labels: Sequence[str], tokens: Sequence[str]
+    ) -> List[Mention]:
         raise NotImplementedError
 
     def decode_sequence(self, sequence: LabeledSequence) -> List[Mention]:
@@ -187,7 +189,9 @@ class IO(Encoding):
     def supported_repair_methods(self) -> Tuple[str, ...]:
         return ()
 
-    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
+    def decode_labels(
+        self, labels: Sequence[str], tokens: Sequence[str]
+    ) -> List[Mention]:
         builder = _MentionBuilder()
 
         inside = self.dialect.inside
@@ -256,7 +260,9 @@ class IOB(Encoding):
     def is_valid_state(self, state: str) -> bool:
         return state in self._valid_states
 
-    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
+    def decode_labels(
+        self, labels: Sequence[str], tokens: Sequence[str]
+    ) -> List[Mention]:
         builder = _MentionBuilder()
 
         inside = self.dialect.inside
@@ -427,7 +433,9 @@ class BIO(Encoding):
 
         return output_labels
 
-    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
+    def decode_labels(
+        self, labels: Sequence[str], tokens: Sequence[str]
+    ) -> List[Mention]:
         builder = _MentionBuilder()
 
         begin = self.dialect.begin
@@ -579,7 +587,9 @@ class BIOES(Encoding):
     def supported_repair_methods(self) -> Tuple[str, ...]:
         return ()
 
-    def decode_labels(self, labels: Sequence[str], tokens: Sequence[str]) -> List[Mention]:
+    def decode_labels(
+        self, labels: Sequence[str], tokens: Sequence[str]
+    ) -> List[Mention]:
         builder = _MentionBuilder()
 
         begin = self.dialect.begin
@@ -687,7 +697,7 @@ class _MentionBuilder:
             self.entity_type is None
         ), f"Mention has already been started with type {self.entity_type}"
         assert (
-                len(self.mention_tokens) == 0
+            len(self.mention_tokens) == 0
         ), f"Mention tokens list is not empty! {self.mention_tokens}"
 
         self.start_idx = start_idx
@@ -701,18 +711,23 @@ class _MentionBuilder:
         # Check state
         assert self.start_idx is not None, "No mention start index"
         assert self.entity_type is not None, "No mention entity type"
-        assert end_idx-self.start_idx == len(self.mention_tokens), "Indices not matching the tokens"
+        assert end_idx - self.start_idx == len(
+            self.mention_tokens
+        ), "Indices not matching the tokens"
 
         # Handle the case where we have same entity with same tokens multiple times in a sequence
         occ_counter = 0
         for mention in self.mentions:
-            if tuple(self.mention_tokens) == mention.span.tokens and self.entity_type == mention.type:
+            if (
+                tuple(self.mention_tokens) == mention.span.tokens
+                and self.entity_type == mention.type
+            ):
                 occ_counter += 1
 
         mention = Mention(
             Span(self.start_idx, end_idx, tuple(self.mention_tokens)),
             self.entity_type,
-            occ_counter
+            occ_counter,
         )
         self.mentions.append(mention)
 

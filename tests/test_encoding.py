@@ -29,16 +29,53 @@ FULL_SENTENCE_LABELS = {
     "BMEOW": ["W-PER", "O", "B-ORG", "E-ORG", "B-ORG", "M-ORG", "E-ORG", "W-LOC"],
 }
 FULL_SENTENCE_MENTS = [
-    Mention(Span(0, 1, ("X", )), "PER", 0),
-    Mention(Span(2, 4, ("X", "X",)), "ORG", 0),
-    Mention(Span(4, 7, ("X", "X", "X",)), "ORG", 0),
-    Mention(Span(7, 8, ("X", )), "LOC", 0),
+    Mention(Span(0, 1, ("X",)), "PER", 0),
+    Mention(
+        Span(
+            2,
+            4,
+            (
+                "X",
+                "X",
+            ),
+        ),
+        "ORG",
+        0,
+    ),
+    Mention(
+        Span(
+            4,
+            7,
+            (
+                "X",
+                "X",
+                "X",
+            ),
+        ),
+        "ORG",
+        0,
+    ),
+    Mention(Span(7, 8, ("X",)), "LOC", 0),
 ]
 # IO cannot faithfully encode this sentence, so there is just one org
 FULL_SENTENCE_MENTS_IO = [
-    Mention(Span(0, 1, ("X", )), "PER", 0),
-    Mention(Span(2, 7, ("X", "X", "X", "X", "X",)), "ORG", 0),
-    Mention(Span(7, 8, ("X", )), "LOC", 0),
+    Mention(Span(0, 1, ("X",)), "PER", 0),
+    Mention(
+        Span(
+            2,
+            7,
+            (
+                "X",
+                "X",
+                "X",
+                "X",
+                "X",
+            ),
+        ),
+        "ORG",
+        0,
+    ),
+    Mention(Span(7, 8, ("X",)), "LOC", 0),
 ]
 # Map to sets of encodings that allow that state
 VALID_ENCODING_STATES = {
@@ -63,7 +100,7 @@ class EdgeTestSentence:
 EDGE_TEST_SENTENCES = [
     EdgeTestSentence(
         "One token, one mention",
-        [Mention(Span(0, 1, ("X", )), "PER", 0)],
+        [Mention(Span(0, 1, ("X",)), "PER", 0)],
         [
             (["BIO"], ["B-PER"]),
             (["BIOES", "BMES"], ["S-PER"]),
@@ -74,7 +111,20 @@ EDGE_TEST_SENTENCES = [
     ),
     EdgeTestSentence(
         "Two tokens, one mention covering them all",
-        [Mention(Span(0, 2, ("X", "X", )), "PER", 0)],
+        [
+            Mention(
+                Span(
+                    0,
+                    2,
+                    (
+                        "X",
+                        "X",
+                    ),
+                ),
+                "PER",
+                0,
+            )
+        ],
         [
             (["BIO"], ["B-PER", "I-PER"]),
             (["BIOES", "BMES", "BMEOW"], ["B-PER", "E-PER"]),
@@ -84,7 +134,21 @@ EDGE_TEST_SENTENCES = [
     ),
     EdgeTestSentence(
         "Three tokens, one mention covering them all",
-        [Mention(Span(0, 3, ("X", "X", "X",)), "PER", 0)],
+        [
+            Mention(
+                Span(
+                    0,
+                    3,
+                    (
+                        "X",
+                        "X",
+                        "X",
+                    ),
+                ),
+                "PER",
+                0,
+            )
+        ],
         [
             (["BIO"], ["B-PER", "I-PER", "I-PER"]),
             (["BIOES"], ["B-PER", "I-PER", "E-PER"]),
@@ -118,7 +182,32 @@ EDGE_TEST_SENTENCES = [
     ),
     EdgeTestSentence(
         "Adjacent same-type two-token mentions",
-        [Mention(Span(0, 2, ("X", "X",)), "PER", 0), Mention(Span(2, 4, ("X", "X",)), "PER", 0)],
+        [
+            Mention(
+                Span(
+                    0,
+                    2,
+                    (
+                        "X",
+                        "X",
+                    ),
+                ),
+                "PER",
+                0,
+            ),
+            Mention(
+                Span(
+                    2,
+                    4,
+                    (
+                        "X",
+                        "X",
+                    ),
+                ),
+                "PER",
+                0,
+            ),
+        ],
         [
             (["BIO"], ["B-PER", "I-PER", "B-PER", "I-PER"]),
             (["BIOES", "BMES", "BMEOW"], ["B-PER", "E-PER", "B-PER", "E-PER"]),
@@ -129,7 +218,32 @@ EDGE_TEST_SENTENCES = [
     ),
     EdgeTestSentence(
         "Adjacent different-type two-token mentions",
-        [Mention(Span(0, 2, ("X", "X",)), "PER", 0), Mention(Span(2, 4, ("X", "X",)), "ORG", 0)],
+        [
+            Mention(
+                Span(
+                    0,
+                    2,
+                    (
+                        "X",
+                        "X",
+                    ),
+                ),
+                "PER",
+                0,
+            ),
+            Mention(
+                Span(
+                    2,
+                    4,
+                    (
+                        "X",
+                        "X",
+                    ),
+                ),
+                "ORG",
+                0,
+            ),
+        ],
         [
             (["BIO"], ["B-PER", "I-PER", "B-ORG", "I-ORG"]),
             (["BIOES", "BMES", "BMEOW"], ["B-PER", "E-PER", "B-ORG", "E-ORG"]),
@@ -144,7 +258,7 @@ def test_basic_decoding() -> None:
     for encoding_name in SUPPORTED_ENCODINGS:
         encoding = get_encoding(encoding_name)
         labels = FULL_SENTENCE_LABELS[encoding_name]
-        dummy_tokens = ['X'] * len(labels)
+        dummy_tokens = ["X"] * len(labels)
         mentions = (
             FULL_SENTENCE_MENTS_IO if encoding_name == "IO" else FULL_SENTENCE_MENTS
         )
@@ -174,7 +288,7 @@ def test_round_trip() -> None:
 
         encoding = get_encoding(encoding_name)
         labels = FULL_SENTENCE_LABELS[encoding_name]
-        dummy_tokens = ['X']*len(labels)
+        dummy_tokens = ["X"] * len(labels)
         mentions = FULL_SENTENCE_MENTS
 
         # Encode, then decode

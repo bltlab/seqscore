@@ -39,7 +39,7 @@ class Span:
             raise ValueError(
                 f"End of span ({self.end}) must be greater than start ({self.start}"
             )
-        if not self.end-self.start == len(self.tokens):
+        if not self.end - self.start == len(self.tokens):
             raise ValueError(
                 f"The length of tokens ({len(self.tokens)}) and indices difference ({self.end-self.start}) mismatch"
             )
@@ -58,13 +58,13 @@ class Mention:
         return len(self.span)
 
     def __repr__(self):
-        return f'Mention_{self.mention_occ_index}_{self.span.tokens}_{self.type}'
+        return f"Mention_{self.mention_occ_index}_{self.span.tokens}_{self.type}"
 
     def __eq__(self, other):
         return (
-            self.mention_occ_index == other.mention_occ_index and
-            self.span.tokens == other.span.tokens and
-            self.type == other.type
+            self.mention_occ_index == other.mention_occ_index
+            and self.span.tokens == other.span.tokens
+            and self.type == other.type
         )
 
     def __hash__(self):

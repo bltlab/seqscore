@@ -4,15 +4,27 @@ from seqscore.model import LabeledSequence, Mention, SequenceProvenance, Span
 
 
 def test_span() -> None:
-    assert len(Span(0, 1, ("X", ))) == 1
-    assert len(Span(1, 2, ("X", ))) == 1
-    assert len(Span(0, 2, ("X", "X", ))) == 2
+    assert len(Span(0, 1, ("X",))) == 1
+    assert len(Span(1, 2, ("X",))) == 1
+    assert (
+        len(
+            Span(
+                0,
+                2,
+                (
+                    "X",
+                    "X",
+                ),
+            )
+        )
+        == 2
+    )
 
     with pytest.raises(ValueError):
-        Span(-1, 0, ("X", ))
+        Span(-1, 0, ("X",))
 
     with pytest.raises(ValueError):
-        Span(0, 0, ("X", ))
+        Span(0, 0, ("X",))
 
 
 def test_mention() -> None:
@@ -66,5 +78,33 @@ def test_labeled_sentence() -> None:
         # Bad token
         LabeledSequence([""], ["B-PER"])
 
-    s2 = s1.with_mentions([Mention(Span(0, 2, ("a", "b", )), "PER", 0)])
-    assert s2.mentions == (Mention(Span(0, 2, ("a", "b", )), "PER", 0),)
+    s2 = s1.with_mentions(
+        [
+            Mention(
+                Span(
+                    0,
+                    2,
+                    (
+                        "a",
+                        "b",
+                    ),
+                ),
+                "PER",
+                0,
+            )
+        ]
+    )
+    assert s2.mentions == (
+        Mention(
+            Span(
+                0,
+                2,
+                (
+                    "a",
+                    "b",
+                ),
+            ),
+            "PER",
+            0,
+        ),
+    )

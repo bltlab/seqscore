@@ -142,7 +142,9 @@ def compute_scores(
                 pred_sequence.mentions, ref_sequence.mentions, classification
             )
         accuracy.hits = classification.true_pos
-        accuracy.total = classification.true_pos+classification.false_pos+classification.false_neg
+        accuracy.total = (
+            classification.true_pos + classification.false_pos + classification.false_neg
+        )
     return classification, accuracy
 
 
@@ -235,7 +237,7 @@ def _repair_label_sequence(
                 + "Errors:\n"
                 + "\n".join(err.msg for err in validation.errors)
             )
-    return encoder.decode_labels(labels, ['X']*len(labels))
+    return encoder.decode_labels(labels, ["X"] * len(labels))
 
 
 def convert_score(num: float) -> Decimal:
