@@ -16,3 +16,6 @@ flake8==4.0.1
 # Documentation build
 sphinx
 sphinx-rtd-theme
+
+# Adjudication specific
+statsmodels

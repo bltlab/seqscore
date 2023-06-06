@@ -1,6 +1,7 @@
 import os
 import re
 from collections import Counter, defaultdict, namedtuple
+from itertools import combinations
 from math import log
 from typing import (
     AbstractSet,
@@ -16,7 +17,9 @@ from typing import (
     Union,
 )
 
+import numpy as np
 from attr import attrib, attrs
+from statsmodels.stats.inter_rater import cohens_kappa
 
 from seqscore.model import LabeledSequence, Mention, SequenceProvenance, Span
 
@@ -216,6 +219,7 @@ class DisagreementResult:
     disagreements_by_span = attrib()
     fleiss_kappa: float = attrib()
     majority_vote_sequences: Tuple[AdjudicationSequence, ...] = attrib()
+    cohen_kappa_dict: Dict[Tuple[int, int], float] = attrib()
 
 
 @attrs(frozen=True)
@@ -418,6 +422,27 @@ def check_names_to_flag(
     return spans
 
 
+def compute_cohen_kappa(units_to_mentions: DefaultDict[Unit, List[AnnotatorMention]], num_annotators: int, labels: Sequence[str]):
+    annotators = [a for a in range(num_annotators)]
+    print(f"Num annotators: {annotators}")
+    labels2index = {label: i for i, label in enumerate(labels)}
+    annotator_agreement_tables = {anno_pair: np.array([[0 for _ in labels] for _ in labels]) for anno_pair in combinations(annotators, 2)}
+        # create a table of agreement between classification decisions
+    # For all units to mentions, add them to the appropriate annotator pair table
+    for unit in units_to_mentions:
+        anno2label = {annotator: labels2index["O"] for annotator in annotators}
+        for mention in units_to_mentions[unit]:
+            anno2label[mention.annotator] = labels2index[mention.mention.type]
+        for anno_pair in annotator_agreement_tables:
+            table_idx1, table_idx2 = anno2label[anno_pair[0]], anno2label[anno_pair[1]]
+            annotator_agreement_tables[anno_pair][table_idx1][table_idx2] += 1
+    ret = {}
+    for anno_pair, agreement_table in annotator_agreement_tables.items():
+        cohen_score = cohens_kappa(agreement_table)
+        ret[anno_pair] = cohen_score.kappa
+    return ret
+
+
 def check_disagreements(
     annotator_label_sequences: Sequence[AnnotatorLabeledSequence],
     num_annotators: int,
@@ -530,18 +555,25 @@ def check_disagreements(
             for label_sequence in annotator_label_sequences
         ]
     )
+
+    cohen_kappa_dict = compute_cohen_kappa(units_to_mentions, num_annotators, sorted(labels))
+
     return DisagreementResult(
         disagreements,
         disaggrements_by_type,
         disagreements_by_span,
         f_kappa,
         new_sentences,
+        cohen_kappa_dict
     )
 
 
 def print_results(adjudication_results: AdjudicationResult) -> None:
     print("Disagreement Stats: ")
     print(f"\tFleiss kappa: {adjudication_results.disagreements.fleiss_kappa}")
+    print(f"\tCohen's Kappa:")
+    for annotator_pair in adjudication_results.disagreements.cohen_kappa_dict:
+        print(f"\t\tAnnotators {annotator_pair[0]}, {annotator_pair[1]}: {adjudication_results.disagreements.cohen_kappa_dict[annotator_pair]:.3}")
     total_disagree = adjudication_results.disagreements.disagreements
     by_type = adjudication_results.disagreements.disaggrements_by_type
     by_span = adjudication_results.disagreements.disagreements_by_span
