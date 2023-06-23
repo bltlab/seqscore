@@ -1,0 +1,21 @@
+-DOCSTART-	-X-	-X-	O
+
+This	field3	field4	O
+is	field5	field6	O
+a	field7	field8	O
+sentence	field9	field10	O
+.	field11	field12	O
+
+-DOCSTART-	-X-	-X-	O
+
+University	field13	field14	B-ORG
+of	field15	field16	I-ORG
+Pennsylvania	field17	field18	I-ORG
+is	field19	field20	O
+in	field21	field22	O
+West	field23	field24	B-LOC
+Philadelphia	field25	field26	I-LOC
+,	field27	field28	O
+Pennsylvania	field29	field30	B-LOC
+.	field31	field32	O
+

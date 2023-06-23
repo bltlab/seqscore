@@ -23,6 +23,7 @@ from seqscore.validation import (
 )
 
 DOCSTART = "-DOCSTART-"
+EMPTY_OTHER_FIELD = "-X-"
 
 
 FORMAT_PRETTY = "pretty"
@@ -37,6 +38,7 @@ class _CoNLLToken:
     label: str = attrib()
     is_docstart: bool = attrib()
     line_num: int = attrib()
+    other_fields: Tuple[str, ...] = attrib()
 
     @classmethod
     def from_line(cls, line: str, line_num: int, source_name: str) -> "_CoNLLToken":
@@ -54,8 +56,9 @@ class _CoNLLToken:
 
         text = splits[0]
         label = splits[-1]
+        other_fields = tuple(splits[1:-1])
         is_docstart = text == DOCSTART
-        return cls(text, label, is_docstart, line_num)
+        return cls(text, label, is_docstart, line_num, other_fields)
 
 
 @attrs(frozen=True)
@@ -92,7 +95,9 @@ class CoNLLIngester:
                 continue
 
             # Create mentions from tokens in sequence
-            tokens, labels, line_nums = self._decompose_sequence(source_sequence)
+            tokens, labels, line_nums, other_fields = self._decompose_sequence(
+                source_sequence
+            )
 
             # Validate before decoding
             validation = validate_labels(
@@ -142,6 +147,7 @@ class CoNLLIngester:
                 tokens,
                 labels,
                 mentions,
+                other_fields=other_fields,
                 provenance=SequenceProvenance(line_nums[0], source_name),
             )
             document.append(sequences)
@@ -175,7 +181,7 @@ class CoNLLIngester:
                 continue
 
             # Create mentions from tokens in sequence
-            tokens, labels, line_nums = self._decompose_sequence(source_sequence)
+            tokens, labels, line_nums, _ = self._decompose_sequence(source_sequence)
 
             # Validate
             document_results.append(
@@ -190,11 +196,14 @@ class CoNLLIngester:
     @staticmethod
     def _decompose_sequence(
         source_sequence: Sequence[_CoNLLToken],
-    ) -> Tuple[Tuple[str, ...], Tuple[str, ...], Tuple[int, ...]]:
+    ) -> Tuple[
+        Tuple[str, ...], Tuple[str, ...], Tuple[int, ...], Tuple[Tuple[str, ...], ...]
+    ]:
         tokens = tuple(tok.text for tok in source_sequence)
         labels = tuple(tok.label for tok in source_sequence)
         line_nums = tuple(tok.line_num for tok in source_sequence)
-        return tokens, labels, line_nums
+        other_fields = tuple(tok.other_fields for tok in source_sequence)
+        return tokens, labels, line_nums, other_fields
 
     @classmethod
     def _parse_file(
@@ -374,13 +383,28 @@ def write_doc_using_encoding(
     output_docstart: bool,
 ) -> None:
     if output_docstart:
-        print(f"{DOCSTART}{delim}O", file=file)
+        # Get a single token to figure out how many other_fields entries it has
+        sequence_other_fields = doc[0].other_fields
+        fields = [DOCSTART]
+        if sequence_other_fields:
+            fields.extend([EMPTY_OTHER_FIELD for _ in sequence_other_fields[0]])
+        fields.append(encoding.dialect.outside)
+
+        print(delim.join(fields), file=file)
         print(file=file)
 
     for sequence in doc:
         labels = encoding.encode_sequence(sequence)
-        for token, label in zip(sequence.tokens, labels):
-            print(f"{token}{delim}{label}", file=file)
+        # Lengths of labels and other_fields have previously been checked to match tokens
+        for (token, other_fields), label in zip(
+            sequence.tokens_with_other_fields(), labels
+        ):
+            fields = [token]
+            if other_fields:
+                fields.extend(other_fields)
+            fields.append(label)
+            print(delim.join(fields), file=file)
+
         print(file=file)
 
 

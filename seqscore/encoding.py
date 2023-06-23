@@ -129,7 +129,12 @@ class Encoding(Protocol):
         self,
         sequence: LabeledSequence,
     ) -> Sequence[str]:
-        return self.encode_mentions(sequence.mentions, len(sequence))
+        labels = self.encode_mentions(sequence.mentions, len(sequence))
+        if len(labels) != len(sequence):
+            raise ValueError(
+                f"Labels ({len(labels)}) and sequence ({len(sequence)}) must be the same length."
+            )
+        return labels
 
     @abstractmethod
     def decode_labels(self, labels: Sequence[str]) -> List[Mention]:

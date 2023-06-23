@@ -27,7 +27,7 @@ def _input_file_options() -> List[Callable]:
         click.option("--file-encoding", default="UTF-8", show_default=True),
         click.option("--ignore-comment-lines", is_flag=True),
         click.option(
-            "--ignore-document-boundaries/--use-document-boundaries", default=True
+            "--ignore-document-boundaries/--use-document-boundaries", default=False
         ),
     ]
 

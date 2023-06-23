@@ -134,6 +134,46 @@ def test_IO_to_BIO() -> None:
     )
 
 
+def test_BIO_to_IOB_fields() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        convert,
+        [
+            "--input-labels",
+            "BIO",
+            "--output-labels",
+            "IOB",
+            os.path.join("tests", "conll_annotation", "minimal_fields.bio"),
+            os.path.join(TMP_DIR.name, "BIOtoIOB.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_fields_match(
+        os.path.join(TMP_DIR.name, "BIOtoIOB.txt"),
+        os.path.join("tests", "conll_annotation", "minimal_fields.iob"),
+    )
+
+
+def test_IOB_to_BIO_fields() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        convert,
+        [
+            "--input-labels",
+            "IOB",
+            "--output-labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal_fields.iob"),
+            os.path.join(TMP_DIR.name, "IOBtoBIO.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_fields_match(
+        os.path.join(TMP_DIR.name, "IOBtoBIO.txt"),
+        os.path.join("tests", "conll_annotation", "minimal_fields.bio"),
+    )
+
+
 def test_IO_to_BIOES() -> None:
     runner = CliRunner()
     result = runner.invoke(
