@@ -4,6 +4,12 @@
 SeqScore provides scoring for named entity recognition and other
 chunking tasks evaluated over sequence labels.
 
+SeqScore is maintained by the BLT Lab at Brandeis University. Please
+open an issue if you find incorrect behavior or features you would like
+to see added. Due to the risk of introducing regressions or incorrect
+scoring behavior, we generally do not accept pull requests. Please do not
+open a pull request unless you are asked to do so by a maintainer in an
+issue.
 
 ## Installation
 
@@ -16,7 +22,6 @@ SeqScore requires Python 3.7 or higher. It is tested on Python 3.7, 3.8, 3.9, 3.
 ## License
 
 SeqScore is distributed under the MIT License.
-
 
 ## Citation
 
@@ -122,7 +127,7 @@ To score the predictions, run:
 ```
 
 A few things to note:
-* The reference file must be specifed with the `--reference` flag.
+* The reference file must be specified with the `--reference` flag.
 * The chunk encoding (BIO, BIOES, etc.) must be specified using the
   `--labels` flag.
 * Both files need to use the same chunk encoding. If you have
@@ -369,6 +374,8 @@ pipelines.
 
 
 # Development
+
+The following instructions are for the project maintainers only.
 
 For the latest development version, check out the `main` branch
 (stable, but sometimes newer than the version on PyPI), or the `dev`
