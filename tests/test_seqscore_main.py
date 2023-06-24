@@ -13,6 +13,7 @@ Commands:
   count
   repair
   score
+  summarize
   validate
 """
 

@@ -317,34 +317,39 @@ Pennsylvania B-LOC
 
 ```
 
+Repairing the file before performing other operations is available in the
+`count` and `summarize` subcommands.
+
+## Summarize
+
+The `summarize` subcommand can produce counts of the types of chunks
+in the input file. For example, if we run
+`seqscore summarize --labels BIO tests/conll_annotation/minimal.bio`
+we get the following output:
+```
+File 'tests/conll_annotation/minimal.bio' contains 1 document(s) with the following mentions:
+| Entity Type   |   Count |
+|---------------|---------|
+| LOC           |       2 |
+| ORG           |       1 |
+```
+
+If the quiet (`-q`) flag is provided, the first line giving the filename
+and document count is not printed.
+
 ## Count
 
 The `count` subcommand can produce the counts of chunks in the input
-file. For example, if we run
-`seqscore count --labels BIO samples/reference.bio samples/reference_count.csv`,
-tab-delimited counts would be writtn to be [samples/reference_count.csv](samples/reference_count.csv):
+file. Unlike `summarize`, it counts chunk-type pairs, not just types.
+For example, if we run
+`seqscore count --labels BIO samples/reference.bio counts.csv`,
+tab-delimited counts would be written to `counts.csv` as follows:
 
 ```
 1	ORG	University of Pennsylvania
 1	LOC	West Philadelphia
 1	LOC	Pennsylvania
 ```
-
-We can specify the repair method being used when counting. For example, running
-`seqscore count --repair-method conlleval --labels BIO samples/invalid.bio samples/invalid_count.csv`,
-specifies that the conlleval method should be used to repair labels before counting.
-The output is given in [samples/invalid_count.csv](samples/invalid_count.csv):
-```
-1	ORG	University of Pennsylvania
-1	LOC	West Philadelphia
-1	LOC	Pennsylvania
-```
-
-
-# Features coming soon!
-
-* More documentation
-* More error analysis tools
 
 
 # FAQ

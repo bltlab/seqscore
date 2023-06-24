@@ -2,6 +2,7 @@ import sys
 from typing import Callable, Counter, List, Tuple
 
 import click
+from tabulate import tabulate
 
 import seqscore
 from seqscore.conll import (
@@ -68,7 +69,10 @@ def _labels_option() -> Callable:
 
 def _quiet_option() -> Callable:
     return click.option(
-        "--quiet", "-q", is_flag=True, help="do not log the repairs performed"
+        "--quiet",
+        "-q",
+        is_flag=True,
+        help="do not log the repairs performed and supress other non-critical messages",
     )
 
 
@@ -230,6 +234,49 @@ def count(
     with open(output_file, "w", encoding=file_encoding) as output:
         for item, count in counts.most_common():
             print(delim.join((str(count), item[0], " ".join(item[1]))), file=output)
+
+
+@cli.command()
+@_single_input_file_arguments
+@_repair_option()
+@_labels_option()
+@_quiet_option()
+def summarize(
+    file: str,
+    file_encoding: str,
+    labels: str,
+    *,
+    ignore_document_boundaries: bool,
+    ignore_comment_lines: bool,
+    repair_method: str,
+    quiet: bool,
+):
+    if repair_method == REPAIR_NONE:
+        repair_method = None
+
+    docs = ingest_conll_file(
+        file,
+        labels,
+        file_encoding,
+        ignore_document_boundaries=ignore_document_boundaries,
+        ignore_comment_lines=ignore_comment_lines,
+        repair=repair_method,
+        quiet=quiet,
+    )
+
+    type_counts: Counter[str] = Counter()
+    for doc in docs:
+        for sequence in doc:
+            for mention in sequence.mentions:
+                type_counts[mention.type] += 1
+
+    if not quiet:
+        print(
+            f"File {repr(file)} contains {len(docs)} document(s) with the following mentions:"
+        )
+    header = ["Entity Type", "Count"]
+    rows = sorted(type_counts.items())
+    print(tabulate(rows, header, tablefmt="github", floatfmt="6.2f"))
 
 
 @cli.command()
