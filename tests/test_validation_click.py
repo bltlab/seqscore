@@ -12,6 +12,10 @@ def test_valid_bio() -> None:
         validate,
         ["--labels", "BIO", os.path.join("tests", "conll_annotation", "minimal.bio")],
     )
+    assert (
+        result.output
+        == "No errors found in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/minimal.bio\n"
+    )
     assert result.exit_code == 0
 
 
@@ -20,6 +24,10 @@ def test_valid_bioes() -> None:
     result = runner.invoke(
         validate,
         ["--labels", "BIOES", os.path.join("tests", "conll_annotation", "minimal.bioes")],
+    )
+    assert (
+        result.output
+        == "No errors found in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/minimal.bioes\n"
     )
     assert result.exit_code == 0
 
@@ -33,7 +41,7 @@ def test_invalid_bio() -> None:
     assert result.exit_code != 0
     assert (
         normalize_str_with_path(
-            "Encountered 3 errors in 15 tokens, 2 sequences, and 1 documents in tests/conll_annotation/invalid1.bio"
+            "Encountered 3 errors in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/invalid1.bio"
         )
         in result.output
     )
@@ -63,7 +71,7 @@ def test_invalid_bioes() -> None:
     assert result.exit_code != 0
     assert (
         normalize_str_with_path(
-            "Encountered 9 errors in 25 tokens, 6 sequences, and 1 documents in tests/conll_annotation/invalid1.bioes"
+            "Encountered 9 errors in 25 tokens, 6 sequences, and 1 document(s) in tests/conll_annotation/invalid1.bioes"
         )
         in result.output
     )

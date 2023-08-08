@@ -87,6 +87,7 @@ def _normalize_tab(s: str) -> str:
 @cli.command()
 @_single_input_file_arguments
 @_labels_option()
+@_quiet_option()
 def validate(
     file: str,
     labels: str,
@@ -94,6 +95,7 @@ def validate(
     *,
     ignore_document_boundaries: bool,
     ignore_comment_lines: bool,
+    quiet: bool,
 ):
     result = validate_conll_file(
         file,
@@ -105,14 +107,14 @@ def validate(
     if result.errors:
         print(
             f"Encountered {len(result.errors)} errors in {result.n_tokens} tokens, "
-            + f"{result.n_sequences} sequences, and {result.n_docs} documents in {file}"
+            + f"{result.n_sequences} sequences, and {result.n_docs} document(s) in {file}"
         )
         print("\n".join(err.msg for err in result.errors))
         sys.exit(1)
-    else:
+    elif not quiet:
         print(
             f"No errors found in {result.n_tokens} tokens, {result.n_sequences} sequences, "
-            + f"and {result.n_docs} documents in {file}"
+            + f"and {result.n_docs} document(s) in {file}"
         )
 
 
