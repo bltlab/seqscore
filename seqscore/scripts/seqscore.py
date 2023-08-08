@@ -34,7 +34,7 @@ def _input_file_options() -> List[Callable]:
 
 
 def _single_input_file_arguments(func: Callable) -> Callable:
-    # In order they can be used on the command line
+    # In the order they can be used on the command line
     decorators = [
         click.argument("file", type=click.Path(dir_okay=False)),
     ] + _input_file_options()
@@ -45,7 +45,7 @@ def _single_input_file_arguments(func: Callable) -> Callable:
 
 
 def _multi_input_file_arguments(func: Callable) -> Callable:
-    # In order they can be used on the command line
+    # In the order they can be used on the command line
     decorators = [
         click.argument("file", type=click.Path(dir_okay=False), nargs=-1, required=True),
     ] + _input_file_options()
@@ -138,7 +138,9 @@ def repair(
     quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
-        raise ValueError("Cannot repair if 'none' is specified as repair strategy")
+        raise ValueError(
+            f"Cannot repair if {repr(repair_method)} is specified as repair strategy"
+        )
 
     repair_conll_file(
         file,
