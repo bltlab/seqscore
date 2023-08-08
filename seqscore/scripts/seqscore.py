@@ -77,8 +77,11 @@ def _quiet_option() -> Callable:
 
 
 def _normalize_tab(s: str) -> str:
-    # Clean up the string r"\t" if it's been given
-    return s.replace(r"\t", "\t")
+    if s == "tab":
+        return "\t"
+    else:
+        # Clean up the string r"\t" if it's been given
+        return s.replace(r"\t", "\t")
 
 
 @cli.command()

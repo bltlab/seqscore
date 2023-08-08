@@ -39,6 +39,66 @@ def test_count_BIO() -> None:
     )
 
 
+def test_count_BIO_tab1() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        count,
+        [
+            "--labels",
+            "BIO",
+            "--delim",
+            "\t",  # Actual tab
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_lines_match(
+        os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        os.path.join("tests", "test_files", "count_minimal_ref.txt"),
+    )
+
+
+def test_count_BIO_tab2() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        count,
+        [
+            "--labels",
+            "BIO",
+            "--delim",
+            r"\t",  # Backlash and t
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_lines_match(
+        os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        os.path.join("tests", "test_files", "count_minimal_ref.txt"),
+    )
+
+
+def test_count_BIO_tab3() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        count,
+        [
+            "--labels",
+            "BIO",
+            "--delim",
+            "tab",  # Tab spelled out
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_lines_match(
+        os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        os.path.join("tests", "test_files", "count_minimal_ref.txt"),
+    )
+
+
 def test_count_BIO_comma() -> None:
     runner = CliRunner()
     result = runner.invoke(
