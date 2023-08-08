@@ -274,8 +274,12 @@ def summarize(
                 type_counts[mention.type] += 1
 
     if not quiet:
+        # Count sentences
+        sentence_count = sum(len(doc) for doc in docs)
+
         print(
-            f"File {repr(file)} contains {len(docs)} document(s) with the following mentions:"
+            f"File {repr(file)} contains {len(docs)} document(s) and {sentence_count} sentences "
+            + "with the following mentions:"
         )
     header = ["Entity Type", "Count"]
     rows = sorted(type_counts.items())

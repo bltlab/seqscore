@@ -18,7 +18,7 @@ def test_summarize_bio_onedoc() -> None:
     assert result.exit_code == 0
     assert (
         result.output
-        == """File 'tests/conll_annotation/minimal.bio' contains 1 document(s) with the following mentions:
+        == """File 'tests/conll_annotation/minimal.bio' contains 1 document(s) and 2 sentences with the following mentions:
 | Entity Type   |   Count |
 |---------------|---------|
 | LOC           |       2 |
@@ -40,7 +40,7 @@ def test_summarize_iob_twodoc() -> None:
     assert result.exit_code == 0
     assert (
         result.output
-        == """File 'tests/conll_annotation/minimal_fields.iob' contains 2 document(s) with the following mentions:
+        == """File 'tests/conll_annotation/minimal_fields.iob' contains 2 document(s) and 2 sentences with the following mentions:
 | Entity Type   |   Count |
 |---------------|---------|
 | LOC           |       2 |
