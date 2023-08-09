@@ -16,6 +16,8 @@ REPAIR_DISCARD = "discard"
 REPAIR_NONE = "none"
 SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
 
+DEFAULT_OUTSIDE = "O"
+
 
 class EncodingDialect(Protocol):
     label_delim: str
@@ -31,7 +33,7 @@ class BIOESDialect(EncodingDialect):
         self.label_delim = "-"
         self.begin = "B"
         self.inside = "I"
-        self.outside = "O"
+        self.outside = DEFAULT_OUTSIDE
         self.end = "E"
         self.single = "S"
 

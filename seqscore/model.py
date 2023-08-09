@@ -52,6 +52,9 @@ class Mention:
     def __len__(self) -> int:
         return len(self.span)
 
+    def with_type(self, new_type: str) -> "Mention":
+        return Mention(self.span, new_type)
+
 
 @attrs(frozen=True, slots=True)
 class SequenceProvenance:

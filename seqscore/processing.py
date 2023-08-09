@@ -8,22 +8,38 @@ class TypeMapper:
         self,
         keep_types: Iterable[str],
         remove_types: Iterable[str],
-        # TODO: Implement type mapping
         type_map: Dict[str, List[str]],
     ):
-        # Copy as sets
+        # Copy keep/remove as sets
         self.keep_types: Set[str] = set(keep_types)
         self.remove_types: Set[str] = set(remove_types)
         if self.keep_types and self.remove_types:
             raise ValueError("Cannot specify both keep_types and remove_types")
 
+        # Invert the type map
+        self.type_map: Dict[str, str] = {}
+        for to_type, from_types in type_map.items():
+            assert to_type  # Type cannot be blank
+            for from_type in from_types:
+                assert from_type  # Type cannot be blank
+                if from_type in self.type_map:
+                    raise ValueError()
+                else:
+                    self.type_map[from_type] = to_type
+
     def map_types(self, sequence: LabeledSequence) -> LabeledSequence:
         new_mentions: List[Mention] = []
         for mention in sequence.mentions:
-            if self.keep_types and mention.type in self.keep_types:
-                new_mentions.append(mention)
-            elif self.remove_types and mention.type not in self.remove_types:
-                new_mentions.append(mention)
+            mention_type = mention.type
+            if (self.keep_types and mention_type not in self.keep_types) or (
+                self.remove_types and mention_type in self.remove_types
+            ):
+                continue
+
+            if mention_type in self.type_map:
+                mention = mention.with_type(self.type_map[mention_type])
+
+            new_mentions.append(mention)
 
         return sequence.with_mentions(new_mentions)
 
