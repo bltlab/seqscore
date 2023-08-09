@@ -11,6 +11,7 @@ Options:
 Commands:
   convert
   count
+  process
   repair
   score
   summarize

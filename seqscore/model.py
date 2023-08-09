@@ -1,3 +1,4 @@
+from itertools import repeat
 from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple, Union, overload
 
 from attr import Attribute, attrib, attrs, validators
@@ -131,7 +132,10 @@ class LabeledSequence(Sequence[str]):
     def tokens_with_other_fields(
         self,
     ) -> Tuple[Tuple[str, Optional[Tuple[str, ...]]], ...]:
-        return tuple(zip(self.tokens, self.other_fields))
+        if self.other_fields:
+            return tuple(zip(self.tokens, self.other_fields))
+        else:
+            return tuple(zip(self.tokens, repeat(None)))
 
     def span_tokens(self, span: Span) -> Tuple[str, ...]:
         return self.tokens[span.start : span.end]

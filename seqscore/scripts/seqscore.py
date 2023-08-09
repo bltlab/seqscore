@@ -1,5 +1,5 @@
 import sys
-from typing import Callable, Counter, List, Tuple
+from typing import Callable, Counter, Dict, List, Set, Tuple
 
 import click
 from tabulate import tabulate
@@ -14,6 +14,7 @@ from seqscore.conll import (
     write_docs_using_encoding,
 )
 from seqscore.encoding import REPAIR_NONE, SUPPORTED_ENCODINGS, SUPPORTED_REPAIR_METHODS
+from seqscore.processing import modify_types
 
 
 # This is tested by a subprocess call in test_seqscore_main so coverage will miss it
@@ -84,6 +85,12 @@ def _normalize_tab(s: str) -> str:
         return s.replace(r"\t", "\t")
 
 
+def _parse_type_list(types: str) -> Set[str]:
+    # Remove any whitespace we got in the types somehow
+    split_types = [t.strip() for t in types.split(",") if t.strip()]
+    return set(split_types)
+
+
 @cli.command()
 @_single_input_file_arguments
 @_labels_option()
@@ -123,7 +130,7 @@ def validate(
 @click.argument("output_file")
 @_repair_option()
 @_labels_option()
-@click.option("--output-delim", default=" ", help="[default: space")
+@click.option("--output-delim", default=" ", help="[default: space]")
 @_quiet_option()
 def repair(
     file: str,
@@ -173,7 +180,7 @@ def convert(
     ignore_comment_lines: bool,
 ):
     if input_labels == output_labels:
-        raise ValueError("Cannot repair if 'none' is specified as repair strategy")
+        raise ValueError("Conversion requires different input and output labels")
 
     docs = ingest_conll_file(
         file,
@@ -186,6 +193,55 @@ def convert(
     write_docs_using_encoding(
         docs, output_labels, file_encoding, output_delim, output_file
     )
+
+
+@cli.command()
+@_single_input_file_arguments
+@click.argument("output_file")
+@_labels_option()
+# TODO: Needs help string
+@click.option("--keep-types", default="")
+# TODO: Needs help string
+@click.option("--remove-types", default="")
+@click.option("--type-map", type=click.Path(dir_okay=False))
+@click.option("--output-delim", default=" ", help="[default: space]")
+def process(
+    file: str,
+    output_file: str,
+    file_encoding: str,
+    output_delim: str,
+    labels: str,
+    keep_types: str,
+    remove_types: str,
+    type_map: str,
+    *,
+    ignore_document_boundaries: bool,
+    ignore_comment_lines: bool,
+):
+    keep_types_set = _parse_type_list(keep_types)
+    remove_types_set = _parse_type_list(remove_types)
+    # TODO: Parse type map
+    type_map_dict: Dict[str, List[str]] = {}
+
+    if keep_types_set and remove_types_set:
+        raise ValueError("Cannot specify both keep-types and remove-types")
+
+    if not keep_types_set and not remove_types_set and not type_map:
+        raise ValueError(
+            "Must specify at least one of keep-types, remove-types, or type-map"
+        )
+
+    docs = ingest_conll_file(
+        file,
+        labels,
+        file_encoding,
+        ignore_document_boundaries=ignore_document_boundaries,
+        ignore_comment_lines=ignore_comment_lines,
+    )
+
+    mod_docs = modify_types(docs, keep_types_set, remove_types_set, type_map_dict)
+
+    write_docs_using_encoding(mod_docs, labels, file_encoding, output_delim, output_file)
 
 
 @cli.command()
