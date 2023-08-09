@@ -105,7 +105,12 @@ def _parse_type_list(types: str) -> Set[str]:
 
 def _load_type_map(type_map_path: str, file_encoding: str) -> Dict[str, List[str]]:
     with open(type_map_path, encoding=file_encoding) as file:
-        type_map = json.load(file)
+        try:
+            type_map = json.load(file)
+        except json.decoder.JSONDecodeError as err:
+            raise ValueError(
+                f"Type map provided in file {repr(type_map_path)} is not valid JSON"
+            ) from err
 
     # Validate types
     if not isinstance(type_map, dict):
