@@ -1,16 +1,23 @@
 from collections import defaultdict
 from decimal import ROUND_HALF_UP, Decimal
-from typing import DefaultDict, Optional, Sequence, Tuple
+from typing import Counter, DefaultDict, Iterable, Optional, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import LabeledSequence, Mention
+from seqscore.util import tuplify_strs, validator_nonempty_str
 from seqscore.validation import validate_labels
 
 
 def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore"]:
     return defaultdict(ClassificationScore)
+
+
+@attrs(frozen=True, slots=True)
+class TokensWithType:
+    tokens: Tuple[str, ...] = attrib(converter=tuplify_strs)
+    type: str = attrib(validator=validator_nonempty_str)
 
 
 class TokenCountError(ValueError):
@@ -62,6 +69,14 @@ class ClassificationScore:
     type_scores: DefaultDict[str, "ClassificationScore"] = attrib(
         default=Factory(_defaultdict_classification_score), kw_only=True
     )
+    false_pos_examples: Counter[TokensWithType] = attrib(default=Factory(Counter))
+    false_neg_examples: Counter[TokensWithType] = attrib(default=Factory(Counter))
+
+    def count_false_positive(self, tokens: Iterable[str], type_: str) -> None:
+        self.false_pos_examples[TokensWithType(tuple(tokens), type_)] += 1
+
+    def count_false_negative(self, tokens: Iterable[str], type_: str) -> None:
+        self.false_neg_examples[TokensWithType(tuple(tokens), type_)] += 1
 
     def update(self, score: "ClassificationScore") -> None:
         self.true_pos += score.true_pos
@@ -116,6 +131,8 @@ class AccuracyScore:
 def compute_scores(
     pred_docs: Sequence[Sequence[LabeledSequence]],
     ref_docs: Sequence[Sequence[LabeledSequence]],
+    *,
+    count_fp_fn: bool = False,
 ) -> Tuple[ClassificationScore, AccuracyScore]:
     accuracy = AccuracyScore()
     classification = ClassificationScore()
@@ -154,7 +171,11 @@ def compute_scores(
                 pred_sequence.labels, ref_sequence.labels, accuracy
             )
             score_sequence_mentions(
-                pred_sequence.mentions, ref_sequence.mentions, classification
+                pred_sequence.mentions,
+                ref_sequence.mentions,
+                classification,
+                tokens=ref_sequence.tokens,
+                count_fp_fn=count_fp_fn,
             )
 
     return classification, accuracy
@@ -184,6 +205,9 @@ def score_sequence_mentions(
     pred_mentions: Sequence[Mention],
     ref_mentions: Sequence[Mention],
     score: ClassificationScore,
+    *,
+    tokens: Optional[Sequence[str]] = (),
+    count_fp_fn: bool = False,
 ) -> None:
     """Update a ClassificationScore for a single sequence's mentions.
 
@@ -204,12 +228,18 @@ def score_sequence_mentions(
             # False positive
             score.false_pos += 1
             score.type_scores[pred.type].false_pos += 1
+            if count_fp_fn:
+                error_tokens = tokens[pred.span.start : pred.span.end]
+                score.count_false_positive(error_tokens, pred.type)
 
     # Negatives
-    for pred in ref_mentions_set:
-        if pred not in pred_mentions_set:
+    for ref in ref_mentions_set:
+        if ref not in pred_mentions_set:
             score.false_neg += 1
-            score.type_scores[pred.type].false_neg += 1
+            score.type_scores[ref.type].false_neg += 1
+            if count_fp_fn:
+                error_tokens = tokens[ref.span.start : ref.span.end]
+                score.count_false_negative(error_tokens, ref.type)
 
 
 # TODO: Consider taking an iterable and checking sequence lengths

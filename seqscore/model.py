@@ -1,26 +1,14 @@
 from itertools import repeat
 from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple, Union, overload
 
-from attr import Attribute, attrib, attrs, validators
+from attr import Attribute, attrib, attrs
 
-from seqscore.util import tuplify_strs
+from seqscore.util import tuplify_strs, validator_nonempty_str
 
 
 def _validator_nonnegative(_inst: Any, _attr: Attribute, value: Any) -> None:
     if value < 0:
         raise ValueError(f"Negative value: {repr(value)}")
-
-
-# Instantiate in advance for _validator_nonempty_str
-_instance_of_str = validators.instance_of(str)
-
-
-def _validator_nonempty_str(_inst: Any, attr: Attribute, value: Any) -> None:
-    # Check type
-    _instance_of_str(value, attr, value)
-    # Check string isn't empty
-    if not value:
-        raise ValueError(f"Empty string: {repr(value)}")
 
 
 def _tuplify_mentions(
@@ -47,7 +35,7 @@ class Span:
 @attrs(frozen=True, slots=True)
 class Mention:
     span: Span = attrib()
-    type: str = attrib(validator=_validator_nonempty_str)
+    type: str = attrib(validator=validator_nonempty_str)
 
     def __len__(self) -> int:
         return len(self.span)

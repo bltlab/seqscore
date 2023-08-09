@@ -422,6 +422,10 @@ def summarize(
     default="\t",
     help="the delimiter to be used for delimited output (has no effect on input) [default: tab]",
 )
+@click.option(
+    "--error-counts",
+    is_flag=True,
+)
 @_quiet_option()
 def score(
     file: List[str],  # Name is "file" to make sense on the command line, but it's a list
@@ -434,6 +438,7 @@ def score(
     score_format: str,
     delim: str,
     repair_method: str,
+    error_counts: bool,
     quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
@@ -451,6 +456,7 @@ def score(
         ignore_comment_lines=ignore_comment_lines,
         output_format=score_format,
         delim=delim,
+        error_counts=error_counts,
         quiet=quiet,
     )
 

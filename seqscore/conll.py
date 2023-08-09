@@ -420,6 +420,7 @@ def score_conll_files(
     ignore_comment_lines: bool,
     output_format: str,
     delim: str,
+    error_counts: bool = False,
     quiet: bool = False,
 ) -> None:
     assert len(pred_files) > 0, "List of files to score cannot be empty"
@@ -458,9 +459,22 @@ def score_conll_files(
             quiet=quiet,
         )
 
-        class_scores, acc_scores = compute_scores(pred_docs, ref_docs)
+        class_scores, acc_scores = compute_scores(
+            pred_docs, ref_docs, count_fp_fn=error_counts
+        )
         all_class_scores.append(class_scores)
         all_acc_scores.append(class_scores)
+
+        if error_counts:
+            headers = ("False positives", "False negatives")
+            counters = (class_scores.false_pos_examples, class_scores.false_neg_examples)
+            for error_header, counter in zip(headers, counters):
+                print(error_header)
+                for item, count in counter.items():
+                    print(" ".join(item.tokens), item.type, count, sep="\t")
+                print()
+            # Exit early since all the following logic is for printing scores
+            return
 
         if output_format == FORMAT_CONLL:
             score_summaries.append(format_output_conlleval(class_scores, acc_scores))
