@@ -23,7 +23,9 @@ class TypeMapper:
             for from_type in from_types:
                 assert from_type  # Type cannot be blank
                 if from_type in self.type_map:
-                    raise ValueError()
+                    raise ValueError(
+                        f"Multiple mappings specified for type {repr(from_type)} in type map"
+                    )
                 else:
                     self.type_map[from_type] = to_type
 
