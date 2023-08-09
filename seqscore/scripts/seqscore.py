@@ -267,11 +267,21 @@ def convert(
 @_single_input_file_arguments
 @click.argument("output_file")
 @_labels_option()
-# TODO: Needs help string
-@click.option("--keep-types", default="")
-# TODO: Needs help string
-@click.option("--remove-types", default="")
-@click.option("--type-map", type=click.Path(dir_okay=False))
+@click.option(
+    "--keep-types",
+    default="",
+    help="entity types to keep, comma-separated [example: PER,LOC,ORG]",
+)
+@click.option(
+    "--remove-types",
+    default="",
+    help="entity types to remove, comma-separated [example: MISC,DATE]",
+)
+@click.option(
+    "--type-map",
+    type=click.Path(dir_okay=False),
+    help="a JSON file containing types to be modified, in the format of a dict with keys as the target type and values as the source type [example file: {'MISC': ['WorkOfArt', 'Event']}]",
+)
 @click.option("--output-delim", default=" ", help="[default: space]")
 def process(
     file: str,
@@ -432,6 +442,7 @@ def summarize(
 @click.option(
     "--error-counts",
     is_flag=True,
+    help="whether to output counts of false positives and negatives instead of scores",
 )
 @_quiet_option()
 def score(
