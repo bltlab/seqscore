@@ -66,7 +66,15 @@ def _repair_option() -> Callable:
     return click.option(
         "--repair-method",
         type=click.Choice(SUPPORTED_REPAIR_METHODS),
+        default=REPAIR_NONE,
         show_default=True,
+    )
+
+
+def _repair_required_option() -> Callable:
+    return click.option(
+        "--repair-method",
+        type=click.Choice(SUPPORTED_REPAIR_METHODS),
     )
 
 
@@ -183,7 +191,7 @@ def validate(
 @cli.command()
 @_single_input_file_arguments
 @click.argument("output_file")
-@_repair_option()
+@_repair_required_option()
 @_labels_option()
 @click.option("--output-delim", default=" ", help="[default: space]")
 @_quiet_option()
@@ -200,9 +208,7 @@ def repair(
     quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
-        raise ValueError(
-            f"Cannot repair if {repr(repair_method)} is specified as repair strategy"
-        )
+        raise ValueError(f"Cannot repair with repair strategy {repr(repair_method)}")
 
     repair_conll_file(
         file,
