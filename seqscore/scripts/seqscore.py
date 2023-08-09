@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Callable, Counter, Dict, List, Set, Tuple
+from typing import Callable, Counter, Dict, List, Optional, Set, Tuple
 
 import click
 from tabulate import tabulate
@@ -111,14 +111,21 @@ def _parse_type_list(types: str) -> Set[str]:
     return set(split_types)
 
 
-def _load_type_map(type_map_path: str, file_encoding: str) -> Dict[str, List[str]]:
-    with open(type_map_path, encoding=file_encoding) as file:
-        try:
+def _load_type_map(
+    type_map_path: Optional[str], file_encoding: str
+) -> Dict[str, List[str]]:
+    if not type_map_path:
+        return {}
+
+    try:
+        with open(type_map_path, encoding=file_encoding) as file:
             type_map = json.load(file)
-        except json.decoder.JSONDecodeError as err:
-            raise ValueError(
-                f"Type map provided in file {repr(type_map_path)} is not valid JSON"
-            ) from err
+    except FileNotFoundError as err:
+        raise ValueError(f"Could not open type map file {repr(type_map_path)}") from err
+    except json.decoder.JSONDecodeError as err:
+        raise ValueError(
+            f"Type map provided in file {repr(type_map_path)} is not valid JSON"
+        ) from err
 
     # Validate types
     if not isinstance(type_map, dict):
