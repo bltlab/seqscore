@@ -7,6 +7,8 @@ from tabulate import tabulate
 
 import seqscore
 from seqscore.conll import (
+    FORMAT_CONLLEVAL,
+    FORMAT_DELIM,
     SUPPORTED_SCORE_FORMATS,
     ingest_conll_file,
     repair_conll_file,
@@ -444,6 +446,11 @@ def summarize(
     is_flag=True,
     help="whether to output counts of false positives and negatives instead of scores",
 )
+@click.option(
+    "--full-precision",
+    is_flag=True,
+    help="whether to output floating values at full precision instead of rounding half even at two decimal places",
+)
 @_quiet_option()
 def score(
     file: List[str],  # Name is "file" to make sense on the command line, but it's a list
@@ -457,10 +464,14 @@ def score(
     delim: str,
     repair_method: str,
     error_counts: bool,
+    full_precision: bool,
     quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
         repair_method = None
+
+    if full_precision and score_format != FORMAT_DELIM:
+        raise ValueError(f"Can only use full-precision with score-format {FORMAT_DELIM}")
 
     delim = _normalize_tab(delim)
 
@@ -475,6 +486,7 @@ def score(
         output_format=score_format,
         delim=delim,
         error_counts=error_counts,
+        full_precision=full_precision,
         quiet=quiet,
     )
 

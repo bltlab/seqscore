@@ -242,20 +242,25 @@ def test_differing_pred_and_ref_tokens() -> None:
 
 def test_convert_score() -> None:
     # Check basic rounding up/down
-    assert convert_score(0.92156) == Decimal("92.16")
-    assert convert_score(0.92154) == Decimal("92.15")
+    assert convert_score(0.92156, False) == Decimal("92.16")
+    assert convert_score(0.92154, False) == Decimal("92.15")
 
     # Check half rounding
     # Note: due to inexact float representation, changing the test values
     # can lead to unexpected failures. If the final 5 is actually represented
     # as 49999 instead, it will cause rounding down.
     # See: https://docs.python.org/3/library/functions.html#round
-    assert convert_score(0.03205) == Decimal("3.21")
-    assert convert_score(0.03225) == Decimal("3.23")
-    assert convert_score(0.02205) == Decimal("2.21")
-    assert convert_score(0.02245) == Decimal("2.25")
+    assert convert_score(0.03205, False) == Decimal("3.21")
+    assert convert_score(0.03225, False) == Decimal("3.23")
+    assert convert_score(0.02205, False) == Decimal("2.21")
+    assert convert_score(0.02245, False) == Decimal("2.25")
 
     # Check that the number of decimal places is constant
-    assert convert_score(1.0) == Decimal("100.00")
-    assert convert_score(0.5) == Decimal("50.00")
-    assert convert_score(0.0) == Decimal("0.00")
+    assert convert_score(1.0, False) == Decimal("100.00")
+    assert convert_score(0.5, False) == Decimal("50.00")
+    assert convert_score(0.0, False) == Decimal("0.00")
+
+    # Check full precision
+    assert convert_score(1 / 3, True) == 1 / 3
+    assert convert_score(1 / 7, True) == 1 / 7
+    assert convert_score(1 / 9, True) == 1 / 9

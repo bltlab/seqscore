@@ -37,9 +37,9 @@ EMPTY_OTHER_FIELD = "-X-"
 
 
 FORMAT_PRETTY = "pretty"
-FORMAT_CONLL = "conlleval"
+FORMAT_CONLLEVAL = "conlleval"
 FORMAT_DELIM = "delim"
-SUPPORTED_SCORE_FORMATS = (FORMAT_PRETTY, FORMAT_CONLL, FORMAT_DELIM)
+SUPPORTED_SCORE_FORMATS = (FORMAT_PRETTY, FORMAT_CONLLEVAL, FORMAT_DELIM)
 
 
 @attrs(frozen=True)
@@ -431,6 +431,7 @@ def score_conll_files(
     output_format: str,
     delim: str,
     error_counts: bool = False,
+    full_precision: bool = False,
     quiet: bool = False,
 ) -> None:
     assert len(pred_files) > 0, "List of files to score cannot be empty"
@@ -481,7 +482,7 @@ def score_conll_files(
                     "Outputting error counts is only available for a single prediction file"
                 )
 
-            if output_format == FORMAT_CONLL:
+            if output_format == FORMAT_CONLLEVAL:
                 raise ValueError(
                     f"Format {repr(output_format)} is not supported with error counts"
                 )
@@ -519,11 +520,12 @@ def score_conll_files(
             # Exit early since all the following logic is for printing scores
             return
 
-        if output_format == FORMAT_CONLL:
+        if output_format == FORMAT_CONLLEVAL:
             score_summaries.append(format_output_conlleval(class_scores, acc_scores))
         elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
-            header, rows = format_output_table(class_scores)
+            header, rows = format_output_table(class_scores, full_precision)
             if output_format == FORMAT_PRETTY:
+                # We don't allow full_precision in this case so we can use the usual float format
                 score_summaries.append(
                     tabulate(rows, header, tablefmt="github", floatfmt="6.2f")
                 )
@@ -581,7 +583,7 @@ def score_conll_files(
                             entity_type,
                             "NA",
                             "NA",
-                            convert_score(num),
+                            convert_score(num, full_precision),
                             "NA",
                             "NA",
                             "NA",
@@ -598,7 +600,7 @@ def score_conll_files(
                             entity_type,
                             "NA",
                             "NA",
-                            convert_score(num),
+                            convert_score(num, full_precision),
                             "NA",
                             "NA",
                             "NA",
@@ -657,6 +659,7 @@ def format_output_conlleval(
 
 def format_output_table(
     class_scores: ClassificationScore,
+    full_precision: bool,
 ) -> Tuple[List[str], List[List[Any]]]:
     header = [
         "Type",
@@ -670,9 +673,9 @@ def format_output_table(
     rows = [
         [
             "ALL",
-            convert_score(class_scores.precision),
-            convert_score(class_scores.recall),
-            convert_score(class_scores.f1),
+            convert_score(class_scores.precision, full_precision),
+            convert_score(class_scores.recall, full_precision),
+            convert_score(class_scores.f1, full_precision),
             class_scores.total_ref,
             class_scores.total_pos,
             class_scores.true_pos,
@@ -684,9 +687,9 @@ def format_output_table(
         rows.append(
             [
                 type_name,
-                convert_score(score.precision),
-                convert_score(score.recall),
-                convert_score(score.f1),
+                convert_score(score.precision, full_precision),
+                convert_score(score.recall, full_precision),
+                convert_score(score.f1, full_precision),
                 score.total_ref,
                 score.total_pos,
                 score.true_pos,

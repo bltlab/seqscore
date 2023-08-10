@@ -136,7 +136,16 @@ A few things to note:
   files that use different chunk encodings, use the `convert` command.
 * You can get output in different formats using the `--score-format`
   flag. Using `--score-format delim` will produce tab-delimited
-  output.
+  output. In the delimited format, you can specify the `--full-precision`
+  flag to output higher numerical precision.
+* In the default (pretty) output format, numbers are rounded "half up"
+  at two decimal places. In other words, 57.124 will round to 57.12,
+  and 57.125 will round to 57.13. This is different than the "half even"
+  rounding used by `conlleval` and other libraries that rely on `printf`
+  behavior for rounding. Half up rounding is used as it is more likely to
+  match the rounding a user would perform if shown three decimal places.
+  If you request `conlleval` output format, the same rounding used by
+  `conlleval` will be used.
 
 The above scoring command will work for files that do not have any
 invalid transitions, that is, those that perfectly follow what the

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Counter, DefaultDict, Iterable, Optional, Sequence, Tuple
+from typing import Counter, DefaultDict, Iterable, Optional, Sequence, Tuple, Union
 
 from attr import Factory, attrib, attrs
 
@@ -282,7 +282,11 @@ def _repair_label_sequence(
     return encoder.decode_labels(labels)
 
 
-def convert_score(num: float) -> Decimal:
-    """Convert a 0-1 score to the 0-100 range with two decimal places."""
-    dec = Decimal(num) * 100
-    return dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+def convert_score(num: float, full_precision: bool) -> Union[Decimal, float]:
+    if full_precision:
+        # Leave it unchanged
+        return num
+    else:
+        # Convert a 0-1 score to the 0-100 range with two decimal places
+        dec = Decimal(num) * 100
+        return dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
