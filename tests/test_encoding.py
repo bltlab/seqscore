@@ -287,3 +287,12 @@ def test_join_label() -> None:
 
     with pytest.raises(AssertionError):
         encoding.join_label("O", "PER")
+
+
+def test_labeled_sequence() -> None:
+    # Test length mismatch
+    with pytest.raises(ValueError):
+        LabeledSequence(
+            ["a"] * 10,
+            ["O"] * 9,
+        )

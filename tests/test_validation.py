@@ -105,6 +105,7 @@ REPAIRS = {
     "BIO": BIO_REPAIRS,
     "IOB": IOB_REPAIRS,
 }
+REPAIR_UNSUPPORTED = {"IO", "BIOES"}
 
 
 def test_repair() -> None:
@@ -128,6 +129,10 @@ def test_repair() -> None:
                 # Check that using no repair method raises an error
                 with pytest.raises(ValueError):
                     encoding.repair_labels(case.original_labels, REPAIR_NONE)
+
+    for encoding_name in REPAIR_UNSUPPORTED:
+        encoding = get_encoding(encoding_name)
+        assert not encoding.supported_repair_methods()
 
 
 def test_validation_invalid_state() -> None:

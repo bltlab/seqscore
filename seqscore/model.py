@@ -3,7 +3,11 @@ from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple, Union, ov
 
 from attr import Attribute, attrib, attrs
 
-from seqscore.util import tuplify_strs, validator_nonempty_str
+from seqscore.util import (
+    tuplify_optional_nested_strs,
+    tuplify_strs,
+    validator_nonempty_str,
+)
 
 
 def _validator_nonnegative(_inst: Any, _attr: Attribute, value: Any) -> None:
@@ -56,7 +60,7 @@ class LabeledSequence(Sequence[str]):
     labels: Tuple[str, ...] = attrib(converter=tuplify_strs)
     mentions: Tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
     other_fields: Optional[Tuple[Tuple[str, ...], ...]] = attrib(
-        default=None, kw_only=True
+        default=None, kw_only=True, converter=tuplify_optional_nested_strs
     )
     provenance: Optional[SequenceProvenance] = attrib(
         default=None, eq=False, kw_only=True

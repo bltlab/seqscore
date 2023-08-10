@@ -13,7 +13,8 @@ class TypeMapper:
         # Copy keep/remove as sets
         self.keep_types: Set[str] = set(keep_types)
         self.remove_types: Set[str] = set(remove_types)
-        if self.keep_types and self.remove_types:
+        # Since the CLI prevents these from both being specified, this can't be hit by tests
+        if self.keep_types and self.remove_types:  # pragma: no cover
             raise ValueError("Cannot specify both keep_types and remove_types")
 
         # Invert the type map

@@ -7,7 +7,7 @@ from attr import Factory, attrib, attrs
 if sys.version_info < (3, 8):
     from typing_extensions import Protocol
 else:
-    from typing import Protocol
+    from typing import Protocol  # pragma: no cover
 
 from seqscore.model import LabeledSequence, Mention, Span
 
@@ -132,10 +132,7 @@ class Encoding(Protocol):
         sequence: LabeledSequence,
     ) -> Sequence[str]:
         labels = self.encode_mentions(sequence.mentions, len(sequence))
-        if len(labels) != len(sequence):
-            raise ValueError(
-                f"Labels ({len(labels)}) and sequence ({len(sequence)}) must be the same length."
-            )
+        assert len(labels) == len(sequence)
         return labels
 
     @abstractmethod

@@ -2,7 +2,7 @@ import os
 from itertools import zip_longest
 from os import PathLike
 from pathlib import Path
-from typing import Any, Iterable, Tuple, Union
+from typing import Any, Iterable, Optional, Tuple, Union
 
 from attr import Attribute, validators
 
@@ -11,17 +11,30 @@ from attr import Attribute, validators
 PathType = Union[str, Path, PathLike]
 
 
-# Type-specific implementation to work around type checker limitations. No, writing this as a
-# generic function with type variables does not satisfy all type checkers.
+# Type-specific implementations to work around type checker limitations. No, writing these as
+# generic functions with type variables does not satisfy all type checkers.
 def tuplify_strs(strs: Iterable[str]) -> Tuple[str, ...]:
     return tuple(strs)
 
 
-def file_fields_match(path1: PathType, path2: PathType) -> bool:
+def tuplify_optional_nested_strs(
+    items: Optional[Iterable[Iterable[str]]],
+) -> Optional[Tuple[Tuple[str, ...], ...]]:
+    if items is not None:
+        return tuple(tuple(item) for item in items)
+    else:
+        return None
+
+
+def file_fields_match(path1: PathType, path2: PathType, *, debug=False) -> bool:
     """Return whether the whitespace-delimited fields of two files are identical."""
     with open(path1, encoding="utf8") as f1, open(path2, encoding="utf8") as f2:
         for l1, l2 in zip_longest(f1, f2):
             if l1 is None or l2 is None or l1.split() != l2.split():
+                if debug:  # pragma: no cover
+                    print("Non-matching lines:")
+                    print(repr(l1))
+                    print(repr(l2))
                 return False
         return True
 

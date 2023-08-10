@@ -68,3 +68,7 @@ def test_labeled_sentence() -> None:
 
     s2 = s1.with_mentions([Mention(Span(0, 2), "PER")])
     assert s2.mentions == (Mention(Span(0, 2), "PER"),)
+
+    with pytest.raises(ValueError):
+        # Mismatched length between tokens and other_fields
+        LabeledSequence(["a", "b"], ["B-PER", "I-PER"], other_fields=[["DT"]])
