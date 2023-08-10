@@ -7,7 +7,7 @@ chunking tasks evaluated over sequence labels.
 SeqScore is maintained by the BLT Lab at Brandeis University. Please
 open an issue if you find incorrect behavior or features you would like
 to see added. Due to the risk of introducing regressions or incorrect
-scoring behavior, we generally do not accept pull requests. Please do not
+scoring behavior, *we generally do not accept pull requests*. Please do not
 open a pull request unless you are asked to do so by a maintainer in an
 issue.
 
@@ -393,9 +393,8 @@ pipelines.
 
 The following instructions are for the project maintainers only.
 
-For the latest development version, check out the `main` branch
-(stable, but sometimes newer than the version on PyPI), or the `dev`
-branch (latest, but less tested).
+For development, check out the `dev` branch (latest, but less tested
+than `main`).
 
 To install from a clone of this repository, use:
 `pip install -e .`
