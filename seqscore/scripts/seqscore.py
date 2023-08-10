@@ -93,76 +93,6 @@ def _quiet_option() -> Callable:
     )
 
 
-def _normalize_tab(s: str) -> str:
-    if s == "tab":
-        return "\t"
-    else:
-        # Clean up the string r"\t" if it's been given
-        return s.replace(r"\t", "\t")
-
-
-def _parse_type_list(types: str) -> Set[str]:
-    # Remove any whitespace we got in the types somehow
-    split_types = [t.strip() for t in types.split(",") if t.strip()]
-    # Check for outside type
-    for entity_type in split_types:
-        if entity_type == DEFAULT_OUTSIDE:
-            raise ValueError(
-                f"Cannot specify the outside type {DEFAULT_OUTSIDE} in keep/remove types"
-            )
-    return set(split_types)
-
-
-def _load_type_map(
-    type_map_path: Optional[str], file_encoding: str
-) -> Dict[str, List[str]]:
-    if not type_map_path:
-        return {}
-
-    try:
-        with open(type_map_path, encoding=file_encoding) as file:
-            type_map = json.load(file)
-    except FileNotFoundError as err:
-        raise ValueError(f"Could not open type map file {repr(type_map_path)}") from err
-    except json.decoder.JSONDecodeError as err:
-        raise ValueError(
-            f"Type map provided in file {repr(type_map_path)} is not valid JSON"
-        ) from err
-
-    # Validate types
-    if not isinstance(type_map, dict):
-        raise ValueError(
-            f"Type map provided in file {repr(type_map_path)} is not a dictionary"
-        )
-
-    for from_type, to_types in type_map.items():
-        if not isinstance(from_type, str) or not from_type:
-            raise ValueError(
-                f"Key {repr(from_type)} in type map {repr(type_map_path)} is not a non-empty string"
-            )
-        if from_type == DEFAULT_OUTSIDE:
-            raise ValueError(
-                f"Key {repr(from_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
-            )
-
-        if not isinstance(to_types, list):
-            raise ValueError(
-                f"Value {repr(to_types)} in type map {repr(type_map_path)} is not a list"
-            )
-
-        for to_type in to_types:
-            if not isinstance(to_type, str) or not to_type:
-                raise ValueError(
-                    f"Value {repr(to_type)} in type map {repr(type_map_path)} is not a non-empty string"
-                )
-            if to_type == DEFAULT_OUTSIDE:
-                raise ValueError(
-                    f"Value {repr(to_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
-                )
-
-    return type_map
-
-
 @cli.command()
 @_single_input_file_arguments
 @_labels_option()
@@ -489,6 +419,76 @@ def score(
         full_precision=full_precision,
         quiet=quiet,
     )
+
+
+def _normalize_tab(s: str) -> str:
+    if s == "tab":
+        return "\t"
+    else:
+        # Clean up the string r"\t" if it's been given
+        return s.replace(r"\t", "\t")
+
+
+def _parse_type_list(types: str) -> Set[str]:
+    # Remove any whitespace we got in the types somehow
+    split_types = [t.strip() for t in types.split(",") if t.strip()]
+    # Check for outside type
+    for entity_type in split_types:
+        if entity_type == DEFAULT_OUTSIDE:
+            raise ValueError(
+                f"Cannot specify the outside type {DEFAULT_OUTSIDE} in keep/remove types"
+            )
+    return set(split_types)
+
+
+def _load_type_map(
+    type_map_path: Optional[str], file_encoding: str
+) -> Dict[str, List[str]]:
+    if not type_map_path:
+        return {}
+
+    try:
+        with open(type_map_path, encoding=file_encoding) as file:
+            type_map = json.load(file)
+    except FileNotFoundError as err:
+        raise ValueError(f"Could not open type map file {repr(type_map_path)}") from err
+    except json.decoder.JSONDecodeError as err:
+        raise ValueError(
+            f"Type map provided in file {repr(type_map_path)} is not valid JSON"
+        ) from err
+
+    # Validate types
+    if not isinstance(type_map, dict):
+        raise ValueError(
+            f"Type map provided in file {repr(type_map_path)} is not a dictionary"
+        )
+
+    for from_type, to_types in type_map.items():
+        if not isinstance(from_type, str) or not from_type:
+            raise ValueError(
+                f"Key {repr(from_type)} in type map {repr(type_map_path)} is not a non-empty string"
+            )
+        if from_type == DEFAULT_OUTSIDE:
+            raise ValueError(
+                f"Key {repr(from_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
+            )
+
+        if not isinstance(to_types, list):
+            raise ValueError(
+                f"Value {repr(to_types)} in type map {repr(type_map_path)} is not a list"
+            )
+
+        for to_type in to_types:
+            if not isinstance(to_type, str) or not to_type:
+                raise ValueError(
+                    f"Value {repr(to_type)} in type map {repr(type_map_path)} is not a non-empty string"
+                )
+            if to_type == DEFAULT_OUTSIDE:
+                raise ValueError(
+                    f"Value {repr(to_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
+                )
+
+    return type_map
 
 
 # This is tested by a subprocess call in test_seqscore_main so coverage will miss it
