@@ -1,5 +1,6 @@
 import sys
 from abc import abstractmethod
+from functools import lru_cache
 from typing import AbstractSet, Dict, List, Optional, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
@@ -63,6 +64,7 @@ class Encoding(Protocol):
     valid_same_type_transitions: AbstractSet[Tuple[str, str]]
     valid_different_type_transitions: AbstractSet[Tuple[str, str]]
 
+    @lru_cache(maxsize=None)
     def split_label(self, label: str) -> Tuple[str, Optional[str]]:
         splits = label.split(self.dialect.label_delim, maxsplit=1)
         if len(splits) == 1:
@@ -84,6 +86,7 @@ class Encoding(Protocol):
             # Since maxsplit=1 for split, this is unreachable
             raise EncodingError(f"Cannot parse label {repr(label)}")
 
+    @lru_cache(maxsize=None)
     def join_label(self, state: str, entity_type: Optional[str]) -> str:
         if entity_type:
             assert (
@@ -96,6 +99,7 @@ class Encoding(Protocol):
             ), "Entity type cannot be None for non-outside states"
             return state
 
+    @lru_cache(maxsize=None)
     def is_valid_transition(
         self,
         first_state: str,
