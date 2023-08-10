@@ -7,7 +7,6 @@ from tabulate import tabulate
 
 import seqscore
 from seqscore.conll import (
-    FORMAT_CONLLEVAL,
     FORMAT_DELIM,
     SUPPORTED_SCORE_FORMATS,
     ingest_conll_file,
@@ -25,13 +24,17 @@ from seqscore.encoding import (
 from seqscore.processing import modify_types
 
 
-# This is tested by a subprocess call in test_seqscore_main so coverage will miss it
-@click.group()
+# Set up a click command group
+@click.group(
+    help=f"Provides scoring and analysis tools for NER/chunking files (version {seqscore.__version__})"
+)
 @click.version_option(seqscore.__version__)
+# This is tested by a subprocess call in test_seqscore_main so coverage will miss it
 def cli():  # pragma: no cover
     pass
 
 
+# Argument helpers for commands
 def _input_file_options() -> List[Callable]:
     return [
         click.option("--file-encoding", default="UTF-8", show_default=True),
@@ -93,7 +96,7 @@ def _quiet_option() -> Callable:
     )
 
 
-@cli.command()
+@cli.command(help="validate labels")
 @_single_input_file_arguments
 @_labels_option()
 @_quiet_option()
@@ -127,7 +130,7 @@ def validate(
         )
 
 
-@cli.command()
+@cli.command(help="repair invalid label transitions")
 @_single_input_file_arguments
 @click.argument("output_file")
 @_repair_required_option()
@@ -162,7 +165,7 @@ def repair(
     )
 
 
-@cli.command()
+@cli.command(help="convert between mention encodings")
 @_single_input_file_arguments
 @click.argument("output_file")
 @click.option("--output-delim", default=" ", help="[default: space]")
@@ -195,7 +198,7 @@ def convert(
     )
 
 
-@cli.command()
+@cli.command(help="transform entity types by keeping/removing/mapping")
 @_single_input_file_arguments
 @click.argument("output_file")
 @_labels_option()
@@ -253,7 +256,7 @@ def process(
     write_docs_using_encoding(mod_docs, labels, file_encoding, output_delim, output_file)
 
 
-@cli.command()
+@cli.command(help="show counts for all the mentions contained in a file")
 @_single_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
@@ -308,7 +311,7 @@ def count(
             print(delim.join((str(count), item[0], " ".join(item[1]))), file=output)
 
 
-@cli.command()
+@cli.command(help="show counts of the documents, sentences, and entity types")
 @_single_input_file_arguments
 @_repair_option()
 @_labels_option()
@@ -355,7 +358,7 @@ def summarize(
     print(tabulate(rows, header, tablefmt="github", floatfmt="6.2f"))
 
 
-@cli.command()
+@cli.command(help="score a file and report performance or an error count table")
 @_multi_input_file_arguments
 @click.option("--reference", required=True)
 @_labels_option()
@@ -402,6 +405,9 @@ def score(
 
     if full_precision and score_format != FORMAT_DELIM:
         raise ValueError(f"Can only use full-precision with score-format {FORMAT_DELIM}")
+
+    if error_counts and len(file) > 1:
+        raise ValueError("Cannot use error-counts with multiple files to be scored")
 
     delim = _normalize_tab(delim)
 
