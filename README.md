@@ -15,9 +15,11 @@ issue.
 
 To install the latest official release of SeqScore, run:
 `pip install seqscore`.
-This will install the package and add the command `seqscore` in your Python environment.
+This will install the package and add the command `seqscore` in your Python
+environment.
 
-SeqScore requires Python 3.7 or higher. It is tested on Python 3.7, 3.8, 3.9, 3.10, and 3.11.
+SeqScore requires Python 3.7 or higher. It is tested on Python 3.7, 3.8, 3.9,
+3.10, and 3.11.
 
 ## License
 
@@ -217,7 +219,26 @@ You may want to also explore the `discard` repair, which can
 produce higher scores for output from models without a CRF/constrained
 decoding as they are more likely to produce invalid transitions.
 
-## Validate
+SeqScore can also display all errors (false positives and false negatives)
+encountered in scoring using the `--error-counts` flag. For example, running the
+command
+`seqscore score --labels BIO --error-counts --reference samples/reference.bio samples/predicted.bio`
+will produce the following output:
+
+```
+|   Count | Error   | Type   | Tokens            |
+|---------|---------|--------|-------------------|
+|       1 | FP      | LOC    | Philadelphia      |
+|       1 | FP      | LOC    | West              |
+|       1 | FN      | LOC    | West Philadelphia |
+```
+
+The output shows that the system produced two false positives and missed one
+mention in the reference (false negative). The most frequent errors appear at
+the top. The `--error-counts` flag can be combined with `--score-format delim`
+to write a delimited table that can be read as a spreadsheet.
+
+## Validation
 
 To check if a file has any invalid transitions, we can run
 `seqscore validate --labels BIO samples/reference.bio`:
@@ -335,10 +356,10 @@ Repairing the file before performing other operations is available in the
 
 The `summarize` subcommand can produce counts of the types of chunks
 in the input file. For example, if we run
-`seqscore summarize --labels BIO tests/conll_annotation/minimal.bio`
+`seqscore summarize --labels BIO samples/reference.bio`
 we get the following output:
 ```
-File 'tests/conll_annotation/minimal.bio' contains 1 document(s) with the following mentions:
+File 'samples/reference.bio' contains 1 document(s) with the following mentions:
 | Entity Type   |   Count |
 |---------------|---------|
 | LOC           |       2 |
@@ -362,6 +383,103 @@ tab-delimited counts would be written to `counts.csv` as follows:
 1	LOC	Pennsylvania
 ```
 
+## Process
+
+The `process` subcommand can remove entity types from a file or map them to 
+other types. Removing types can be performed by specifying one of `--keep-types`
+or `--remove-types`.
+
+For example, if we only wanted to keep the ORG type, we could run:
+`seqscore process --labels BIO --keep-types ORG samples/reference.bio samples/keep_ORG.bio`,
+and the following output will be written to [samples/keep_ORG.bio](samples/keep_ORG.bio):
+
+```
+This O
+is O
+a O
+sentence O
+. O
+
+University B-ORG
+of I-ORG
+Pennsylvania I-ORG
+is O
+in O
+West O
+Philadelphia O
+, O
+Pennsylvania O
+. O
+```
+
+You can also keep multiple types to keep by specifying a comma-separated list
+of types: `--keep-types LOC,ORG`.
+
+Instead of specifying which types to keep, we can also specify which types to
+remove using `--remove-types`. For example, if we wanted to remove only the
+ORG type, we could run:
+`seqscore process --labels BIO --remove-types ORG samples/reference.bio samples/remove_ORG.bio`,
+and the following output will be written to [samples/remove_ORG.bio](samples/remove_ORG.bio):
+
+```
+This O
+is O
+a O
+sentence O
+. O
+
+University O
+of O
+Pennsylvania O
+is O
+in O
+West B-LOC
+Philadelphia I-LOC
+, O
+Pennsylvania B-LOC
+. O
+```
+
+As with keep, you can specify multiple tags to remove, for example
+`--remove-types LOC,ORG`.
+
+The `--type-map` argument allows you to specify a JSON file that specifies a
+mapping between types and other types. Suppose you want to collapse several
+types into a more generic NAME type. In that case, the type map would be
+specified as follows:
+
+```
+{
+  "NAME": ["LOC", "ORG"]
+}
+```
+
+The type map must be a JSON dictionary. The keys are the types to be mapped to,
+while the value for each key is a list of types to be mapped from. Note that
+the value must always be a list, even if it would only contain one element.
+
+We can apply the above type map to a file using the following command: 
+`seqscore process --labels BIO --type-map samples/type_map_NAME.json samples/reference.bio samples/all_NAME.bio`,
+resulting in this output: 
+
+```
+This O
+is O
+a O
+sentence O
+. O
+
+University B-NAME
+of I-NAME
+Pennsylvania I-NAME
+is O
+in O
+West B-NAME
+Philadelphia I-NAME
+, O
+Pennsylvania B-NAME
+. O
+```
 
 # FAQ
 
@@ -405,3 +523,11 @@ To install from a clone of this repository, use:
 2. Activate the environment: `conda activate seqscore`
 3. Install seqscore: `pip install -e .`
 4. Install development dependencies: `pip install -r requirements.txt`
+
+
+# Acknowledgments
+
+SeqScore was developed by the BLT Lab at Brandeis University under the
+direction of PI and and lead developer Constantine Lignos. Chester Palen-Michel
+and Nolan Holley contributed to its development. Gordon Dou, Maya Kruse, and
+Andrew Rueda gave feedback on its features and assisted in README writing.
