@@ -1,4 +1,5 @@
 # SeqScore
+
 ![Build Status](https://github.com/bltlab/seqscore/actions/workflows/main.yml/badge.svg)
 
 SeqScore provides scoring for named entity recognition and other
@@ -31,6 +32,7 @@ If you use SeqScore, please cite
 [SeqScore: Addressing Barriers to Reproducible Named Entity Recognition Evaluation](https://aclanthology.org/2021.eval4nlp-1.5/).
 
 BibTeX:
+
 ```
 @inproceedings{palen-michel-etal-2021-seqscore,
     title = "{S}eq{S}core: Addressing Barriers to Reproducible Named Entity Recognition Evaluation",
@@ -47,12 +49,12 @@ BibTeX:
 }
 ```
 
-
 # Usage
 
 ## Overview
 
 For a list of commands, run `seqscore --help`:
+
 ```
 $ seqscore --help
 Usage: seqscore [OPTIONS] COMMAND [ARGS]...
@@ -78,6 +80,7 @@ correct labels (annotation) and the other containing the predictions
 (system output).
 
 The correct labels are in the file [samples/reference.bio](samples/reference.bio):
+
 ```
 This O
 is O
@@ -99,6 +102,7 @@ Pennsylvania B-LOC
 ```
 
 The predictions are in the file [samples/predicted.bio](samples/predicted.bio):
+
 ```
 This O
 is O
@@ -131,6 +135,7 @@ To score the predictions, run:
 ```
 
 A few things to note:
+
 * The reference file must be specified with the `--reference` flag.
 * The chunk encoding (BIO, BIOES, etc.) must be specified using the
   `--labels` flag.
@@ -178,6 +183,7 @@ Note that the token `University` has the label `I-ORG`, but there is
 no preceding `B-ORG`. If we score it as before with
 `seqscore score --labels BIO --reference samples/reference.bio samples/invalid.bio`,
 scoring will fail:
+
 ```
 seqscore.encoding.EncodingError: Stopping due to validation errors in invalid.bio:
 Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
@@ -242,12 +248,14 @@ to write a delimited table that can be read as a spreadsheet.
 
 To check if a file has any invalid transitions, we can run
 `seqscore validate --labels BIO samples/reference.bio`:
+
 ```
 No errors found in 0 tokens, 2 sequences, and 1 documents in reference.bio
 ```
 
 For the example of the [samples/invalid.bio](samples/invalid.bio), we can run
 `seqscore validate --labels BIO samples/invalid.bio`:
+
  ```
 Encountered 1 errors in 1 tokens, 2 sequences, and 1 documents in invalid.bio
 Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
@@ -258,8 +266,8 @@ Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
 We can convert a file from one chunk encoding to another. For example,
 `seqscore convert --input-labels BIO --output-labels BIOES samples/reference.bio samples/reference.bioes`
 will read [samples/reference.bio](samples/reference.bio) in BIO
-encoding and write the BIOES-converted file to
-[samples/reference_convert.bioes](samples/reference_convert.bioes):
+encoding and write the BIOES-converted file to [samples/reference.bioes](samples/reference.bioes):
+
 ```
 This O
 is O
@@ -281,6 +289,7 @@ Pennsylvania S-LOC
 ```
 
 We can get a list of available chunk encodings by running `seqscore convert --help`:
+
 ```
 Usage: seqscore convert [OPTIONS] FILE OUTPUT_FILE
 
@@ -299,7 +308,7 @@ Options:
 ## Repair
 
 We can also apply repair methods to a file, creating an output file
-with only valid transitions.  For example, we can run
+with only valid transitions. For example, we can run
 `seqscore repair --labels BIO --repair-method conlleval samples/invalid.bio samples/invalid_repair_conlleval.bio`,
 which will apply the conlleval repair method to the
 [samples/invalid.bio](samples/invalid.bio) and write the repaired
@@ -329,6 +338,7 @@ Pennsylvania B-LOC
 If we want to apply the discard repair method, we can run
 `seqscore repair --labels BIO --repair-method discard samples/invalid.bio samples/invalid_repair_discard.bio`
 and the output will be written to [samples/invalid_repair_discard.bio](samples/invalid_repair_discard.bio):
+
 ```
 This O
 is O
@@ -358,6 +368,7 @@ The `summarize` subcommand can produce counts of the types of chunks
 in the input file. For example, if we run
 `seqscore summarize --labels BIO samples/reference.bio`
 we get the following output:
+
 ```
 File 'samples/reference.bio' contains 1 document(s) with the following mentions:
 | Entity Type   |   Count |
@@ -385,7 +396,7 @@ tab-delimited counts would be written to `counts.csv` as follows:
 
 ## Process
 
-The `process` subcommand can remove entity types from a file or map them to 
+The `process` subcommand can remove entity types from a file or map them to
 other types. Removing types can be performed by specifying one of `--keep-types`
 or `--remove-types`.
 
@@ -412,8 +423,8 @@ Pennsylvania O
 . O
 ```
 
-You can also keep multiple types to keep by specifying a comma-separated list
-of types: `--keep-types LOC,ORG`.
+You can also keep multiple types by specifying a comma-separated list of types:
+`--keep-types LOC,ORG`.
 
 Instead of specifying which types to keep, we can also specify which types to
 remove using `--remove-types`. For example, if we wanted to remove only the
@@ -458,9 +469,9 @@ The type map must be a JSON dictionary. The keys are the types to be mapped to,
 while the value for each key is a list of types to be mapped from. Note that
 the value must always be a list, even if it would only contain one element.
 
-We can apply the above type map to a file using the following command: 
+We can apply the above type map to a file using the following command:
 `seqscore process --labels BIO --type-map samples/type_map_NAME.json samples/reference.bio samples/all_NAME.bio`,
-resulting in this output: 
+resulting in this output:
 
 ```
 This O
@@ -506,7 +517,6 @@ We do not support this format because we have found that creating
 predictions in this format is a common source of errors in scoring
 pipelines.
 
-
 # Development
 
 The following instructions are for the project maintainers only.
@@ -523,7 +533,6 @@ To install from a clone of this repository, use:
 2. Activate the environment: `conda activate seqscore`
 3. Install seqscore: `pip install -e .`
 4. Install development dependencies: `pip install -r requirements.txt`
-
 
 # Acknowledgments
 
