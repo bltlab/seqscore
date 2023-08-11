@@ -14,8 +14,7 @@ issue.
 
 ## Installation
 
-To install the latest official release of SeqScore, run:
-`pip install seqscore`.
+To install the latest official release of SeqScore, run: `pip install seqscore`.
 This will install the package and add the command `seqscore` in your Python
 environment.
 
@@ -534,7 +533,7 @@ To install from a clone of this repository, use:
 3. Install seqscore: `pip install -e .`
 4. Install development dependencies: `pip install -r requirements.txt`
 
-# Acknowledgments
+# Contributors
 
 SeqScore was developed by the BLT Lab at Brandeis University under the
 direction of PI and and lead developer Constantine Lignos. Chester Palen-Michel
