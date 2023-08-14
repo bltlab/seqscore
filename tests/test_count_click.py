@@ -39,6 +39,26 @@ def test_count_BIO() -> None:
     )
 
 
+def test_count_BIO_twofiles() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        count,
+        [
+            "--labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_annotation", "minimal2.bio"),
+            os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_lines_match(
+        os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
+        os.path.join("tests", "test_files", "count_minimal_twofiles_ref.txt"),
+        debug=True,
+    )
+
+
 def test_count_BIO_tab1() -> None:
     runner = CliRunner()
     result = runner.invoke(

@@ -97,11 +97,11 @@ def _quiet_option() -> Callable:
 
 
 @cli.command(help="validate labels")
-@_single_input_file_arguments
+@_multi_input_file_arguments
 @_labels_option()
 @_quiet_option()
 def validate(
-    file: str,
+    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
     labels: str,
     file_encoding: str,
     *,
@@ -109,25 +109,30 @@ def validate(
     ignore_comment_lines: bool,
     quiet: bool,
 ):
-    result = validate_conll_file(
-        file,
-        labels,
-        file_encoding,
-        ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
-    )
-    if result.errors:
-        print(
-            f"Encountered {len(result.errors)} errors in {result.n_tokens} tokens, "
-            + f"{result.n_sequences} sequences, and {result.n_docs} document(s) in {file}"
+    error = False
+    for each_file in file:
+        result = validate_conll_file(
+            each_file,
+            labels,
+            file_encoding,
+            ignore_document_boundaries=ignore_document_boundaries,
+            ignore_comment_lines=ignore_comment_lines,
         )
-        print("\n".join(err.msg for err in result.errors))
+        if result.errors:
+            print(
+                f"Encountered {len(result.errors)} errors in {result.n_tokens} tokens, "
+                + f"{result.n_sequences} sequences, and {result.n_docs} document(s) in {each_file}"
+            )
+            print("\n".join(err.msg for err in result.errors))
+            error = True
+        elif not quiet:
+            print(
+                f"No errors found in {result.n_tokens} tokens, {result.n_sequences} sequences, "
+                + f"and {result.n_docs} document(s) in {each_file}"
+            )
+
+    if error:
         sys.exit(1)
-    elif not quiet:
-        print(
-            f"No errors found in {result.n_tokens} tokens, {result.n_sequences} sequences, "
-            + f"and {result.n_docs} document(s) in {file}"
-        )
 
 
 @cli.command(help="repair invalid label transitions")
@@ -257,7 +262,7 @@ def process(
 
 
 @cli.command(help="show counts for all the mentions contained in a file")
-@_single_input_file_arguments
+@_multi_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
 @_labels_option()
@@ -268,7 +273,7 @@ def process(
 )
 @_quiet_option()
 def count(
-    file: str,
+    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     output_file: str,
     labels: str,
@@ -289,35 +294,36 @@ def count(
             file=sys.stderr,
         )
 
-    docs = ingest_conll_file(
-        file,
-        labels,
-        file_encoding,
-        ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
-        repair=repair_method,
-        quiet=quiet,
-    )
-
     counts: Counter[Tuple[str, Tuple[str, ...]]] = Counter()
-    for doc in docs:
-        for sequence in doc:
-            for mention in sequence.mentions:
-                key = (mention.type, sequence.mention_tokens(mention))
-                counts[key] += 1
+    for each_file in file:
+        docs = ingest_conll_file(
+            each_file,
+            labels,
+            file_encoding,
+            ignore_document_boundaries=ignore_document_boundaries,
+            ignore_comment_lines=ignore_comment_lines,
+            repair=repair_method,
+            quiet=quiet,
+        )
+
+        for doc in docs:
+            for sequence in doc:
+                for mention in sequence.mentions:
+                    key = (mention.type, sequence.mention_tokens(mention))
+                    counts[key] += 1
 
     with open(output_file, "w", encoding=file_encoding) as output:
-        for item, count in counts.most_common():
-            print(delim.join((str(count), item[0], " ".join(item[1]))), file=output)
+        for item, item_count in counts.most_common():
+            print(delim.join((str(item_count), item[0], " ".join(item[1]))), file=output)
 
 
 @cli.command(help="show counts of the documents, sentences, and entity types")
-@_single_input_file_arguments
+@_multi_input_file_arguments
 @_repair_option()
 @_labels_option()
 @_quiet_option()
 def summarize(
-    file: str,
+    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     labels: str,
     *,
@@ -329,30 +335,30 @@ def summarize(
     if repair_method == REPAIR_NONE:
         repair_method = None
 
-    docs = ingest_conll_file(
-        file,
-        labels,
-        file_encoding,
-        ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
-        repair=repair_method,
-        quiet=quiet,
-    )
-
     type_counts: Counter[str] = Counter()
-    for doc in docs:
-        for sequence in doc:
-            for mention in sequence.mentions:
-                type_counts[mention.type] += 1
-
-    if not quiet:
-        # Count sentences
-        sentence_count = sum(len(doc) for doc in docs)
-
-        print(
-            f"File {repr(file)} contains {len(docs)} document(s) and {sentence_count} sentences "
-            + "with the following mentions:"
+    for each_file in file:
+        docs = ingest_conll_file(
+            each_file,
+            labels,
+            file_encoding,
+            ignore_document_boundaries=ignore_document_boundaries,
+            ignore_comment_lines=ignore_comment_lines,
+            repair=repair_method,
+            quiet=quiet,
         )
+
+        for doc in docs:
+            for sequence in doc:
+                for mention in sequence.mentions:
+                    type_counts[mention.type] += 1
+
+        if not quiet:
+            # Count sentences
+            sentence_count = sum(len(doc) for doc in docs)
+            print(
+                f"File {repr(each_file)} contains {len(docs)} document(s) and {sentence_count} sentences"
+            )
+
     header = ["Entity Type", "Count"]
     rows = sorted(type_counts.items())
     print(tabulate(rows, header, tablefmt="github", floatfmt="6.2f"))

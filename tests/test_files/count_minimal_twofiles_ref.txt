@@ -1,0 +1,6 @@
+2	LOC	Waltham
+1	ORG	University of Pennsylvania
+1	LOC	West Philadelphia
+1	LOC	Pennsylvania
+1	ORG	Brandeis University
+1	LOC	Massachusetts

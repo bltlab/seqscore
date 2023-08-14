@@ -19,6 +19,81 @@ def test_valid_bio() -> None:
     assert result.exit_code == 0
 
 
+def test_valid_bio_quiet() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        [
+            "--labels",
+            "BIO",
+            "-q",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+        ],
+    )
+    assert result.output == ""
+    assert result.exit_code == 0
+
+
+def test_valid_bio_twofiles() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        [
+            "--labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_annotation", "minimal2.bio"),
+        ],
+    )
+    assert result.output == (
+        "No errors found in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/minimal.bio\n"
+        "No errors found in 13 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/minimal2.bio\n"
+    )
+    assert result.exit_code == 0
+
+
+def test_mixed_valid_bio_twofiles_quiet() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        [
+            "--quiet",
+            "--labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
+        ],
+    )
+    assert result.output == (
+        "Encountered 3 errors in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/invalid1.bio\n"
+        "Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7\n"
+        "Invalid transition 'O' -> 'I-LOC' for token 'West' on line 12\n"
+        "Invalid transition 'O' -> 'I-LOC' for token 'Pennsylvania' on line 15\n"
+    )
+    assert result.exit_code != 0
+
+
+def test_mixed_valid_bio_twofiles() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        [
+            "--labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
+        ],
+    )
+    assert result.output == (
+        "No errors found in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/minimal.bio\n"
+        "Encountered 3 errors in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/invalid1.bio\n"
+        "Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7\n"
+        "Invalid transition 'O' -> 'I-LOC' for token 'West' on line 12\n"
+        "Invalid transition 'O' -> 'I-LOC' for token 'Pennsylvania' on line 15\n"
+    )
+    assert result.exit_code != 0
+
+
 def test_valid_bioes() -> None:
     runner = CliRunner()
     result = runner.invoke(
