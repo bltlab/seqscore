@@ -336,6 +336,8 @@ def summarize(
         repair_method = None
 
     type_counts: Counter[str] = Counter()
+    total_documents = 0
+    total_sentences = 0
     for each_file in file:
         docs = ingest_conll_file(
             each_file,
@@ -358,6 +360,13 @@ def summarize(
             print(
                 f"File {repr(each_file)} contains {len(docs)} document(s) and {sentence_count} sentences"
             )
+            total_documents += len(docs)
+            total_sentences += sentence_count
+
+    if not quiet and len(file) > 1:
+        print(
+            f"Total {total_documents} document(s) and {total_sentences} sentences"
+        )
 
     header = ["Entity Type", "Count"]
     rows = sorted(type_counts.items())
