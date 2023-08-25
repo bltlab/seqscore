@@ -87,6 +87,7 @@ def test_summarize_bio_twofiles() -> None:
         result.output
         == """File 'tests/conll_annotation/minimal.bio' contains 1 document(s) and 2 sentences
 File 'tests/conll_annotation/minimal2.bio' contains 1 document(s) and 2 sentences
+Total 2 document(s) and 4 sentences
 | Entity Type   |   Count |
 |---------------|---------|
 | LOC           |       5 |
