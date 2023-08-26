@@ -364,9 +364,7 @@ def summarize(
             total_sentences += sentence_count
 
     if not quiet and len(file) > 1:
-        print(
-            f"Total {total_documents} document(s) and {total_sentences} sentences"
-        )
+        print(f"Total {total_documents} document(s) and {total_sentences} sentences")
 
     header = ["Entity Type", "Count"]
     rows = sorted(type_counts.items())
