@@ -87,6 +87,15 @@ def _labels_option() -> Callable:
     return click.option("--labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 
 
+def _labels_option_default_bio() -> Callable:
+    return click.option(
+        "--labels",
+        default="BIO",
+        show_default=True,
+        type=click.Choice(SUPPORTED_ENCODINGS),
+    )
+
+
 def _quiet_option() -> Callable:
     return click.option(
         "--quiet",
@@ -265,7 +274,7 @@ def process(
 @_multi_input_file_arguments
 @click.argument("output_file")
 @_repair_option()
-@_labels_option()
+@_labels_option_default_bio()
 @click.option(
     "--delim",
     default="\t",
@@ -320,7 +329,7 @@ def count(
 @cli.command(help="show counts of the documents, sentences, and entity types")
 @_multi_input_file_arguments
 @_repair_option()
-@_labels_option()
+@_labels_option_default_bio()
 @_quiet_option()
 def summarize(
     file: List[str],  # Name is "file" to make sense on the command line, but it's a list
