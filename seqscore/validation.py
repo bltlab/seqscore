@@ -15,8 +15,9 @@ class ValidationError:
     label: str = attrib()
     type: str = attrib()
     state: str = attrib()
-    token: Optional[str] = attrib()
-    line_num: Optional[int] = attrib()
+    token: Optional[str] = attrib(default=None)
+    line_num: Optional[int] = attrib(default=None)
+    source_name: Optional[str] = attrib(default=None)
 
 
 class InvalidStateError(ValidationError):
@@ -64,6 +65,7 @@ def validate_labels(
     repair: Optional[str] = None,
     tokens: Optional[Sequence[str]] = None,
     line_nums: Optional[Sequence[int]] = None,
+    source_name: Optional[str] = None,
 ) -> SequenceValidationResult:
     assert not tokens or len(tokens) == len(
         labels
@@ -85,8 +87,9 @@ def validate_labels(
             state, entity_type = encoding.split_label(label)
         except EncodingError as e:
             line_msg = f" on line {line_nums[idx]}" if line_nums else ""
+            source_msg = f" of {source_name}" if source_name else ""
             raise EncodingError(
-                f"Could not parse label {repr(label)}{line_msg} during validation: "
+                f"Could not parse label {repr(label)}{line_msg}{source_msg} during validation: "
                 + str(e)
             ) from e
 
@@ -104,8 +107,13 @@ def validate_labels(
             else:
                 line_num = None
 
+            if source_name:
+                msg += f" of {source_name}"
+
             errors.append(
-                InvalidStateError(msg, label, entity_type, state, token, line_num)
+                InvalidStateError(
+                    msg, label, entity_type, state, token, line_num, source_name
+                )
             )
 
         if not encoding.is_valid_transition(
@@ -124,8 +132,13 @@ def validate_labels(
             else:
                 line_num = None
 
+            if source_name:
+                msg += f" of {source_name}"
+
             errors.append(
-                InvalidTransitionError(msg, label, entity_type, state, token, line_num)
+                InvalidTransitionError(
+                    msg, label, entity_type, state, token, line_num, source_name
+                )
             )
         prev_label, prev_state, prev_entity_type = (
             label,

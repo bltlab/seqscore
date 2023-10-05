@@ -111,7 +111,12 @@ class CoNLLIngester:
 
             # Validate before decoding
             validation = validate_labels(
-                labels, self.encoding, repair=repair, tokens=tokens, line_nums=line_nums
+                labels,
+                self.encoding,
+                repair=repair,
+                tokens=tokens,
+                line_nums=line_nums,
+                source_name=source_name,
             )
             if not validation.is_valid():
                 # Exit immediately if there are state errors
