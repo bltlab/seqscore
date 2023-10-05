@@ -122,11 +122,13 @@ class CoNLLIngester:
                 # Exit immediately if there are state errors
                 state_errors = validation.invalid_state_errors()
                 if state_errors:
+                    encoding_name = self.encoding.__class__.__name__
                     raise EncodingError(
                         "Stopping due to invalid label(s) in sequence "
                         + f"at line {line_nums[0]} of {source_name}:\n"
                         + "\n".join(err.msg for err in state_errors)
-                        + "\nInvalid label errors cannot be repaired; correct your data instead."
+                        + f"\nThe above labels are not valid for the chunk encoding {encoding_name}."
+                        + "\nCorrect your data or specify the correct encoding using --labels."
                     )
 
                 if repair:

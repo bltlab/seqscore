@@ -177,3 +177,40 @@ def test_invalid_bioes() -> None:
         "Invalid transition 'B-LOC' -> 'O' after token 'Massachusetts' on line 30"
         in result.output
     )
+
+
+def test_invalid_state() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        # Intentionally declaring IO labels for a BIO file
+        ["--labels", "IO", os.path.join("tests", "conll_annotation", "minimal.bio")],
+    )
+    assert result.exit_code != 0
+    output = result.output.split("\n")
+    assert output == [
+        "Encountered 9 errors in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/minimal.bio",
+        "Invalid state 'B' in label 'B-ORG' for token 'University' on line 7",
+        "Invalid transition 'O' -> 'B-ORG' for token 'University' on line 7",
+        "Invalid transition 'B-ORG' -> 'I-ORG' for token 'of' on line 8",
+        "Invalid state 'B' in label 'B-LOC' for token 'West' on line 12",
+        "Invalid transition 'O' -> 'B-LOC' for token 'West' on line 12",
+        "Invalid transition 'B-LOC' -> 'I-LOC' for token 'Philadelphia' on line 13",
+        "Invalid state 'B' in label 'B-LOC' for token 'Pennsylvania' on line 15",
+        "Invalid transition 'O' -> 'B-LOC' for token 'Pennsylvania' on line 15",
+        "Invalid transition 'B-LOC' -> 'O' for token '.' on line 16",
+        "",
+    ]
+
+
+def test_bad_label() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        ["--labels", "BIO", os.path.join("tests", "conll_annotation", "bad_label2.bio")],
+    )
+    assert result.exit_code != 0
+    assert (
+        str(result.exception)
+        == "Could not parse label 'GPE' on line 4 during validation: Label 'GPE' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'."
+    )

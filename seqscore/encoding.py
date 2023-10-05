@@ -69,9 +69,11 @@ class Encoding(Protocol):
         splits = label.split(self.dialect.label_delim, maxsplit=1)
         if len(splits) == 1:
             if label != self.dialect.outside:
+                sample_label = f"<STATE>{self.dialect.label_delim}<ENTITY_TYPE>"
                 raise EncodingError(
                     f"Label {repr(label)} does not have a state and entity type "
-                    + f"but is not outside ({repr(self.dialect.outside)})"
+                    + f"but is not outside ({repr(self.dialect.outside)}). "
+                    + f"Expected the label to be of a format like {repr(sample_label)}."
                 )
             return (label, None)
         elif len(splits) == 2:

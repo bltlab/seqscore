@@ -180,3 +180,17 @@ def test_validation_errors() -> None:
         result.errors[2].msg
         == "Invalid transition 'S-FOO' -> 'O' after token 'foo' on line 7 at end of sequence"
     )
+
+
+def test_validate_bad_label() -> None:
+    encoding = get_encoding("BIO")
+
+    tokens = ["Dr.", "Jonas", "Salk"]
+    line_nums = [7, 8, 9]
+    labels = ["O", "PER", "PER"]
+    with pytest.raises(EncodingError) as err:
+        validate_labels(labels, encoding, tokens=tokens, line_nums=line_nums)
+    assert (
+        str(err.value)
+        == "Could not parse label 'PER' on line 8 during validation: Label 'PER' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'."
+    )
