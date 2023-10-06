@@ -1,0 +1,35 @@
+#
+This	O
+is	O
+a	O
+sentence	O
+with	O
+comment	O
+characters	O
+#	O
+##	O
+#1	O
+.	O
+
+# Comment
+This	O
+is	O
+a	O
+sentence	O
+.	O
+
+# Three fields
+This	O
+is	O
+a	O
+sentence	O
+.	O
+
+# Now four fields
+# And a second line
+This	O
+is	O
+a	O
+sentence	O
+.	O
+

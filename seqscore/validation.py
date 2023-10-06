@@ -28,6 +28,12 @@ class InvalidTransitionError(ValidationError):
     pass
 
 
+class InvalidLabelError(EncodingError):
+    def __init__(self, label: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.label: str = label
+
+
 def tuplify_errors(errors: Iterable[ValidationError]) -> Tuple[ValidationError, ...]:
     return tuple(errors)
 
@@ -88,9 +94,10 @@ def validate_labels(
         except EncodingError as e:
             line_msg = f" on line {line_nums[idx]}" if line_nums else ""
             source_msg = f" of {source_name}" if source_name else ""
-            raise EncodingError(
+            raise InvalidLabelError(
+                label,
                 f"Could not parse label {repr(label)}{line_msg}{source_msg} during validation: "
-                + str(e)
+                + str(e),
             ) from e
 
         if not encoding.is_valid_state(state):

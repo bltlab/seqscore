@@ -38,7 +38,7 @@ def cli():  # pragma: no cover
 def _input_file_options() -> List[Callable]:
     return [
         click.option("--file-encoding", default="UTF-8", show_default=True),
-        click.option("--ignore-comment-lines", is_flag=True),
+        click.option("--parse-comment-lines", is_flag=True),
         click.option(
             "--ignore-document-boundaries/--use-document-boundaries", default=False
         ),
@@ -115,7 +115,7 @@ def validate(
     file_encoding: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     quiet: bool,
 ):
     error = False
@@ -125,7 +125,7 @@ def validate(
             labels,
             file_encoding,
             ignore_document_boundaries=ignore_document_boundaries,
-            ignore_comment_lines=ignore_comment_lines,
+            parse_comment_lines=parse_comment_lines,
         )
         if result.errors:
             print(
@@ -160,7 +160,7 @@ def repair(
     output_delim: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     quiet: bool,
 ):
     if repair_method == REPAIR_NONE:
@@ -174,7 +174,7 @@ def repair(
         file_encoding,
         output_delim,
         ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
         quiet=quiet,
     )
 
@@ -194,7 +194,7 @@ def convert(
     output_labels: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
 ):
     if input_labels == output_labels:
         raise ValueError("Conversion requires different input and output labels")
@@ -204,7 +204,7 @@ def convert(
         input_labels,
         file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
     )
 
     write_docs_using_encoding(
@@ -243,7 +243,7 @@ def process(
     type_map: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
 ):
     keep_types_set = _parse_type_list(keep_types)
     remove_types_set = _parse_type_list(remove_types)
@@ -262,7 +262,7 @@ def process(
         labels,
         file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
     )
 
     mod_docs = modify_types(docs, keep_types_set, remove_types_set, type_map_dict)
@@ -288,7 +288,7 @@ def count(
     labels: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     delim: str,
     repair_method: str,
     quiet: bool,
@@ -310,7 +310,7 @@ def count(
             labels,
             file_encoding,
             ignore_document_boundaries=ignore_document_boundaries,
-            ignore_comment_lines=ignore_comment_lines,
+            parse_comment_lines=parse_comment_lines,
             repair=repair_method,
             quiet=quiet,
         )
@@ -337,7 +337,7 @@ def summarize(
     labels: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     repair_method: str,
     quiet: bool,
 ):
@@ -353,7 +353,7 @@ def summarize(
             labels,
             file_encoding,
             ignore_document_boundaries=ignore_document_boundaries,
-            ignore_comment_lines=ignore_comment_lines,
+            parse_comment_lines=parse_comment_lines,
             repair=repair_method,
             quiet=quiet,
         )
@@ -413,7 +413,7 @@ def score(
     labels: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     reference: str,
     score_format: str,
     delim: str,
@@ -440,7 +440,7 @@ def score(
         repair_method,
         file_encoding,
         ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
         output_format=score_format,
         delim=delim,
         error_counts=error_counts,

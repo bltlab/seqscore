@@ -65,6 +65,7 @@ class LabeledSequence(Sequence[str]):
     provenance: Optional[SequenceProvenance] = attrib(
         default=None, eq=False, kw_only=True
     )
+    comment: Optional[str] = attrib(default=None, eq=False, kw_only=True)
 
     def __attrs_post_init__(self):
         # TODO: Check for overlapping mentions

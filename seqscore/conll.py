@@ -27,6 +27,7 @@ from seqscore.scoring import (
 )
 from seqscore.util import PathType
 from seqscore.validation import (
+    InvalidLabelError,
     SequenceValidationResult,
     ValidationResult,
     validate_labels,
@@ -40,6 +41,10 @@ FORMAT_PRETTY = "pretty"
 FORMAT_CONLLEVAL = "conlleval"
 FORMAT_DELIM = "delim"
 SUPPORTED_SCORE_FORMATS = (FORMAT_PRETTY, FORMAT_CONLLEVAL, FORMAT_DELIM)
+
+
+class CoNLLFormatError(Exception):
+    pass
 
 
 @attrs(frozen=True)
@@ -60,9 +65,16 @@ class _CoNLLToken:
             splits = line.split(" ")
 
         if len(splits) < 2:
-            raise ValueError(
-                f"Line {line_num} of {source_name} is not delimited by space or tab: {repr(line)}"
-            )
+            if line.startswith("#"):
+                raise CoNLLFormatError(
+                    f"Line {line_num} of {source_name} does not appear to be delimited "
+                    "and begins with #. Perhaps you want to use the --parse-comment-lines "
+                    f"flag? Line contents: {repr(line)}"
+                )
+            else:
+                raise CoNLLFormatError(
+                    f"Line {line_num} of {source_name} is not delimited by space or tab: {repr(line)}"
+                )
 
         text = splits[0]
         label = splits[-1]
@@ -74,7 +86,7 @@ class _CoNLLToken:
 @attrs(frozen=True)
 class CoNLLIngester:
     encoding: Encoding = attrib()
-    ignore_comment_lines: bool = attrib(default=False, kw_only=True)
+    parse_comment_lines: bool = attrib(default=False, kw_only=True)
     ignore_document_boundaries: bool = attrib(default=True, kw_only=True)
 
     def ingest(
@@ -88,8 +100,8 @@ class CoNLLIngester:
         document_counter = 0
         document: List[LabeledSequence] = []
 
-        for source_sequence in self._parse_file(
-            source, source_name, ignore_comments=self.ignore_comment_lines
+        for source_sequence, comment in self._parse_file(
+            source, source_name, parse_comments=self.parse_comment_lines
         ):
             if source_sequence[0].is_docstart:
                 # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
@@ -110,14 +122,27 @@ class CoNLLIngester:
             )
 
             # Validate before decoding
-            validation = validate_labels(
-                labels,
-                self.encoding,
-                repair=repair,
-                tokens=tokens,
-                line_nums=line_nums,
-                source_name=source_name,
-            )
+            try:
+                validation = validate_labels(
+                    labels,
+                    self.encoding,
+                    repair=repair,
+                    tokens=tokens,
+                    line_nums=line_nums,
+                    source_name=source_name,
+                )
+            except InvalidLabelError as err:
+                # Try to catch lines that start with # in case they are comments
+                if tokens and tokens[0].startswith("#"):
+                    raise InvalidLabelError(
+                        err.label,
+                        str(err)
+                        + f" The first token {repr(tokens[0])} of this sentence starts with '#'."
+                        + " If it's a comment, consider enabling --parse-comment-lines.",
+                    ) from err
+                else:
+                    raise err
+
             if not validation.is_valid():
                 # Exit immediately if there are state errors
                 state_errors = validation.invalid_state_errors()
@@ -166,6 +191,7 @@ class CoNLLIngester:
                 mentions,
                 other_fields=other_fields,
                 provenance=SequenceProvenance(line_nums[0], source_name),
+                comment=comment,
             )
             document.append(sequences)
 
@@ -180,15 +206,15 @@ class CoNLLIngester:
         all_results: List[List[SequenceValidationResult]] = []
         document_results: List[SequenceValidationResult] = []
 
-        for source_sequence in self._parse_file(
-            source, source_name, ignore_comments=self.ignore_comment_lines
+        for source_sequence, _ in self._parse_file(
+            source, source_name, parse_comments=self.parse_comment_lines
         ):
             if source_sequence[0].is_docstart:
                 # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
                 # But we check anyway to be absolutely sure we aren't throwing away a sequence.
                 assert len(source_sequence) == 1
 
-                # If we care about document boundaries and we have results for this documents,
+                # If we care about document boundaries and we have results for this document,
                 # add it and move on.
                 if not self.ignore_document_boundaries and document_results:
                     all_results.append(document_results)
@@ -224,23 +250,35 @@ class CoNLLIngester:
 
     @classmethod
     def _parse_file(
-        cls, input_file: TextIO, source_name: str, *, ignore_comments: bool = False
-    ) -> Iterable[Tuple[_CoNLLToken, ...]]:
+        cls, input_file: TextIO, source_name: str, *, parse_comments: bool = False
+    ) -> Iterable[Tuple[Tuple[_CoNLLToken, ...], Optional[str]]]:
         sequence: list = []
+        comment: Optional[str] = None
         line_num = 0
         for line in input_file:
             line_num += 1
-            line = line.strip()
+            # We only remove trailing space and newline. If there's other weird whitespace at the
+            # end of a line, it could very well be something else (e.g. actual data columns)
+            line = line.rstrip(" \n")
 
-            if ignore_comments and line.startswith("#"):
-                continue
+            # Parse comments at the start of sequences if specified
+            if line.startswith("#") and not sequence:
+                if parse_comments:
+                    if comment:
+                        # Add a second comment line if there was one already
+                        comment += f"\n{line}"
+                    else:
+                        comment = line
+                    continue
 
-            if not line:
+            # Handle whitespace-only lines
+            if not line.strip():
                 # Clear out sequence if there's anything in it
                 if sequence:
                     cls._check_sequence(sequence)
-                    yield tuple(sequence)
+                    yield tuple(sequence), comment
                     sequence = []
+                    comment = None
                 # Always skip empty lines
                 continue
 
@@ -255,14 +293,15 @@ class CoNLLIngester:
                     # Yield it by itself. Since the sequence variable is empty, leave it unchanged.
                     tmp_sent = (token,)
                     cls._check_sequence(tmp_sent)
-                    yield tmp_sent
+                    # Don't return the comment yet, it will be returned with the sequence
+                    yield tmp_sent, None
             else:
                 sequence.append(token)
 
         # Finish the last sequence if needed
         if sequence:
             cls._check_sequence(sequence)
-            yield tuple(sequence)
+            yield tuple(sequence), comment
 
     @staticmethod
     def _check_sequence(sequence: Sequence[_CoNLLToken]):
@@ -282,7 +321,7 @@ def ingest_conll_file(
     *,
     repair: Optional[str] = None,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     quiet: bool = False,
 ) -> List[List[LabeledSequence]]:
     mention_encoding = get_encoding(mention_encoding_name)
@@ -295,7 +334,7 @@ def ingest_conll_file(
 
     ingester = CoNLLIngester(
         mention_encoding,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
     with open(input_path, encoding=file_encoding) as input_file:
@@ -309,12 +348,12 @@ def validate_conll_file(
     file_encoding: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
 ) -> ValidationResult:
     encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         encoding,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
     with open(input_path, encoding=file_encoding) as input_file:
@@ -341,7 +380,7 @@ def repair_conll_file(
     output_delim: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     quiet: bool,
 ) -> None:
     docs = ingest_conll_file(
@@ -350,7 +389,7 @@ def repair_conll_file(
         file_encoding,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
         quiet=quiet,
     )
 
@@ -434,7 +473,7 @@ def score_conll_files(
     file_encoding: str,
     *,
     ignore_document_boundaries: bool,
-    ignore_comment_lines: bool,
+    parse_comment_lines: bool,
     output_format: str,
     delim: str,
     error_counts: bool = False,
@@ -449,7 +488,7 @@ def score_conll_files(
         file_encoding,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
-        ignore_comment_lines=ignore_comment_lines,
+        parse_comment_lines=parse_comment_lines,
         quiet=quiet,
     )
 
@@ -473,7 +512,7 @@ def score_conll_files(
             file_encoding,
             repair=repair,
             ignore_document_boundaries=ignore_document_boundaries,
-            ignore_comment_lines=ignore_comment_lines,
+            parse_comment_lines=parse_comment_lines,
             quiet=quiet,
         )
 
