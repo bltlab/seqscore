@@ -1,7 +1,5 @@
 import os
 
-import pytest
-
 from seqscore.util import file_fields_match, file_lines_match, tuplify_strs
 
 
