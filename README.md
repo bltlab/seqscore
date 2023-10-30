@@ -1,6 +1,9 @@
 # SeqScore
 
 ![Build Status](https://github.com/bltlab/seqscore/actions/workflows/main.yml/badge.svg)
+[![image](https://img.shields.io/pypi/v/seqscore.svg)](https://pypi.python.org/pypi/seqscore)
+[![image](https://img.shields.io/pypi/l/seqscore.svg)](https://pypi.python.org/pypi/seqscore)
+[![image](https://img.shields.io/pypi/pyversions/seqscore.svg)](https://pypi.python.org/pypi/seqscore)
 
 SeqScore provides scoring for named entity recognition and other
 chunking tasks evaluated over sequence labels.
