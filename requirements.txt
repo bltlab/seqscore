@@ -11,7 +11,7 @@ pytest-cov
 
 # For development
 mypy==0.982
-ruff=0.1.3
+ruff==0.1.3
 
 # Documentation build
 # Disabled for now since we don't need them
