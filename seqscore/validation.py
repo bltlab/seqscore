@@ -1,4 +1,4 @@
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import Iterable, List, Optional, Sequence, Tuple, Any
 
 from attr import attrib, attrs
 
@@ -29,7 +29,7 @@ class InvalidTransitionError(ValidationError):
 
 
 class InvalidLabelError(EncodingError):
-    def __init__(self, label: str, *args, **kwargs):
+    def __init__(self, label: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.label: str = label
 
@@ -52,7 +52,7 @@ class SequenceValidationResult:
     def invalid_state_errors(self) -> List[InvalidStateError]:
         return [error for error in self.errors if isinstance(error, InvalidStateError)]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.errors)
 
 

@@ -30,7 +30,7 @@ from seqscore.processing import modify_types
 )
 @click.version_option(seqscore.__version__)
 # This is tested by a subprocess call in test_seqscore_main so coverage will miss it
-def cli():  # pragma: no cover
+def cli() -> None:  # pragma: no cover
     pass
 
 
@@ -101,7 +101,7 @@ def _quiet_option() -> Callable:
         "--quiet",
         "-q",
         is_flag=True,
-        help="do not log the repairs performed and supress other non-critical messages",
+        help="do not log the repairs performed and suppress other non-critical messages",
     )
 
 
@@ -117,7 +117,7 @@ def validate(
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
     quiet: bool,
-):
+) -> None:
     error = False
     for each_file in file:
         result = validate_conll_file(
@@ -162,7 +162,7 @@ def repair(
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
     quiet: bool,
-):
+) -> None:
     if repair_method == REPAIR_NONE:
         raise ValueError(f"Cannot repair with repair strategy {repr(repair_method)}")
 
@@ -195,7 +195,7 @@ def convert(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
-):
+) -> None:
     if input_labels == output_labels:
         raise ValueError("Conversion requires different input and output labels")
 
@@ -244,7 +244,7 @@ def process(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
-):
+) -> None:
     keep_types_set = _parse_type_list(keep_types)
     remove_types_set = _parse_type_list(remove_types)
     type_map_dict: Dict[str, List[str]] = _load_type_map(type_map, file_encoding)
@@ -292,7 +292,7 @@ def count(
     delim: str,
     repair_method: str,
     quiet: bool,
-):
+) -> None:
     if repair_method == REPAIR_NONE:
         repair_method = None
 
@@ -340,7 +340,7 @@ def summarize(
     parse_comment_lines: bool,
     repair_method: str,
     quiet: bool,
-):
+) -> None:
     if repair_method == REPAIR_NONE:
         repair_method = None
 
@@ -421,7 +421,7 @@ def score(
     error_counts: bool,
     full_precision: bool,
     quiet: bool,
-):
+) -> None:
     if repair_method == REPAIR_NONE:
         repair_method = None
 

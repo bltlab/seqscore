@@ -48,7 +48,7 @@ class TokenCountError(ValueError):
     @classmethod
     def from_predicted_sequence(
         cls, reference_token_count: int, pred_sequence: LabeledSequence
-    ):
+    ) -> "TokenCountError":
         if pred_sequence.provenance is None:
             raise ValueError(
                 f"Cannot create {cls.__name__} from sequence without provenance"

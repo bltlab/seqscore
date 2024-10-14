@@ -67,7 +67,7 @@ class LabeledSequence(Sequence[str]):
     )
     comment: Optional[str] = attrib(default=None, eq=False, kw_only=True)
 
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         # TODO: Check for overlapping mentions
 
         if len(self.tokens) != len(self.labels):

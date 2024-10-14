@@ -30,7 +30,7 @@ class EncodingDialect(Protocol):
 
 
 class BIOESDialect(EncodingDialect):
-    def __init__(self):
+    def __init__(self) -> None:
         self.label_delim = "-"
         self.begin = "B"
         self.inside = "I"
@@ -40,20 +40,20 @@ class BIOESDialect(EncodingDialect):
 
 
 class BILOUDialect(BIOESDialect):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.end = "L"
         self.single = "U"
 
 
 class BMESDialect(BIOESDialect):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.inside = "M"
 
 
 class BMEOWDialect(BMESDialect):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.single = "W"
 

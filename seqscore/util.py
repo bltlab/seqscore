@@ -26,7 +26,7 @@ def tuplify_optional_nested_strs(
         return None
 
 
-def file_fields_match(path1: PathType, path2: PathType, *, debug=False) -> bool:
+def file_fields_match(path1: PathType, path2: PathType, *, debug: bool = False) -> bool:
     """Return whether the whitespace-delimited fields of two files are identical."""
     with open(path1, encoding="utf8") as f1, open(path2, encoding="utf8") as f2:
         for l1, l2 in zip_longest(f1, f2):
@@ -39,7 +39,7 @@ def file_fields_match(path1: PathType, path2: PathType, *, debug=False) -> bool:
         return True
 
 
-def file_lines_match(path1: PathType, path2: PathType, debug=False) -> bool:
+def file_lines_match(path1: PathType, path2: PathType, debug: bool = False) -> bool:
     """Return whether lines of two files are identical ignoring line endings."""
     with open(path1, encoding="utf8") as f1, open(path2, encoding="utf8") as f2:
         for l1, l2 in zip_longest(f1, f2):

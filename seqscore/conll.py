@@ -304,7 +304,7 @@ class CoNLLIngester:
             yield tuple(sequence), comment
 
     @staticmethod
-    def _check_sequence(sequence: Sequence[_CoNLLToken]):
+    def _check_sequence(sequence: Sequence[_CoNLLToken]) -> None:
         # We should only return DOCSTART in a sequence by itself. This isn't a constraint
         # on the layout of the input document, but rather one we are enforcing so that consumers
         # get document boundaries as their own sequences.

@@ -12,13 +12,13 @@ ANNOTATION_DIR = Path("tests", "conll_annotation")
 TEST_FILES_DIR = Path("tests", "test_files")
 
 
-def setup_module(_) -> None:
+def setup_module() -> None:
     """Create temporary directory used by tests."""
     global TMP_DIR
     TMP_DIR = tempfile.TemporaryDirectory()
 
 
-def teardown_module(_) -> None:
+def teardown_module() -> None:
     """Remove temporary directory used by tests."""
     TMP_DIR.cleanup()
 
