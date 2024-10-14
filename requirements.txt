@@ -6,8 +6,8 @@
 types-tabulate
 
 # For testing
-pytest
-pytest-cov
+pytest==7.4.4
+pytest-cov==4.1.0
 
 # For development
 mypy==1.4.1
