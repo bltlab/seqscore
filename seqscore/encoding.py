@@ -1,14 +1,10 @@
-import sys
 from abc import abstractmethod
 from functools import lru_cache
 from typing import AbstractSet, Dict, List, Optional, Sequence, Tuple
 
 from attr import Factory, attrib, attrs
 
-if sys.version_info < (3, 8):
-    from typing_extensions import Protocol
-else:
-    from typing import Protocol  # pragma: no cover
+from typing import Protocol  # pragma: no cover
 
 from seqscore.model import LabeledSequence, Mention, Span
 

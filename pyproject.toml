@@ -1,3 +1,16 @@
+[tool.mypy]
+python_version = 3.8
+strict_optional = false
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+
+[[tool.mypy.overrides]]
+module = [
+    "setuptools",
+    "click.*",
+]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 90
-target-version = "py37"
+target-version = "py38"
