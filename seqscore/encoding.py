@@ -1,10 +1,16 @@
 from abc import abstractmethod
 from functools import lru_cache
-from typing import AbstractSet, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    AbstractSet,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+)
 
 from attr import Factory, attrib, attrs
-
-from typing import Protocol  # pragma: no cover
 
 from seqscore.model import LabeledSequence, Mention, Span
 
