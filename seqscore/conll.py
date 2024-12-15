@@ -571,6 +571,7 @@ def score_conll_files(
         elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
             header, rows = format_output_table(class_scores, full_precision)
             if output_format == FORMAT_PRETTY:
+                # TODO: Should we raise an error for pretty output with full precision specified?
                 # We don't allow full_precision in this case so we can use the usual float format
                 score_summaries.append(
                     tabulate(rows, header, tablefmt="github", floatfmt="6.2f")
@@ -615,6 +616,7 @@ def score_conll_files(
                 entity_type: mean(scores) for entity_type, scores in type_scores.items()
             }
             entity_type_means["ALL"] = mean(score.f1 for score in all_class_scores)
+            # TODO: This should be standard error of the mean, not standard deviation
             entity_type_sds = {
                 entity_type: stdev(scores) for entity_type, scores in type_scores.items()
             }
