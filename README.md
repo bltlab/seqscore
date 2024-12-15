@@ -61,17 +61,21 @@ For a list of commands, run `seqscore --help`:
 $ seqscore --help
 Usage: seqscore [OPTIONS] COMMAND [ARGS]...
 
+  Provides scoring and analysis tools for NER/chunking files (version 0.6.0)
+
 Options:
   --version  Show the version and exit.
   --help     Show this message and exit.
 
 Commands:
-  convert
-  count
-  repair
-  score
-  summarize
-  validate
+  convert       convert between mention encodings
+  count         show counts for all the mentions contained in a file
+  extract-text  extract text from a file
+  process       transform entity types by keeping/removing/mapping
+  repair        repair invalid label transitions
+  score         score a file and report performance or an error count table
+  summarize     show counts of the documents, sentences, and entity types
+  validate      validate labels
 ```
 
 ## Scoring
@@ -263,7 +267,7 @@ Encountered 1 errors in 1 tokens, 2 sequences, and 1 documents in invalid.bio
 Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
 ```
 
-## Convert
+## Conversion
 
 We can convert a file from one chunk encoding to another. For example,
 `seqscore convert --input-labels BIO --output-labels BIOES samples/reference.bio samples/reference.bioes`
@@ -494,6 +498,24 @@ Pennsylvania B-NAME
 . O
 ```
 
+## Text extraction
+
+The `extract-text` subcommand extracts the text from a CoNLL-format file.
+
+For example, to extract the text from `samples/reference.bio` and write it to
+`reference.txt`, run the following command:
+`seqscore extract-text samples/reference.bio reference.txt`
+
+This would result in `reference.txt` having the following contents:
+
+```
+This is a sentence .
+University of Pennsylvania is in West Philadelphia , Pennsylvania .
+```
+
+Each sentence is written on one line with space-delimited tokens.
+
+
 # FAQ
 
 ## Why can't I score output files that are in the format `conlleval` expects?
@@ -519,6 +541,13 @@ We do not support this format because we have found that creating
 predictions in this format is a common source of errors in scoring
 pipelines.
 
+## When do I need to specify the `--labels` argument?
+
+The `--labels` argument must be specified for commands where knowing the label
+encoding is essential to getting correct answers. These commands are `validate`,
+`repair`, and `score`. For all other commands, `--labels BIO` is assumed by
+default but can be overridden.
+
 # Development
 
 The following instructions are for the project maintainers only.
@@ -539,6 +568,6 @@ To install from a clone of this repository, use:
 # Contributors
 
 SeqScore was developed by the BLT Lab at Brandeis University under the
-direction of PI and and lead developer Constantine Lignos. Chester Palen-Michel
+direction of PI and lead developer Constantine Lignos. Chester Palen-Michel
 and Nolan Holley contributed to its development. Gordon Dou, Maya Kruse, and
 Andrew Rueda gave feedback on its features and assisted in README writing.

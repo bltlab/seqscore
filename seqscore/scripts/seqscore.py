@@ -449,6 +449,42 @@ def score(
     )
 
 
+@cli.command(help="extract text from a file")
+@_multi_input_file_arguments
+@_labels_option_default_bio()
+@click.argument("output_file")
+def extract_text(
+    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
+    file_encoding: str,
+    labels: str,
+    output_file: str,
+    *,
+    ignore_document_boundaries: bool,
+    parse_comment_lines: bool,
+) -> None:
+    all_docs = []
+    for each_file in file:
+        docs = ingest_conll_file(
+            each_file,
+            labels,
+            file_encoding,
+            ignore_document_boundaries=ignore_document_boundaries,
+            parse_comment_lines=parse_comment_lines,
+        )
+        all_docs.extend(docs)
+
+    with open(output_file, "w", encoding="utf8") as output:
+        first_doc = True
+        for doc in all_docs:
+            # Print empty line between documents
+            if not first_doc:
+                print(file=output)
+            else:
+                first_doc = False
+            for sentence in doc:
+                print(" ".join(sentence), file=output)
+
+
 def _normalize_tab(s: str) -> str:
     if s == "tab":
         return "\t"
