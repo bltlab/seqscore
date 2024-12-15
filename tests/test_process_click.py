@@ -186,6 +186,10 @@ def test_map_types3() -> None:
     assert file_fields_match(input_path, output_path)
 
 
+# TODO: Add a test for map_types with keep-types
+# TODO: Add a test for map_types with remove-types
+
+
 def test_map_types_invalid_map() -> None:
     runner = CliRunner()
     map_path = str(TEST_FILES_DIR / "map_bad_value.json")

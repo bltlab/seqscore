@@ -215,7 +215,7 @@ def convert(
 @cli.command(help="transform entity types by keeping/removing/mapping")
 @_single_input_file_arguments
 @click.argument("output_file")
-@_labels_option()
+@_labels_option_default_bio()
 @click.option(
     "--keep-types",
     default="",

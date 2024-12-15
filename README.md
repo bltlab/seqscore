@@ -498,6 +498,10 @@ Pennsylvania B-NAME
 . O
 ```
 
+When `--type-map` is specified at the same time as `--remove-types` or
+`--keep-types`, the type mapping is applied before the add/remove filtering
+is applied.
+
 ## Text extraction
 
 The `extract-text` subcommand extracts the text from a CoNLL-format file.

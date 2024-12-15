@@ -33,14 +33,13 @@ class TypeMapper:
     def map_types(self, sequence: LabeledSequence) -> LabeledSequence:
         new_mentions: List[Mention] = []
         for mention in sequence.mentions:
-            mention_type = mention.type
-            if (self.keep_types and mention_type not in self.keep_types) or (
-                self.remove_types and mention_type in self.remove_types
+            if mention.type in self.type_map:
+                mention = mention.with_type(self.type_map[mention.type])
+
+            if (self.keep_types and mention.type not in self.keep_types) or (
+                self.remove_types and mention.type in self.remove_types
             ):
                 continue
-
-            if mention_type in self.type_map:
-                mention = mention.with_type(self.type_map[mention_type])
 
             new_mentions.append(mention)
 
