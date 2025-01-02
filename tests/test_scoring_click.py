@@ -123,6 +123,33 @@ def test_score_valid_incorrect_sequence() -> None:
     assert "ORG\t100.00\t100.00\t100.00\t1\t1\t1" in result.output
 
 
+def test_score_entity_type_not_in_reference() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--score-format",
+            "delim",
+            os.path.join(
+                "tests", "conll_predictions", "incorrect_type_not_in_reference.bio"
+            ),
+        ],
+    )
+    assert result.exit_code == 0
+    output_fields = [line.split("\t") for line in result.output.rstrip("\n").split("\n")]
+    assert output_fields == [
+        ["Type", "Precision", "Recall", "F1", "Reference", "Predicted", "Correct"],
+        ["ALL", "75.00", "100.00", "85.71", "3", "4", "3"],
+        ["LOC", "100.00", "100.00", "100.00", "2", "2", "2"],
+        ["ORG", "100.00", "100.00", "100.00", "1", "1", "1"],
+        ["SPURIOUS", "0.00", "0.00", "0.00", "0", "1", "0"],
+    ]
+
+
 def test_score_invalid_labels() -> None:
     runner = CliRunner()
     result = runner.invoke(

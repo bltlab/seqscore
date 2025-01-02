@@ -591,10 +591,7 @@ def score_conll_files(
                 if multi_files:
                     rows = [[pred_file] + row for row in rows]
 
-                # Double check that we have the same number of columns as the header. This
-                # should be the case as long as the system doesn't produce a type that doesn't
-                # exist in the reference.
-                # TODO: Figure out how to handle a system producing a type not in the reference
+                # Double check that we have the same number of columns as the header.
                 for row in rows:
                     assert (
                         len(row) == header_len

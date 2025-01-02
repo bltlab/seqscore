@@ -74,22 +74,26 @@ def test_score_sentence_mentions_incorrect1() -> None:
     pred_mentions = [
         Mention(Span(0, 2), "ORG"),
         Mention(Span(4, 5), "PER"),
+        Mention(
+            Span(6, 7), "SPURIOUS"
+        ),  # Note that this type isn't even in the reference
         Mention(Span(9, 11), "MISC"),
     ]
     score = ClassificationScore()
     score_sequence_mentions(pred_mentions, ref_mentions, score)
     assert score.true_pos == 2
-    assert score.false_pos == 1
+    assert score.false_pos == 2
     assert score.false_neg == 2
     assert score.type_scores == {
         "PER": ClassificationScore(true_pos=1),
         "LOC": ClassificationScore(false_neg=1),
         "MISC": ClassificationScore(false_neg=1, true_pos=1),
         "ORG": ClassificationScore(false_pos=1),
+        "SPURIOUS": ClassificationScore(false_pos=1),
     }
     assert score.total_ref == 4
-    assert score.total_pos == 3
-    assert score.precision == pytest.approx(2 / 3)
+    assert score.total_pos == 4
+    assert score.precision == pytest.approx(2 / 4)
     assert score.recall == pytest.approx(2 / 4)
     # Note that we have already checked the precision and recall values
     assert score.f1 == pytest.approx(
