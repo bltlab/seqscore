@@ -148,7 +148,7 @@ def test_validation_invalid_state() -> None:
         validate_labels(["O", "PER"], encoding)
 
 
-def test_validation_errors() -> None:
+def test_validation_messages() -> None:
     encoding = get_encoding("BIO")
 
     tokens = ["Dr.", "Jonas", "Salk"]
@@ -182,7 +182,147 @@ def test_validation_errors() -> None:
     )
 
 
-def test_validate_bad_label() -> None:
+def test_validation_bio() -> None:
+    encoding = get_encoding("BIO")
+
+    result = validate_labels(("B-PER",), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "I-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "B-PER", "I-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-ORG", "B-PER", "I-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-ORG", "I-PER"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("I-PER",), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("I-PER", "I-PER"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("I-PER", "I-ORG"), encoding)
+    assert len(result.errors) == 2  # start to I, I to I
+
+
+def test_validation_iob() -> None:
+    encoding = get_encoding("IOB")
+
+    result = validate_labels(("I-PER",), encoding)
+    assert not result.errors
+    result = validate_labels(("I-PER", "I-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("I-PER", "I-PER", "I-ORG"), encoding)
+    assert not result.errors
+    result = validate_labels(("I-PER", "I-ORG", "I-ORG"), encoding)
+    assert not result.errors
+    result = validate_labels(("I-PER", "O", "I-ORG", "O", "I-ORG"), encoding)
+    assert not result.errors
+    result = validate_labels(("I-PER", "B-PER"), encoding)
+    assert not result.errors
+
+    # We are strict in only allowing B-X after I-X
+    result = validate_labels(("I-PER", "B-ORG"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("B-PER", "I-PER"), encoding)
+    assert len(result.errors) == 1
+
+
+def test_validation_bioes_start() -> None:
+    encoding = get_encoding("BIOES")
+
+    result = validate_labels(("O",), encoding)
+    assert not result.errors
+
+    # Can't start length one mention with B
+    result = validate_labels(("B-PER",), encoding)
+    assert len(result.errors) == 1
+
+    # Can't start any mention with I or E
+    result = validate_labels(("I-PER", "E-PER"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("E-PER",), encoding)
+    assert len(result.errors) == 1
+
+    # Can start length one mention with S
+    result = validate_labels(("S-PER",), encoding)
+    assert not result.errors
+
+    # Can start length two or three mention with B
+    result = validate_labels(("B-PER", "E-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "I-PER", "E-PER"), encoding)
+    assert not result.errors
+
+    # S after E
+    result = validate_labels(("B-ORG", "I-ORG", "E-ORG", "S-MISC"), encoding)
+    assert not result.errors
+
+    # B after S
+    result = validate_labels(("S-PER", "B-ORG", "E-ORG"), encoding)
+    assert not result.errors
+
+
+def test_validation_bioes_continue() -> None:
+    encoding = get_encoding("BIOES")
+
+    # Cannot continue from S to I
+    result = validate_labels(("S-PER", "I-PER"), encoding)
+    assert len(result.errors) == 2  # Two errors: S to I and I to end
+
+    # Cannot continue from E to I
+    result = validate_labels(("B-PER", "I-PER", "E-PER", "I-PER"), encoding)
+    assert len(result.errors) == 2  # Two errors: E to I and I to end
+
+    # Cannot change type mid-mention
+    result = validate_labels(("B-PER", "E-ORG"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("B-PER", "I-ORG", "E-ORG"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("B-PER", "I-PER", "E-ORG"), encoding)
+    assert len(result.errors) == 1
+
+    # B after B
+    result = validate_labels(("B-PER", "B-PER"), encoding)
+    assert len(result.errors) == 2  # B to B and B to end
+    result = validate_labels(("B-PER", "B-ORG"), encoding)
+    assert len(result.errors) == 2  # B to B and B to end
+
+    # S after B
+    result = validate_labels(("B-PER", "S-PER"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("B-PER", "S-ORG"), encoding)
+    assert len(result.errors) == 1
+
+
+def test_validation_bioes_end() -> None:
+    encoding = get_encoding("BIOES")
+
+    # Can't end with I
+    result = validate_labels(("B-PER", "I-PER"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("B-PER", "I-PER", "I-PER"), encoding)
+    assert len(result.errors) == 1
+
+    # Can end with E
+    result = validate_labels(("B-PER", "E-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "I-PER", "E-PER"), encoding)
+    assert not result.errors
+
+
+def test_validation_bioes_adjacent_mentions() -> None:
+    encoding = get_encoding("BIOES")
+
+    result = validate_labels(("S-PER", "B-ORG", "E-ORG"), encoding)
+    assert not result.errors
+    result = validate_labels(("S-PER", "B-PER", "E-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "E-PER", "S-ORG"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "E-PER", "S-PER"), encoding)
+    assert not result.errors
+
+
+def test_validation_bad_label() -> None:
     encoding = get_encoding("BIO")
 
     tokens = ["Dr.", "Jonas", "Salk"]

@@ -145,9 +145,11 @@ class Encoding(Protocol):
 
     @abstractmethod
     def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+        """Decode a sequence of valid labels into mentions."""
         raise NotImplementedError
 
     def decode_sequence(self, sequence: LabeledSequence) -> List[Mention]:
+        """Decode a valid LabeledSequence into mentions."""
         return self.decode_labels(sequence.labels)
 
     def supported_repair_methods(self) -> Tuple[str, ...]:
@@ -278,12 +280,7 @@ class IOB(Encoding):
 
             if state == begin:
                 # Begin only allowed if previous entity type is the same as current
-                if not builder.in_mention() or (
-                    builder.in_mention() and entity_type != builder.entity_type
-                ):
-                    raise EncodingError(
-                        "Begin only allowed after a mention of the same type"
-                    )
+                assert builder.in_mention() and entity_type == builder.entity_type
                 builder.end_mention(idx)
                 builder.start_mention(idx, entity_type)
             elif state == inside:
@@ -460,15 +457,8 @@ class BIO(Encoding):
                 builder.start_mention(idx, entity_type)
             # Check for valid continuation
             elif state == inside:
-                if entity_type != builder.entity_type:
-                    if builder.entity_type:
-                        raise EncodingError(
-                            f"Illegal use of {label} to continue {builder.entity_type}"
-                        )
-                    else:
-                        raise EncodingError(f"Illegal use of {label} to begin a mention")
-                # Check state
                 assert builder.in_mention()
+                assert entity_type == builder.entity_type
             # No action needed for outside (since ending mentions is mentioned above) other than
             # checking state.
             elif state == outside:
@@ -552,8 +542,6 @@ class BIOES(Encoding):
             (
                 (begin, inside),
                 (begin, end),
-                (begin, begin),
-                (begin, single),
                 (inside, inside),
                 (inside, end),
                 (end, begin),
@@ -609,10 +597,12 @@ class BIOES(Encoding):
                 builder.start_mention(idx, entity_type)
             elif state == end:
                 assert builder.in_mention()
+                assert builder.entity_type == entity_type
                 builder.end_mention(idx + 1)
             elif state == inside:
                 # Nothing to do but check state
                 assert builder.in_mention()
+                assert builder.entity_type == entity_type
             else:
                 # Nothing to do but check state
                 assert state == outside
