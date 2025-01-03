@@ -406,7 +406,7 @@ The `process` subcommand can remove entity types from a file or map them to
 other types. Removing types can be performed by specifying one of `--keep-types`
 or `--remove-types`.
 
-For example, if we only wanted to keep the ORG type, we could run:
+For example, if we wanted to keep only the ORG type, we could run:
 `seqscore process --labels BIO --keep-types ORG samples/reference.bio samples/keep_ORG.bio`,
 and the following output will be written to [samples/keep_ORG.bio](samples/keep_ORG.bio):
 
@@ -499,7 +499,7 @@ Pennsylvania B-NAME
 ```
 
 When `--type-map` is specified at the same time as `--remove-types` or
-`--keep-types`, the type mapping is applied before the add/remove filtering
+`--keep-types`, the type mapping is applied **before** the add/remove filtering
 is applied.
 
 ## Text extraction
@@ -524,7 +524,7 @@ Each sentence is written on one line with space-delimited tokens.
 
 ## Why can't I score output files that are in the format `conlleval` expects?
 
-At this time, SeqScore intentionally does not support the "merged"
+SeqScore intentionally does not support the "merged"
 format used by `conlleval` where each line contains a token, correct
 tag, and predicted tag:
 

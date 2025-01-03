@@ -186,8 +186,50 @@ def test_map_types3() -> None:
     assert file_fields_match(input_path, output_path)
 
 
-# TODO: Add a test for map_types with keep-types
-# TODO: Add a test for map_types with remove-types
+def test_map_types_remove_types() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_LOC_GPE.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--remove-types",
+            "LOC",
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 0
+    # LOC will be mapped to GPE since mapping applies before removal
+    assert file_fields_match(TEST_FILES_DIR / "minimal_GPE.bio", output_path)
+
+
+def test_map_types_keep_types() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_LOC_GPE.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--keep-types",
+            "LOC",
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 0
+    # No names since LOC will be mapped to GPE and only LOC will be kept
+    assert file_fields_match(TEST_FILES_DIR / "minimal_no_names.bio", output_path)
 
 
 def test_map_types_invalid_map() -> None:
