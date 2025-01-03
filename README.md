@@ -31,7 +31,9 @@ SeqScore is distributed under the MIT License.
 ## Citation
 
 If you use SeqScore, please cite
-[SeqScore: Addressing Barriers to Reproducible Named Entity Recognition Evaluation](https://aclanthology.org/2021.eval4nlp-1.5/).
+[SeqScore: Addressing Barriers to Reproducible Named Entity Recognition Evaluation](https://aclanthology.org/2021.eval4nlp-1.5/)
+and
+[Improving NER Research Workflows with SeqScore](https://aclanthology.org/2023.nlposs-1.17/).
 
 BibTeX:
 
@@ -47,9 +49,35 @@ BibTeX:
     address = "Punta Cana, Dominican Republic",
     publisher = "Association for Computational Linguistics",
     url = "https://aclanthology.org/2021.eval4nlp-1.5",
-    pages = "40--50",
+    pages = "40--50"
+}
+
+@inproceedings{lignos-etal-2023-improving,
+    title = "Improving {NER} Research Workflows with {S}eq{S}core",
+    author = "Lignos, Constantine  and
+      Kruse, Maya  and
+      Rueda, Andrew",
+    editor = "Tan, Liling  and
+      Milajevs, Dmitrijs  and
+      Chauhan, Geeticka  and
+      Gwinnup, Jeremy  and
+      Rippeth, Elijah",
+    booktitle = "Proceedings of the 3rd Workshop for Natural Language Processing Open Source Software (NLP-OSS 2023)",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.nlposs-1.17/",
+    doi = "10.18653/v1/2023.nlposs-1.17",
+    pages = "147--152"
 }
 ```
+
+Other papers related to SeqScore include:
+* [If You Build Your Own NER Scorer, Non-replicable Results Will Come](https://aclanthology.org/2020.insights-1.15.pdf)
+* [Toward More Meaningful Resources for Lower-resourced Languages](https://aclanthology.org/2022.findings-acl.44/)
+* [CoNLL#: Fine-grained Error Analysis and a Corrected Test Set for CoNLL-03 English](https://aclanthology.org/2024.lrec-main.330/)
+
 
 # Usage
 
