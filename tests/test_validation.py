@@ -292,6 +292,18 @@ def test_validation_bioes_continue() -> None:
     result = validate_labels(("B-PER", "S-ORG"), encoding)
     assert len(result.errors) == 1
 
+    # S after I
+    result = validate_labels(("B-PER", "I-PER", "S-PER"), encoding)
+    assert len(result.errors) == 1
+    result = validate_labels(("B-PER", "I-PER", "S-ORG"), encoding)
+    assert len(result.errors) == 1
+
+    # S after E (allowed)
+    result = validate_labels(("B-PER", "E-PER", "S-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "E-PER", "S-ORG"), encoding)
+    assert not result.errors
+
 
 def test_validation_bioes_end() -> None:
     encoding = get_encoding("BIOES")
