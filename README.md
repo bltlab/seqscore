@@ -526,9 +526,9 @@ Pennsylvania B-NAME
 . O
 ```
 
-When `--type-map` is specified at the same time as `--remove-types` or
-`--keep-types`, the type mapping is applied **before** the add/remove filtering
-is applied.
+When `--type-map` is specified at the same time as `--keep-types` or
+`--remove-types`, the type mapping is applied **before** the keep/remove
+filtering is applied.
 
 ## Text extraction
 
