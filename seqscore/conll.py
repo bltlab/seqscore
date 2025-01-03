@@ -179,7 +179,7 @@ class CoNLLIngester:
 
             try:
                 mentions = self.encoding.decode_labels(labels)
-            except EncodingError as e:  # pragma: no cover
+            except AssertionError as e:  # pragma: no cover
                 # Unreachable unless there is a bug in the decoder or validation
                 raise ValueError(
                     "Encountered an error decoding this sequence despite passing validation: "
