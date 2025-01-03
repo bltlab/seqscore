@@ -146,6 +146,13 @@ def test_score_label_sequences_invalid_repair() -> None:
     )
 
 
+def test_score_label_sequences_different_lengths() -> None:
+    ref_labels = [["O", "B-ORG", "I-ORG", "O"], ["B-PER", "I-PER"]]
+    pred_labels = [["O", "B-ORG", "I-ORG", "O"]]
+    with pytest.raises(ValueError):
+        score_label_sequences(pred_labels, ref_labels, "BIO", repair=None)
+
+
 def test_classification_score_empty() -> None:
     score = ClassificationScore()
     assert score.precision == 0.0

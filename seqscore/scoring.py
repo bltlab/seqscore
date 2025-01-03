@@ -242,7 +242,6 @@ def score_sequence_mentions(
                 score.count_false_negative(error_tokens, ref.type)
 
 
-# TODO: Consider taking an iterable and checking sequence lengths
 def score_label_sequences(
     pred_label_sequences: Sequence[Sequence[str]],
     ref_label_sequences: Sequence[Sequence[str]],
@@ -250,19 +249,26 @@ def score_label_sequences(
     *,
     repair: Optional[str],
 ) -> Tuple[ClassificationScore, AccuracyScore]:
+    """Return accuracy and classification scores for predicted and reference label sequences."""
+    if len(pred_label_sequences) != len(ref_label_sequences):
+        raise ValueError(
+            f"Different number of sequences in predicted ({len(pred_label_sequences)}) and "
+            + f"reference ({len(ref_label_sequences)})"
+        )
+
     encoder = get_encoding(encoding_name)
 
-    classifcation_score = ClassificationScore()
+    classification_score = ClassificationScore()
     accuracy_score = AccuracyScore()
 
     for pred_labels, ref_labels in zip(pred_label_sequences, ref_label_sequences):
-        # This takes care of checking that the lengths match
+        # This takes care of checking that the lengths of the labels match
         score_sequence_label_accuracy(pred_labels, ref_labels, accuracy_score)
         pred_mentions = _repair_label_sequence(pred_labels, encoder, repair)
         ref_mentions = _repair_label_sequence(ref_labels, encoder, repair)
-        score_sequence_mentions(pred_mentions, ref_mentions, classifcation_score)
+        score_sequence_mentions(pred_mentions, ref_mentions, classification_score)
 
-    return classifcation_score, accuracy_score
+    return classification_score, accuracy_score
 
 
 def _repair_label_sequence(
