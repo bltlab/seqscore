@@ -594,9 +594,9 @@ def score_conll_files(
 
                 # Double check that we have the same number of columns as the header.
                 for row in rows:
-                    assert (
-                        len(row) == header_len
-                    ), "Row column count does not match header"
+                    assert len(row) == header_len, (
+                        "Row column count does not match header"
+                    )
                 score_summaries.extend(_join_delim(row, delim) for row in rows)
         else:
             raise ValueError(f"Unrecognized output format: {output_format}")

@@ -73,12 +73,12 @@ def validate_labels(
     line_nums: Optional[Sequence[int]] = None,
     source_name: Optional[str] = None,
 ) -> SequenceValidationResult:
-    assert not tokens or len(tokens) == len(
-        labels
-    ), "Tokens and labels must be the same length"
-    assert not line_nums or len(line_nums) == len(
-        labels
-    ), "Line numbers and labels must be the same length"
+    assert not tokens or len(tokens) == len(labels), (
+        "Tokens and labels must be the same length"
+    )
+    assert not line_nums or len(line_nums) == len(labels), (
+        "Line numbers and labels must be the same length"
+    )
 
     errors: List[ValidationError] = []
     outside = encoding.dialect.outside

@@ -93,14 +93,14 @@ class Encoding(Protocol):
     @lru_cache(maxsize=None)
     def join_label(self, state: str, entity_type: Optional[str]) -> str:
         if entity_type:
-            assert (
-                state != self.dialect.outside
-            ), "Entity type must be None for outside state"
+            assert state != self.dialect.outside, (
+                "Entity type must be None for outside state"
+            )
             return state + self.dialect.label_delim + entity_type
         else:
-            assert (
-                state == self.dialect.outside
-            ), "Entity type cannot be None for non-outside states"
+            assert state == self.dialect.outside, (
+                "Entity type cannot be None for non-outside states"
+            )
             return state
 
     @lru_cache(maxsize=None)
@@ -675,12 +675,12 @@ class _MentionBuilder:
         assert entity_type
 
         # Check state
-        assert (
-            self.start_idx is None
-        ), f"Mention has already been started at index {self.start_idx}"
-        assert (
-            self.entity_type is None
-        ), f"Mention has already been started with type {self.entity_type}"
+        assert self.start_idx is None, (
+            f"Mention has already been started at index {self.start_idx}"
+        )
+        assert self.entity_type is None, (
+            f"Mention has already been started with type {self.entity_type}"
+        )
 
         self.start_idx = start_idx
         self.entity_type = entity_type

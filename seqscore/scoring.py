@@ -140,15 +140,13 @@ def compute_scores(
     # TODO: Recommend use of ignore_document_boundaries if this error is encountered
     if len(pred_docs) != len(ref_docs):
         raise ValueError(
-            f"Prediction has {len(pred_docs)} documents, "
-            f"reference has {len(ref_docs)}"
+            f"Prediction has {len(pred_docs)} documents, reference has {len(ref_docs)}"
         )
 
     for pred_doc, ref_doc in zip(pred_docs, ref_docs):
         if len(pred_doc) != len(ref_doc):
             raise ValueError(
-                f"Prediction has {len(pred_doc)} sequences, "
-                f"reference has {len(ref_doc)}"
+                f"Prediction has {len(pred_doc)} sequences, reference has {len(ref_doc)}"
             )
 
         for pred_sequence, ref_sequence in zip(pred_doc, ref_doc):
@@ -190,8 +188,7 @@ def score_sequence_label_accuracy(
 
     if len(pred_labels) != len(ref_labels):
         raise ValueError(
-            f"Prediction has {len(pred_labels)} labels, "
-            f"reference has {len(ref_labels)}"
+            f"Prediction has {len(pred_labels)} labels, reference has {len(ref_labels)}"
         )
 
     # Compute label accuracy
