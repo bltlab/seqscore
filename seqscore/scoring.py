@@ -1,6 +1,7 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
+from collections.abc import Iterable, Sequence
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Counter, DefaultDict, Iterable, Optional, Sequence, Tuple, Union
+from typing import DefaultDict, Optional, Union
 
 from attr import Factory, attrib, attrs
 
@@ -16,7 +17,7 @@ def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore
 
 @attrs(frozen=True, slots=True)
 class TokensWithType:
-    tokens: Tuple[str, ...] = attrib(converter=tuplify_strs)
+    tokens: tuple[str, ...] = attrib(converter=tuplify_strs)
     type: str = attrib(validator=validator_nonempty_str)
 
 
@@ -133,7 +134,7 @@ def compute_scores(
     ref_docs: Sequence[Sequence[LabeledSequence]],
     *,
     count_fp_fn: bool = False,
-) -> Tuple[ClassificationScore, AccuracyScore]:
+) -> tuple[ClassificationScore, AccuracyScore]:
     accuracy = AccuracyScore()
     classification = ClassificationScore()
 
@@ -245,7 +246,7 @@ def score_label_sequences(
     encoding_name: str,
     *,
     repair: Optional[str],
-) -> Tuple[ClassificationScore, AccuracyScore]:
+) -> tuple[ClassificationScore, AccuracyScore]:
     """Return accuracy and classification scores for predicted and reference label sequences."""
     if len(pred_label_sequences) != len(ref_label_sequences):
         raise ValueError(

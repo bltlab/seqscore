@@ -1,6 +1,7 @@
 import json
 import sys
-from typing import Callable, Counter, Dict, List, Optional, Set, Tuple
+from collections import Counter
+from typing import Callable, Optional
 
 import click
 from tabulate import tabulate
@@ -35,7 +36,7 @@ def cli() -> None:  # pragma: no cover
 
 
 # Argument helpers for commands
-def _input_file_options() -> List[Callable]:
+def _input_file_options() -> list[Callable]:
     return [
         click.option("--file-encoding", default="UTF-8", show_default=True),
         click.option("--parse-comment-lines", is_flag=True),
@@ -110,7 +111,7 @@ def _quiet_option() -> Callable:
 @_labels_option()
 @_quiet_option()
 def validate(
-    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
+    file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     labels: str,
     file_encoding: str,
     *,
@@ -247,7 +248,7 @@ def process(
 ) -> None:
     keep_types_set = _parse_type_list(keep_types)
     remove_types_set = _parse_type_list(remove_types)
-    type_map_dict: Dict[str, List[str]] = _load_type_map(type_map, file_encoding)
+    type_map_dict: dict[str, list[str]] = _load_type_map(type_map, file_encoding)
 
     if keep_types_set and remove_types_set:
         raise ValueError("Cannot specify both keep-types and remove-types")
@@ -282,7 +283,7 @@ def process(
 )
 @_quiet_option()
 def count(
-    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
+    file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     output_file: str,
     labels: str,
@@ -303,7 +304,7 @@ def count(
             file=sys.stderr,
         )
 
-    counts: Counter[Tuple[str, Tuple[str, ...]]] = Counter()
+    counts: Counter[tuple[str, tuple[str, ...]]] = Counter()
     for each_file in file:
         docs = ingest_conll_file(
             each_file,
@@ -332,7 +333,7 @@ def count(
 @_labels_option_default_bio()
 @_quiet_option()
 def summarize(
-    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
+    file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     labels: str,
     *,
@@ -408,7 +409,7 @@ def summarize(
 )
 @_quiet_option()
 def score(
-    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
+    file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     labels: str,
     *,
@@ -454,7 +455,7 @@ def score(
 @_labels_option_default_bio()
 @click.argument("output_file")
 def extract_text(
-    file: List[str],  # Name is "file" to make sense on the command line, but it's a list
+    file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     labels: str,
     output_file: str,
@@ -493,7 +494,7 @@ def _normalize_tab(s: str) -> str:
         return s.replace(r"\t", "\t")
 
 
-def _parse_type_list(types: str) -> Set[str]:
+def _parse_type_list(types: str) -> set[str]:
     # Remove any whitespace we got in the types somehow
     split_types = [t.strip() for t in types.split(",") if t.strip()]
     # Check for outside type
@@ -507,7 +508,7 @@ def _parse_type_list(types: str) -> Set[str]:
 
 def _load_type_map(
     type_map_path: Optional[str], file_encoding: str
-) -> Dict[str, List[str]]:
+) -> dict[str, list[str]]:
     if not type_map_path:
         return {}
 

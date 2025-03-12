@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from click.testing import CliRunner
 
@@ -73,5 +73,5 @@ def test_multiple_files() -> None:
     assert actual_text == expected_text
 
 
-def _read_tokenized_lines(path: Union[str, Path]) -> List[List[str]]:
+def _read_tokenized_lines(path: Union[str, Path]) -> list[list[str]]:
     return [line.rstrip("\n").split(" ") for line in open(path, encoding="utf8")]

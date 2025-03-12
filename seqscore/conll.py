@@ -1,17 +1,13 @@
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
+from collections.abc import Iterable, Sequence
 from itertools import chain
 from statistics import mean, stdev
 from typing import (
     Any,
-    Counter,
     DefaultDict,
-    Iterable,
-    List,
     Optional,
-    Sequence,
     TextIO,
-    Tuple,
 )
 
 from attr import attrib, attrs
@@ -53,7 +49,7 @@ class _CoNLLToken:
     label: str = attrib()
     is_docstart: bool = attrib()
     line_num: int = attrib()
-    other_fields: Tuple[str, ...] = attrib()
+    other_fields: tuple[str, ...] = attrib()
 
     @classmethod
     def from_line(cls, line: str, line_num: int, source_name: str) -> "_CoNLLToken":
@@ -96,9 +92,9 @@ class CoNLLIngester:
         repair: Optional[str],
         *,
         quiet: bool = False,
-    ) -> Iterable[List[LabeledSequence]]:
+    ) -> Iterable[list[LabeledSequence]]:
         document_counter = 0
-        document: List[LabeledSequence] = []
+        document: list[LabeledSequence] = []
 
         for source_sequence, comment in self._parse_file(
             source, source_name, parse_comments=self.parse_comment_lines
@@ -203,9 +199,9 @@ class CoNLLIngester:
 
     def validate(
         self, source: TextIO, source_name: str
-    ) -> List[List[SequenceValidationResult]]:
-        all_results: List[List[SequenceValidationResult]] = []
-        document_results: List[SequenceValidationResult] = []
+    ) -> list[list[SequenceValidationResult]]:
+        all_results: list[list[SequenceValidationResult]] = []
+        document_results: list[SequenceValidationResult] = []
 
         for source_sequence, _ in self._parse_file(
             source, source_name, parse_comments=self.parse_comment_lines
@@ -240,8 +236,8 @@ class CoNLLIngester:
     @staticmethod
     def _decompose_sequence(
         source_sequence: Sequence[_CoNLLToken],
-    ) -> Tuple[
-        Tuple[str, ...], Tuple[str, ...], Tuple[int, ...], Tuple[Tuple[str, ...], ...]
+    ) -> tuple[
+        tuple[str, ...], tuple[str, ...], tuple[int, ...], tuple[tuple[str, ...], ...]
     ]:
         tokens = tuple(tok.text for tok in source_sequence)
         labels = tuple(tok.label for tok in source_sequence)
@@ -252,7 +248,7 @@ class CoNLLIngester:
     @classmethod
     def _parse_file(
         cls, input_file: TextIO, source_name: str, *, parse_comments: bool = False
-    ) -> Iterable[Tuple[Tuple[_CoNLLToken, ...], Optional[str]]]:
+    ) -> Iterable[tuple[tuple[_CoNLLToken, ...], Optional[str]]]:
         sequence: list = []
         comment: Optional[str] = None
         line_num = 0
@@ -324,7 +320,7 @@ def ingest_conll_file(
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
     quiet: bool = False,
-) -> List[List[LabeledSequence]]:
+) -> list[list[LabeledSequence]]:
     mention_encoding = get_encoding(mention_encoding_name)
 
     if repair and repair not in mention_encoding.supported_repair_methods():
@@ -537,7 +533,7 @@ def score_conll_files(
                 header = ["Count", "Error", "Type", "Tokens"]
 
                 # Combine counts across the two counters
-                combined_counts: Counter[Tuple[str, str, str]] = Counter()
+                combined_counts: Counter[tuple[str, str, str]] = Counter()
                 for counter, error_type in zip(
                     (class_scores.false_pos_examples, class_scores.false_neg_examples),
                     ("FP", "FN"),
@@ -605,7 +601,7 @@ def score_conll_files(
     if output_format == FORMAT_DELIM:
         if multi_files:
             # Compute summary statistics
-            type_scores: DefaultDict[str, List] = defaultdict(list)
+            type_scores: DefaultDict[str, list] = defaultdict(list)
             for class_score in all_class_scores:
                 for entity_type, entity_score in class_score.type_scores.items():
                     type_scores[entity_type].append(entity_score.f1)
@@ -706,7 +702,7 @@ def format_output_conlleval(
 def format_output_table(
     class_scores: ClassificationScore,
     full_precision: bool,
-) -> Tuple[List[str], List[List[Any]]]:
+) -> tuple[list[str], list[list[Any]]]:
     header = [
         "Type",
         "Precision",

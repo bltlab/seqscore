@@ -1,13 +1,10 @@
 from abc import abstractmethod
+from collections.abc import Sequence
 from functools import lru_cache
 from typing import (
     AbstractSet,
-    Dict,
-    List,
     Optional,
     Protocol,
-    Sequence,
-    Tuple,
 )
 
 from attr import Factory, attrib, attrs
@@ -63,11 +60,11 @@ class BMEOWDialect(BMESDialect):
 class Encoding(Protocol):
     dialect: EncodingDialect
 
-    valid_same_type_transitions: AbstractSet[Tuple[str, str]]
-    valid_different_type_transitions: AbstractSet[Tuple[str, str]]
+    valid_same_type_transitions: AbstractSet[tuple[str, str]]
+    valid_different_type_transitions: AbstractSet[tuple[str, str]]
 
     @lru_cache(maxsize=None)
-    def split_label(self, label: str) -> Tuple[str, Optional[str]]:
+    def split_label(self, label: str) -> tuple[str, Optional[str]]:
         splits = label.split(self.dialect.label_delim, maxsplit=1)
         if len(splits) == 1:
             if label != self.dialect.outside:
@@ -144,15 +141,15 @@ class Encoding(Protocol):
         return labels
 
     @abstractmethod
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str]) -> list[Mention]:
         """Decode a sequence of valid labels into mentions."""
         raise NotImplementedError
 
-    def decode_sequence(self, sequence: LabeledSequence) -> List[Mention]:
+    def decode_sequence(self, sequence: LabeledSequence) -> list[Mention]:
         """Decode a valid LabeledSequence into mentions."""
         return self.decode_labels(sequence.labels)
 
-    def supported_repair_methods(self) -> Tuple[str, ...]:
+    def supported_repair_methods(self) -> tuple[str, ...]:
         raise NotImplementedError
 
 
@@ -198,10 +195,10 @@ class IO(Encoding):
     def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
         raise NotImplementedError
 
-    def supported_repair_methods(self) -> Tuple[str, ...]:
+    def supported_repair_methods(self) -> tuple[str, ...]:
         return ()
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str]) -> list[Mention]:
         builder = _MentionBuilder()
 
         inside = self.dialect.inside
@@ -268,7 +265,7 @@ class IOB(Encoding):
     def is_valid_state(self, state: str) -> bool:
         return state in self._valid_states
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str]) -> list[Mention]:
         builder = _MentionBuilder()
 
         inside = self.dialect.inside
@@ -379,7 +376,7 @@ class IOB(Encoding):
 
         return output_labels
 
-    def supported_repair_methods(self) -> Tuple[str, ...]:
+    def supported_repair_methods(self) -> tuple[str, ...]:
         return (REPAIR_CONLL,)
 
 
@@ -433,7 +430,7 @@ class BIO(Encoding):
 
         return output_labels
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str]) -> list[Mention]:
         builder = _MentionBuilder()
 
         begin = self.dialect.begin
@@ -524,7 +521,7 @@ class BIO(Encoding):
         # Since BIO cannot have an illegal end-of sequence transition, no need to check
         return repaired_labels
 
-    def supported_repair_methods(self) -> Tuple[str, ...]:
+    def supported_repair_methods(self) -> tuple[str, ...]:
         return (REPAIR_CONLL, REPAIR_DISCARD)
 
 
@@ -572,10 +569,10 @@ class BIOES(Encoding):
     def repair_labels(self, labels: Sequence[str], method: str) -> Sequence[str]:
         raise NotImplementedError
 
-    def supported_repair_methods(self) -> Tuple[str, ...]:
+    def supported_repair_methods(self) -> tuple[str, ...]:
         return ()
 
-    def decode_labels(self, labels: Sequence[str]) -> List[Mention]:
+    def decode_labels(self, labels: Sequence[str]) -> list[Mention]:
         builder = _MentionBuilder()
 
         begin = self.dialect.begin
@@ -641,7 +638,7 @@ class BIOES(Encoding):
 
 
 # Declared mid-file so it can refer to classes in file
-_ENCODING_NAMES: Dict[str, Encoding] = {
+_ENCODING_NAMES: dict[str, Encoding] = {
     "BIO": BIO(BIOESDialect()),
     "BIOES": BIOES(BIOESDialect()),
     "BILOU": BIOES(BILOUDialect()),
@@ -667,7 +664,7 @@ def get_encoding(name: str) -> Encoding:
 class _MentionBuilder:
     start_idx: Optional[int] = attrib(default=None, init=False)
     entity_type: Optional[str] = attrib(default=None, init=False)
-    mentions: List[Mention] = attrib(default=Factory(list), init=False)
+    mentions: list[Mention] = attrib(default=Factory(list), init=False)
 
     def start_mention(self, start_idx: int, entity_type: str) -> None:
         # Check arguments

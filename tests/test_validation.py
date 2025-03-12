@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 import pytest
 from attr import attrs
 
@@ -9,9 +7,9 @@ from seqscore.validation import validate_labels
 
 @attrs(auto_attribs=True)
 class RepairTest:
-    original_labels: List[str]
+    original_labels: list[str]
     n_errors: int
-    repaired_labels: Dict[str, List[str]]
+    repaired_labels: dict[str, list[str]]
 
 
 BIO_REPAIRS = [

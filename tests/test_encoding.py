@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import pytest
 from attr import attrs
 
@@ -56,8 +54,8 @@ VALID_ENCODING_STATES = {
 @attrs(auto_attribs=True)
 class EdgeTestSentence:
     name: str
-    mentions: List[Mention]
-    encoding_labels: List[Tuple[List[str], List[str]]]
+    mentions: list[Mention]
+    encoding_labels: list[tuple[list[str], list[str]]]
 
 
 EDGE_TEST_SENTENCES = [

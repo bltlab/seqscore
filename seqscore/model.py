@@ -1,5 +1,6 @@
+from collections.abc import Iterable, Iterator, Sequence
 from itertools import repeat
-from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple, Union, overload
+from typing import Any, Optional, Union, overload
 
 from attr import Attribute, attrib, attrs
 
@@ -17,7 +18,7 @@ def _validator_nonnegative(_inst: Any, _attr: Attribute, value: Any) -> None:
 
 def _tuplify_mentions(
     mentions: Iterable["Mention"],
-) -> Tuple["Mention", ...]:
+) -> tuple["Mention", ...]:
     return tuple(mentions)
 
 
@@ -56,10 +57,10 @@ class SequenceProvenance:
 
 @attrs(frozen=True, slots=True)
 class LabeledSequence(Sequence[str]):
-    tokens: Tuple[str, ...] = attrib(converter=tuplify_strs)
-    labels: Tuple[str, ...] = attrib(converter=tuplify_strs)
-    mentions: Tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
-    other_fields: Optional[Tuple[Tuple[str, ...], ...]] = attrib(
+    tokens: tuple[str, ...] = attrib(converter=tuplify_strs)
+    labels: tuple[str, ...] = attrib(converter=tuplify_strs)
+    mentions: tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
+    other_fields: Optional[tuple[tuple[str, ...], ...]] = attrib(
         default=None, kw_only=True, converter=tuplify_optional_nested_strs
     )
     provenance: Optional[SequenceProvenance] = attrib(
@@ -104,10 +105,10 @@ class LabeledSequence(Sequence[str]):
         raise NotImplementedError
 
     @overload
-    def __getitem__(self, index: slice) -> Tuple[str, ...]:
+    def __getitem__(self, index: slice) -> tuple[str, ...]:
         raise NotImplementedError
 
-    def __getitem__(self, i: Union[int, slice]) -> Union[str, Tuple[str, ...]]:
+    def __getitem__(self, i: Union[int, slice]) -> Union[str, tuple[str, ...]]:
         return self.tokens[i]
 
     def __iter__(self) -> Iterator[str]:
@@ -122,19 +123,19 @@ class LabeledSequence(Sequence[str]):
             "/".join((token, label)) for token, label in zip(self.tokens, self.labels)
         )
 
-    def tokens_with_labels(self) -> Tuple[Tuple[str, str], ...]:
+    def tokens_with_labels(self) -> tuple[tuple[str, str], ...]:
         return tuple(zip(self.tokens, self.labels))
 
     def tokens_with_other_fields(
         self,
-    ) -> Tuple[Tuple[str, Optional[Tuple[str, ...]]], ...]:
+    ) -> tuple[tuple[str, Optional[tuple[str, ...]]], ...]:
         if self.other_fields:
             return tuple(zip(self.tokens, self.other_fields))
         else:
             return tuple(zip(self.tokens, repeat(None)))
 
-    def span_tokens(self, span: Span) -> Tuple[str, ...]:
+    def span_tokens(self, span: Span) -> tuple[str, ...]:
         return self.tokens[span.start : span.end]
 
-    def mention_tokens(self, mention: Mention) -> Tuple[str, ...]:
+    def mention_tokens(self, mention: Mention) -> tuple[str, ...]:
         return self.span_tokens(mention.span)

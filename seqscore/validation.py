@@ -1,4 +1,5 @@
-from typing import Any, Iterable, List, Optional, Sequence, Tuple
+from collections.abc import Iterable, Sequence
+from typing import Any, Optional
 
 from attr import attrib, attrs
 
@@ -34,7 +35,7 @@ class InvalidLabelError(EncodingError):
         self.label: str = label
 
 
-def tuplify_errors(errors: Iterable[ValidationError]) -> Tuple[ValidationError, ...]:
+def tuplify_errors(errors: Iterable[ValidationError]) -> tuple[ValidationError, ...]:
     return tuple(errors)
 
 
@@ -42,14 +43,14 @@ def tuplify_errors(errors: Iterable[ValidationError]) -> Tuple[ValidationError, 
 class SequenceValidationResult:
     errors: Sequence[ValidationError] = attrib(converter=tuplify_errors)
     n_tokens: int = attrib()
-    repaired_labels: Optional[Tuple[str, ...]] = attrib(
+    repaired_labels: Optional[tuple[str, ...]] = attrib(
         converter=tuplify_strs, default=()
     )
 
     def is_valid(self) -> bool:
         return not self.errors
 
-    def invalid_state_errors(self) -> List[InvalidStateError]:
+    def invalid_state_errors(self) -> list[InvalidStateError]:
         return [error for error in self.errors if isinstance(error, InvalidStateError)]
 
     def __len__(self) -> int:
@@ -80,7 +81,7 @@ def validate_labels(
         "Line numbers and labels must be the same length"
     )
 
-    errors: List[ValidationError] = []
+    errors: list[ValidationError] = []
     outside = encoding.dialect.outside
 
     # Treat sequence as if preceded by outside
