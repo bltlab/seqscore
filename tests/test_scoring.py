@@ -45,8 +45,14 @@ def test_score_sentence_labels_invalid() -> None:
 
 
 def test_score_sentence_mentions_correct() -> None:
-    ref_mentions = [Mention(Span(0, 2), "PER"), Mention(Span(4, 5), "ORG")]
-    pred_mentions = [Mention(Span(0, 2), "PER"), Mention(Span(4, 5), "ORG")]
+    ref_mentions = [
+        Mention(span=Span(start=0, end=2), type="PER"),
+        Mention(span=Span(start=4, end=5), type="ORG"),
+    ]
+    pred_mentions = [
+        Mention(span=Span(start=0, end=2), type="PER"),
+        Mention(span=Span(start=4, end=5), type="ORG"),
+    ]
     score = ClassificationScore()
     score_sequence_mentions(pred_mentions, ref_mentions, score)
     assert score.true_pos == 2
@@ -65,18 +71,18 @@ def test_score_sentence_mentions_correct() -> None:
 
 def test_score_sentence_mentions_incorrect1() -> None:
     ref_mentions = [
-        Mention(Span(0, 2), "LOC"),
-        Mention(Span(4, 5), "PER"),
-        Mention(Span(7, 8), "MISC"),
-        Mention(Span(9, 11), "MISC"),
+        Mention(span=Span(start=0, end=2), type="LOC"),
+        Mention(span=Span(start=4, end=5), type="PER"),
+        Mention(span=Span(start=7, end=8), type="MISC"),
+        Mention(span=Span(start=9, end=11), type="MISC"),
     ]
     pred_mentions = [
-        Mention(Span(0, 2), "ORG"),
-        Mention(Span(4, 5), "PER"),
+        Mention(span=Span(start=0, end=2), type="ORG"),
+        Mention(span=Span(start=4, end=5), type="PER"),
         Mention(
-            Span(6, 7), "SPURIOUS"
+            span=Span(start=6, end=7), type="SPURIOUS"
         ),  # Note that this type isn't even in the reference
-        Mention(Span(9, 11), "MISC"),
+        Mention(span=Span(start=9, end=11), type="MISC"),
     ]
     score = ClassificationScore()
     score_sequence_mentions(pred_mentions, ref_mentions, score)
@@ -195,10 +201,14 @@ def test_token_count_error() -> None:
     ref_labels = ["O", "B-ORG", "I-ORG", "O"]
     pred_labels = ["O", "B-ORG", "I-ORG", "O", "O"]
     ref_sequence = LabeledSequence(
-        ["a", "b", "c", "d"], ref_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "b", "c", "d"],
+        labels=ref_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     pred_sequence = LabeledSequence(
-        ["a", "b", "c", "d", "e"], pred_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "b", "c", "d", "e"],
+        labels=pred_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     with pytest.raises(TokenCountError):
         compute_scores([[pred_sequence]], [[ref_sequence]])
@@ -206,7 +216,7 @@ def test_token_count_error() -> None:
 
 def test_provenance_none_raises_error() -> None:
     labels = ["O", "B-ORG"]
-    sequence = LabeledSequence(["a", "b"], labels, provenance=None)
+    sequence = LabeledSequence(tokens=["a", "b"], labels=labels, provenance=None)
     with pytest.raises(ValueError):
         TokenCountError.from_predicted_sequence(2, sequence)
 
@@ -215,10 +225,14 @@ def test_differing_num_docs() -> None:
     ref_labels = ["O", "B-ORG"]
     pred_labels = ["O", "B-LOC"]
     ref_sequence = LabeledSequence(
-        ["a", "b"], ref_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "b"],
+        labels=ref_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     pred_sequence = LabeledSequence(
-        ["a", "b"], pred_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "b"],
+        labels=pred_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     with pytest.raises(ValueError):
         compute_scores([[pred_sequence]], [[ref_sequence], [ref_sequence]])
@@ -228,10 +242,14 @@ def test_differing_doc_length() -> None:
     ref_labels = ["O", "B-ORG"]
     pred_labels = ["O", "B-LOC"]
     ref_sequence = LabeledSequence(
-        ["a", "b"], ref_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "b"],
+        labels=ref_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     pred_sequence = LabeledSequence(
-        ["a", "b"], pred_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "b"],
+        labels=pred_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     with pytest.raises(ValueError):
         compute_scores([[pred_sequence]], [[ref_sequence, ref_sequence]])
@@ -241,10 +259,14 @@ def test_differing_pred_and_ref_tokens() -> None:
     ref_labels = ["O", "B-ORG"]
     pred_labels = ["O", "B-LOC"]
     ref_sequence = LabeledSequence(
-        ["a", "b"], ref_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "b"],
+        labels=ref_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     pred_sequence = LabeledSequence(
-        ["a", "c"], pred_labels, provenance=SequenceProvenance(0, "test")
+        tokens=["a", "c"],
+        labels=pred_labels,
+        provenance=SequenceProvenance(starting_line=0, source="test"),
     )
     with pytest.raises(ValueError):
         compute_scores([[pred_sequence]], [[ref_sequence]])

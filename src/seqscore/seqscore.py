@@ -20,6 +20,7 @@ from seqscore_lib.encoding import (
     SUPPORTED_ENCODINGS,
     SUPPORTED_REPAIR_METHODS,
 )
+from seqscore_lib.model import LabeledSequence
 from seqscore_lib.processing import modify_types
 from tabulate import tabulate
 
@@ -482,7 +483,10 @@ def extract_text(
             else:
                 first_doc = False
             for sentence in doc:
-                print(" ".join(sentence), file=output)
+                if isinstance(sentence, LabeledSequence):
+                    print(" ".join(sentence.tokens), file=output)
+                else:
+                    print(" ".join(sentence), file=output)
 
 
 def _normalize_tab(s: str) -> str:

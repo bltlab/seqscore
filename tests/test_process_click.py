@@ -38,6 +38,7 @@ def test_keep_types1() -> None:
             output_path,
         ],
     )
+    print(result)
     assert result.exit_code == 0
     # Output will not have LOC since ORG was kept
     assert file_fields_match(TEST_FILES_DIR / "minimal_no_LOC.bio", output_path)
