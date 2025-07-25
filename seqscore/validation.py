@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from attr import attrib, attrs
+from pydantic import BaseModel, BeforeValidator
 
 from seqscore.encoding import _ENCODING_NAMES, Encoding, EncodingError
 from seqscore.util import tuplify_strs
@@ -10,15 +10,14 @@ from seqscore.util import tuplify_strs
 VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(_ENCODING_NAMES)
 
 
-@attrs
-class ValidationError:
-    msg: str = attrib()
-    label: str = attrib()
-    type: str = attrib()
-    state: str = attrib()
-    token: Optional[str] = attrib(default=None)
-    line_num: Optional[int] = attrib(default=None)
-    source_name: Optional[str] = attrib(default=None)
+class ValidationError(BaseModel):
+    msg: str
+    label: str
+    type: str
+    state: str
+    token: Optional[str] = None
+    line_num: Optional[int] = None
+    source_name: Optional[str] = None
 
 
 class InvalidStateError(ValidationError):
@@ -39,13 +38,12 @@ def tuplify_errors(errors: Iterable[ValidationError]) -> tuple[ValidationError, 
     return tuple(errors)
 
 
-@attrs
-class SequenceValidationResult:
-    errors: Sequence[ValidationError] = attrib(converter=tuplify_errors)
-    n_tokens: int = attrib()
-    repaired_labels: Optional[tuple[str, ...]] = attrib(
-        converter=tuplify_strs, default=()
-    )
+class SequenceValidationResult(BaseModel):
+    errors: Annotated[Sequence[ValidationError], BeforeValidator(tuplify_errors)]
+    n_tokens: int
+    repaired_labels: Annotated[
+        Optional[tuple[str, ...]], BeforeValidator(tuplify_strs)
+    ] = ()
 
     def is_valid(self) -> bool:
         return not self.errors
@@ -57,12 +55,11 @@ class SequenceValidationResult:
         return len(self.errors)
 
 
-@attrs(frozen=True)
-class ValidationResult:
-    errors: Sequence[ValidationError] = attrib(converter=tuplify_errors)
-    n_tokens: int = attrib()
-    n_sequences: int = attrib()
-    n_docs: int = attrib()
+class ValidationResult(BaseModel):
+    errors: Annotated[Sequence[ValidationError], BeforeValidator(tuplify_errors)]
+    n_tokens: int
+    n_sequences: int
+    n_docs: int
 
 
 def validate_labels(
@@ -120,7 +117,13 @@ def validate_labels(
 
             errors.append(
                 InvalidStateError(
-                    msg, label, entity_type, state, token, line_num, source_name
+                    msg=msg,
+                    label=label,
+                    type=entity_type if entity_type else "",
+                    state=state,
+                    token=token,
+                    line_num=line_num,
+                    source_name=source_name,
                 )
             )
 
@@ -145,7 +148,13 @@ def validate_labels(
 
             errors.append(
                 InvalidTransitionError(
-                    msg, label, entity_type, state, token, line_num, source_name
+                    msg=msg,
+                    label=label,
+                    type=entity_type if entity_type else "",
+                    state=state,
+                    token=token,
+                    line_num=line_num,
+                    source_name=source_name,
                 )
             )
         prev_label, prev_state, prev_entity_type = (
@@ -175,12 +184,19 @@ def validate_labels(
 
         errors.append(
             InvalidTransitionError(
-                msg, prev_label, prev_entity_type, prev_state, token, line_num
+                msg=msg,
+                label=prev_label,
+                type=prev_entity_type,
+                state=prev_state,
+                token=token,
+                line_num=line_num,
             )
         )
 
     if errors and repair:
         repaired_labels = encoding.repair_labels(labels, repair)
-        return SequenceValidationResult(errors, len(labels), repaired_labels)
+        return SequenceValidationResult(
+            errors=errors, n_tokens=len(labels), repaired_labels=tuple(repaired_labels)
+        )
     else:
-        return SequenceValidationResult(errors, len(labels))
+        return SequenceValidationResult(errors=errors, n_tokens=len(labels))

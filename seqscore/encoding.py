@@ -1,13 +1,9 @@
 from abc import abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
-from typing import (
-    AbstractSet,
-    Optional,
-    Protocol,
-)
+from typing import AbstractSet, Optional, Protocol, runtime_checkable
 
-from attr import Factory, attrib, attrs
+from pydantic import BaseModel
 
 from seqscore.model import LabeledSequence, Mention, Span
 
@@ -19,6 +15,7 @@ SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
 DEFAULT_OUTSIDE = "O"
 
 
+@runtime_checkable
 class EncodingDialect(Protocol):
     label_delim: str
     outside: str
@@ -57,6 +54,7 @@ class BMEOWDialect(BMESDialect):
         self.single = "W"
 
 
+@runtime_checkable
 class Encoding(Protocol):
     dialect: EncodingDialect
 
@@ -660,11 +658,10 @@ def get_encoding(name: str) -> Encoding:
         raise ValueError(f"Unknown encoder {repr(name)}")
 
 
-@attrs
-class _MentionBuilder:
-    start_idx: Optional[int] = attrib(default=None, init=False)
-    entity_type: Optional[str] = attrib(default=None, init=False)
-    mentions: list[Mention] = attrib(default=Factory(list), init=False)
+class _MentionBuilder(BaseModel):
+    start_idx: Optional[int] = None
+    entity_type: Optional[str] = None
+    mentions: list[Mention] = []
 
     def start_mention(self, start_idx: int, entity_type: str) -> None:
         # Check arguments
@@ -690,7 +687,9 @@ class _MentionBuilder:
         assert self.start_idx is not None, "No mention start index"
         assert self.entity_type is not None, "No mention entity type"
 
-        mention = Mention(Span(self.start_idx, end_idx), self.entity_type)
+        mention = Mention(
+            span=Span(start=self.start_idx, end=end_idx), type=self.entity_type
+        )
         self.mentions.append(mention)
 
         self.start_idx = None

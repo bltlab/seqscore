@@ -10,7 +10,7 @@ from typing import (
     TextIO,
 )
 
-from attr import attrib, attrs
+from pydantic import BaseModel
 from tabulate import tabulate
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
@@ -43,13 +43,12 @@ class CoNLLFormatError(Exception):
     pass
 
 
-@attrs(frozen=True)
-class _CoNLLToken:
-    text: str = attrib()
-    label: str = attrib()
-    is_docstart: bool = attrib()
-    line_num: int = attrib()
-    other_fields: tuple[str, ...] = attrib()
+class _CoNLLToken(BaseModel, frozen=True):
+    text: str
+    label: str
+    is_docstart: bool
+    line_num: int
+    other_fields: tuple[str, ...]
 
     @classmethod
     def from_line(cls, line: str, line_num: int, source_name: str) -> "_CoNLLToken":
@@ -76,14 +75,19 @@ class _CoNLLToken:
         label = splits[-1]
         other_fields = tuple(splits[1:-1])
         is_docstart = text == DOCSTART
-        return cls(text, label, is_docstart, line_num, other_fields)
+        return cls(
+            text=text,
+            label=label,
+            is_docstart=is_docstart,
+            line_num=line_num,
+            other_fields=other_fields,
+        )
 
 
-@attrs(frozen=True)
-class CoNLLIngester:
-    encoding: Encoding = attrib()
-    parse_comment_lines: bool = attrib(default=False, kw_only=True)
-    ignore_document_boundaries: bool = attrib(default=True, kw_only=True)
+class CoNLLIngester(BaseModel, arbitrary_types_allowed=True, frozen=True):
+    encoding: Encoding
+    parse_comment_lines: bool = False
+    ignore_document_boundaries: bool = True
 
     def ingest(
         self,
@@ -183,11 +187,13 @@ class CoNLLIngester:
                 ) from e
 
             sequences = LabeledSequence(
-                tokens,
-                labels,
-                mentions,
+                tokens=tokens,
+                labels=labels,
+                mentions=tuple(mentions),
                 other_fields=other_fields,
-                provenance=SequenceProvenance(line_nums[0], source_name),
+                provenance=SequenceProvenance(
+                    starting_line=line_nums[0], source=source_name
+                ),
                 comment=comment,
             )
             document.append(sequences)
@@ -197,7 +203,7 @@ class CoNLLIngester:
             document_counter += 1
             yield document
 
-    def validate(
+    def conll_validate(
         self, source: TextIO, source_name: str
     ) -> list[list[SequenceValidationResult]]:
         all_results: list[list[SequenceValidationResult]] = []
@@ -330,7 +336,7 @@ def ingest_conll_file(
         )
 
     ingester = CoNLLIngester(
-        mention_encoding,
+        encoding=mention_encoding,
         parse_comment_lines=parse_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
@@ -349,12 +355,12 @@ def validate_conll_file(
 ) -> ValidationResult:
     encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
-        encoding,
+        encoding=encoding,
         parse_comment_lines=parse_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
     with open(input_path, encoding=file_encoding) as input_file:
-        results = ingester.validate(input_file, input_path)
+        results = ingester.conll_validate(input_file, input_path)
 
     n_docs = len(results)
     n_sequences = sum(len(doc_results) for doc_results in results)
@@ -365,7 +371,9 @@ def validate_conll_file(
             result.errors for doc_results in results for result in doc_results
         )
     )
-    return ValidationResult(errors, n_tokens, n_sequences, n_docs)
+    return ValidationResult(
+        errors=errors, n_tokens=n_tokens, n_sequences=n_sequences, n_docs=n_docs
+    )
 
 
 def repair_conll_file(

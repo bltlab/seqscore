@@ -23,7 +23,7 @@ def setup_package() -> None:
         description="SeqScore: Scoring for named entity recognition and other sequence labeling tasks",
         long_description=long_description,
         install_requires=[
-            "attrs>=19.2.0",
+            "pydantic>=2.11.7",
             "click",
             "tabulate",
         ],

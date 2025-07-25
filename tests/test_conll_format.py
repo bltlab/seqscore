@@ -9,7 +9,7 @@ from seqscore.validation import InvalidLabelError
 
 def test_parse_comments_true() -> None:
     mention_encoding = get_encoding("BIO")
-    ingester = CoNLLIngester(mention_encoding, parse_comment_lines=True)
+    ingester = CoNLLIngester(encoding=mention_encoding, parse_comment_lines=True)
     comments_path = Path("tests") / "test_files" / "minimal_comments.bio"
     with comments_path.open(encoding="utf8") as file:
         documents = list(ingester.ingest(file, "test", REPAIR_NONE))
@@ -32,7 +32,7 @@ def test_parse_comments_true() -> None:
 
 def test_parse_comments_false() -> None:
     mention_encoding = get_encoding("BIO")
-    ingester = CoNLLIngester(mention_encoding)
+    ingester = CoNLLIngester(encoding=mention_encoding)
 
     comments_path = Path("tests") / "test_files" / "minimal_comments_1.bio"
     with comments_path.open(encoding="utf8") as file:

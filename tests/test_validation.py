@@ -1,12 +1,11 @@
 import pytest
-from attr import attrs
+from pydantic import BaseModel
 
 from seqscore.encoding import REPAIR_NONE, EncodingError, get_encoding
 from seqscore.validation import validate_labels
 
 
-@attrs(auto_attribs=True)
-class RepairTest:
+class RepairTest(BaseModel):
     original_labels: list[str]
     n_errors: int
     repaired_labels: dict[str, list[str]]
@@ -14,39 +13,51 @@ class RepairTest:
 
 BIO_REPAIRS = [
     RepairTest(
-        ["I-PER"],
-        1,
-        {"conlleval": ["B-PER"], "discard": ["O"]},
+        original_labels=["I-PER"],
+        n_errors=1,
+        repaired_labels={"conlleval": ["B-PER"], "discard": ["O"]},
     ),
     RepairTest(
-        ["I-PER", "I-PER"],
-        1,
-        {"conlleval": ["B-PER", "I-PER"], "discard": ["O", "O"]},
+        original_labels=["I-PER", "I-PER"],
+        n_errors=1,
+        repaired_labels={"conlleval": ["B-PER", "I-PER"], "discard": ["O", "O"]},
     ),
     RepairTest(
-        ["O", "I-PER", "I-PER"],
-        1,
-        {"conlleval": ["O", "B-PER", "I-PER"], "discard": ["O", "O", "O"]},
+        original_labels=["O", "I-PER", "I-PER"],
+        n_errors=1,
+        repaired_labels={
+            "conlleval": ["O", "B-PER", "I-PER"],
+            "discard": ["O", "O", "O"],
+        },
     ),
     RepairTest(
-        ["B-ORG", "I-PER", "I-PER"],
-        1,
-        {"conlleval": ["B-ORG", "B-PER", "I-PER"], "discard": ["B-ORG", "O", "O"]},
+        original_labels=["B-ORG", "I-PER", "I-PER"],
+        n_errors=1,
+        repaired_labels={
+            "conlleval": ["B-ORG", "B-PER", "I-PER"],
+            "discard": ["B-ORG", "O", "O"],
+        },
     ),
     RepairTest(
-        ["I-ORG", "I-PER", "I-PER"],
-        2,
-        {"conlleval": ["B-ORG", "B-PER", "I-PER"], "discard": ["O", "O", "O"]},
+        original_labels=["I-ORG", "I-PER", "I-PER"],
+        n_errors=2,
+        repaired_labels={
+            "conlleval": ["B-ORG", "B-PER", "I-PER"],
+            "discard": ["O", "O", "O"],
+        },
     ),
     RepairTest(
-        ["O", "I-ORG", "I-PER", "I-ORG"],
-        3,
-        {"conlleval": ["O", "B-ORG", "B-PER", "B-ORG"], "discard": ["O", "O", "O", "O"]},
+        original_labels=["O", "I-ORG", "I-PER", "I-ORG"],
+        n_errors=3,
+        repaired_labels={
+            "conlleval": ["O", "B-ORG", "B-PER", "B-ORG"],
+            "discard": ["O", "O", "O", "O"],
+        },
     ),
     RepairTest(
-        ["O", "B-ORG", "B-PER", "I-PER"],
-        0,
-        {
+        original_labels=["O", "B-ORG", "B-PER", "I-PER"],
+        n_errors=0,
+        repaired_labels={
             "conlleval": ["O", "B-ORG", "B-PER", "I-PER"],
             "discard": ["O", "B-ORG", "B-PER", "I-PER"],
         },
@@ -54,46 +65,46 @@ BIO_REPAIRS = [
 ]
 IOB_REPAIRS = [
     RepairTest(
-        ["B-PER"],
-        1,
-        {"conlleval": ["I-PER"]},
+        original_labels=["B-PER"],
+        n_errors=1,
+        repaired_labels={"conlleval": ["I-PER"]},
     ),
     RepairTest(
-        ["B-PER", "I-PER"],
-        1,
-        {"conlleval": ["I-PER", "I-PER"]},
+        original_labels=["B-PER", "I-PER"],
+        n_errors=1,
+        repaired_labels={"conlleval": ["I-PER", "I-PER"]},
     ),
     RepairTest(
-        ["O", "B-PER", "I-PER"],
-        1,
-        {"conlleval": ["O", "I-PER", "I-PER"]},
+        original_labels=["O", "B-PER", "I-PER"],
+        n_errors=1,
+        repaired_labels={"conlleval": ["O", "I-PER", "I-PER"]},
     ),
     RepairTest(
-        ["B-ORG", "B-PER", "I-PER"],
-        2,
-        {"conlleval": ["I-ORG", "I-PER", "I-PER"]},
+        original_labels=["B-ORG", "B-PER", "I-PER"],
+        n_errors=2,
+        repaired_labels={"conlleval": ["I-ORG", "I-PER", "I-PER"]},
     ),
     RepairTest(
-        ["I-ORG", "B-PER", "I-PER"],
-        1,
-        {"conlleval": ["I-ORG", "I-PER", "I-PER"]},
+        original_labels=["I-ORG", "B-PER", "I-PER"],
+        n_errors=1,
+        repaired_labels={"conlleval": ["I-ORG", "I-PER", "I-PER"]},
     ),
     RepairTest(
-        ["O", "I-ORG", "B-PER", "I-ORG"],
-        1,
-        {"conlleval": ["O", "I-ORG", "I-PER", "I-ORG"]},
+        original_labels=["O", "I-ORG", "B-PER", "I-ORG"],
+        n_errors=1,
+        repaired_labels={"conlleval": ["O", "I-ORG", "I-PER", "I-ORG"]},
     ),
     RepairTest(
-        ["O", "B-ORG", "B-PER", "I-PER"],
-        2,
-        {
+        original_labels=["O", "B-ORG", "B-PER", "I-PER"],
+        n_errors=2,
+        repaired_labels={
             "conlleval": ["O", "I-ORG", "I-PER", "I-PER"],
         },
     ),
     RepairTest(
-        ["O", "B-ORG", "B-ORG", "I-PER"],
-        1,
-        {
+        original_labels=["O", "B-ORG", "B-ORG", "I-PER"],
+        n_errors=1,
+        repaired_labels={
             "conlleval": ["O", "I-ORG", "B-ORG", "I-PER"],
         },
     ),

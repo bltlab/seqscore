@@ -1,5 +1,5 @@
 import pytest
-from attr import attrs
+from pydantic import BaseModel
 
 from seqscore.encoding import (
     _ENCODING_NAMES,
@@ -27,16 +27,16 @@ FULL_SENTENCE_LABELS = {
     "BMEOW": ["W-PER", "O", "B-ORG", "E-ORG", "B-ORG", "M-ORG", "E-ORG", "W-LOC"],
 }
 FULL_SENTENCE_MENTS = [
-    Mention(Span(0, 1), "PER"),
-    Mention(Span(2, 4), "ORG"),
-    Mention(Span(4, 7), "ORG"),
-    Mention(Span(7, 8), "LOC"),
+    Mention(span=Span(start=0, end=1), type="PER"),
+    Mention(span=Span(start=2, end=4), type="ORG"),
+    Mention(span=Span(start=4, end=7), type="ORG"),
+    Mention(span=Span(start=7, end=8), type="LOC"),
 ]
 # IO cannot faithfully encode this sentence, so there is just one org
 FULL_SENTENCE_MENTS_IO = [
-    Mention(Span(0, 1), "PER"),
-    Mention(Span(2, 7), "ORG"),
-    Mention(Span(7, 8), "LOC"),
+    Mention(span=Span(start=0, end=1), type="PER"),
+    Mention(span=Span(start=2, end=7), type="ORG"),
+    Mention(span=Span(start=7, end=8), type="LOC"),
 ]
 # Map to sets of encodings that allow that state
 VALID_ENCODING_STATES = {
@@ -51,8 +51,7 @@ VALID_ENCODING_STATES = {
 }
 
 
-@attrs(auto_attribs=True)
-class EdgeTestSentence:
+class EdgeTestSentence(BaseModel):
     name: str
     mentions: list[Mention]
     encoding_labels: list[tuple[list[str], list[str]]]
@@ -60,9 +59,9 @@ class EdgeTestSentence:
 
 EDGE_TEST_SENTENCES = [
     EdgeTestSentence(
-        "One token, one mention",
-        [Mention(Span(0, 1), "PER")],
-        [
+        name="One token, one mention",
+        mentions=[Mention(span=Span(start=0, end=1), type="PER")],
+        encoding_labels=[
             (["BIO"], ["B-PER"]),
             (["BIOES", "BMES"], ["S-PER"]),
             (["BILOU"], ["U-PER"]),
@@ -71,9 +70,9 @@ EDGE_TEST_SENTENCES = [
         ],
     ),
     EdgeTestSentence(
-        "Two tokens, one mention covering them all",
-        [Mention(Span(0, 2), "PER")],
-        [
+        name="Two tokens, one mention covering them all",
+        mentions=[Mention(span=Span(start=0, end=2), type="PER")],
+        encoding_labels=[
             (["BIO"], ["B-PER", "I-PER"]),
             (["BIOES", "BMES", "BMEOW"], ["B-PER", "E-PER"]),
             (["BILOU"], ["B-PER", "L-PER"]),
@@ -81,9 +80,9 @@ EDGE_TEST_SENTENCES = [
         ],
     ),
     EdgeTestSentence(
-        "Three tokens, one mention covering them all",
-        [Mention(Span(0, 3), "PER")],
-        [
+        name="Three tokens, one mention covering them all",
+        mentions=[Mention(span=Span(start=0, end=3), type="PER")],
+        encoding_labels=[
             (["BIO"], ["B-PER", "I-PER", "I-PER"]),
             (["BIOES"], ["B-PER", "I-PER", "E-PER"]),
             (["BMES", "BMEOW"], ["B-PER", "M-PER", "E-PER"]),
@@ -92,9 +91,12 @@ EDGE_TEST_SENTENCES = [
         ],
     ),
     EdgeTestSentence(
-        "Adjacent same-type one-token mentions",
-        [Mention(Span(0, 1), "PER"), Mention(Span(1, 2), "PER")],
-        [
+        name="Adjacent same-type one-token mentions",
+        mentions=[
+            Mention(span=Span(start=0, end=1), type="PER"),
+            Mention(span=Span(start=1, end=2), type="PER"),
+        ],
+        encoding_labels=[
             (["BIO"], ["B-PER", "B-PER"]),
             (["BIOES", "BMES"], ["S-PER", "S-PER"]),
             (["BILOU"], ["U-PER", "U-PER"]),
@@ -104,9 +106,12 @@ EDGE_TEST_SENTENCES = [
         ],
     ),
     EdgeTestSentence(
-        "Adjacent different-type one-token mentions",
-        [Mention(Span(0, 1), "PER"), Mention(Span(1, 2), "ORG")],
-        [
+        name="Adjacent different-type one-token mentions",
+        mentions=[
+            Mention(span=Span(start=0, end=1), type="PER"),
+            Mention(span=Span(start=1, end=2), type="ORG"),
+        ],
+        encoding_labels=[
             (["BIO"], ["B-PER", "B-ORG"]),
             (["BIOES", "BMES"], ["S-PER", "S-ORG"]),
             (["BILOU"], ["U-PER", "U-ORG"]),
@@ -115,9 +120,12 @@ EDGE_TEST_SENTENCES = [
         ],
     ),
     EdgeTestSentence(
-        "Adjacent same-type two-token mentions",
-        [Mention(Span(0, 2), "PER"), Mention(Span(2, 4), "PER")],
-        [
+        name="Adjacent same-type two-token mentions",
+        mentions=[
+            Mention(span=Span(start=0, end=2), type="PER"),
+            Mention(span=Span(start=2, end=4), type="PER"),
+        ],
+        encoding_labels=[
             (["BIO"], ["B-PER", "I-PER", "B-PER", "I-PER"]),
             (["BIOES", "BMES", "BMEOW"], ["B-PER", "E-PER", "B-PER", "E-PER"]),
             (["BILOU"], ["B-PER", "L-PER", "B-PER", "L-PER"]),
@@ -126,9 +134,12 @@ EDGE_TEST_SENTENCES = [
         ],
     ),
     EdgeTestSentence(
-        "Adjacent different-type two-token mentions",
-        [Mention(Span(0, 2), "PER"), Mention(Span(2, 4), "ORG")],
-        [
+        name="Adjacent different-type two-token mentions",
+        mentions=[
+            Mention(span=Span(start=0, end=2), type="PER"),
+            Mention(span=Span(start=2, end=4), type="ORG"),
+        ],
+        encoding_labels=[
             (["BIO"], ["B-PER", "I-PER", "B-ORG", "I-ORG"]),
             (["BIOES", "BMES", "BMEOW"], ["B-PER", "E-PER", "B-ORG", "E-ORG"]),
             (["BILOU"], ["B-PER", "L-PER", "B-ORG", "L-ORG"]),
@@ -159,7 +170,11 @@ def test_basic_encoding() -> None:
         assert encoding.encode_mentions(mentions, len(labels)) == labels
         # Also test encoding sentence object, intentionally putting no mentions in the
         # sentence labels to make sure encoding using the mentions, not the labels
-        sentence = LabeledSequence(["a"] * len(labels), ["O"] * len(labels), mentions)
+        sentence = LabeledSequence(
+            tokens=["a"] * len(labels),
+            labels=["O"] * len(labels),
+            mentions=mentions,
+        )
         assert encoding.encode_sequence(sentence) == labels
 
 
@@ -267,21 +282,21 @@ def test_labeled_sequence() -> None:
     # Test length mismatch
     with pytest.raises(ValueError):
         LabeledSequence(
-            ["a"] * 10,
-            ["O"] * 9,
+            tokens=["a"] * 10,
+            labels=["O"] * 9,
         )
 
 
 def test_decode_bio_invalid_continue() -> None:
     decoder = get_encoding("BIO")
-    sent1 = LabeledSequence(("a", "b"), ("B-PER", "I-LOC"))
+    sent1 = LabeledSequence(tokens=("a", "b"), labels=("B-PER", "I-LOC"))
     with pytest.raises(AssertionError):
         assert decoder.decode_sequence(sent1)
 
 
 def test_decode_iob_invalid_begin() -> None:
     decoder = get_encoding("IOB")
-    sent = LabeledSequence(("a", "b"), ("I-PER", "B-LOC"))
+    sent = LabeledSequence(tokens=("a", "b"), labels=("I-PER", "B-LOC"))
     with pytest.raises(AssertionError):
         assert decoder.decode_sequence(sent)
 
@@ -289,8 +304,8 @@ def test_decode_iob_invalid_begin() -> None:
 def test_decode_bioes_invalid_start() -> None:
     decoder = get_encoding("BIOES")
     sents = [
-        LabeledSequence(("a",), ("I-PER",)),
-        LabeledSequence(("a",), ("E-PER",)),
+        LabeledSequence(tokens=("a",), labels=("I-PER",)),
+        LabeledSequence(tokens=("a",), labels=("E-PER",)),
     ]
     for sent in sents:
         with pytest.raises(AssertionError):
@@ -301,14 +316,14 @@ def test_decode_bioes_invalid_end() -> None:
     decoder = get_encoding("BIOES")
     sents = [
         # Single-token mentions must start (and end) with S
-        LabeledSequence(("a", "b"), ("B-PER", "S-PER")),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "S-PER")),
         # Multi-token mentions must end in E
-        LabeledSequence(("a",), ("B-PER",)),
-        LabeledSequence(("a", "b"), ("B-PER", "I-PER")),
+        LabeledSequence(tokens=("a",), labels=("B-PER",)),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "I-PER")),
         # Ends with wrong type
-        LabeledSequence(("a", "b", "c"), ("B-PER", "I-PER", "E-ORG")),
+        LabeledSequence(tokens=("a", "b", "c"), labels=("B-PER", "I-PER", "E-ORG")),
         # Multi-token mentions cannot end in S
-        LabeledSequence(("a", "b", "c"), ("B-PER", "I-PER", "S-PER")),
+        LabeledSequence(tokens=("a", "b", "c"), labels=("B-PER", "I-PER", "S-PER")),
     ]
     for sent in sents:
         with pytest.raises(AssertionError):
@@ -319,10 +334,10 @@ def test_decode_bioes_invalid_continue() -> None:
     decoder = get_encoding("BIOES")
     sents = [
         # B must be followed by I or E of the same type
-        LabeledSequence(("a", "b"), ("B-PER", "B-PER")),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "B-PER")),
         # Cannot change types mid-mention
-        LabeledSequence(("a", "b"), ("B-PER", "E-ORG")),
-        LabeledSequence(("a", "b", "c"), ("B-PER", "I-PER", "E-ORG")),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "E-ORG")),
+        LabeledSequence(tokens=("a", "b", "c"), labels=("B-PER", "I-PER", "E-ORG")),
     ]
     for sent in sents:
         with pytest.raises(AssertionError):

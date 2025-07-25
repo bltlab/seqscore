@@ -5,8 +5,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from attr import Attribute, validators
-
 # Union[str, Path] isn't enough to appease PyCharm's type checker, so adding Path here
 # avoids warnings.
 PathType = Union[str, Path, PathLike]
@@ -58,13 +56,8 @@ def normalize_str_with_path(s: str) -> str:
     return s.replace(os.path.sep, "/")
 
 
-# Instantiate in advance for _validator_nonempty_str
-_instance_of_str = validators.instance_of(str)
-
-
-def validator_nonempty_str(_inst: Any, attr: Attribute, value: Any) -> None:
-    # Check type
-    _instance_of_str(value, attr, value)
+def validator_nonempty_str(value: Any) -> Any:
     # Check string isn't empty
     if not value:
         raise ValueError(f"Empty string: {repr(value)}")
+    return value

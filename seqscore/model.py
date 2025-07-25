@@ -1,19 +1,15 @@
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Sequence
 from itertools import repeat
-from typing import Any, Optional, Union, overload
+from typing import Annotated, Any, Optional, Union, overload
 
-from attr import Attribute, attrib, attrs
-
-from seqscore.util import (
-    tuplify_optional_nested_strs,
-    tuplify_strs,
-    validator_nonempty_str,
-)
+from pydantic import BaseModel, BeforeValidator, Field
 
 
-def _validator_nonnegative(_inst: Any, _attr: Attribute, value: Any) -> None:
+def _validator_nonnegative(value: Any) -> Any:
     if value < 0:
         raise ValueError(f"Negative value: {repr(value)}")
+    else:
+        return value
 
 
 def _tuplify_mentions(
@@ -22,12 +18,11 @@ def _tuplify_mentions(
     return tuple(mentions)
 
 
-@attrs(frozen=True, slots=True)
-class Span:
-    start: int = attrib(validator=_validator_nonnegative)
-    end: int = attrib(validator=_validator_nonnegative)
+class Span(BaseModel, frozen=True):
+    start: Annotated[int, BeforeValidator(_validator_nonnegative)]
+    end: Annotated[int, BeforeValidator(_validator_nonnegative)]
 
-    def __attrs_post_init__(self) -> None:
+    def model_post_init(self, context: Any) -> None:
         if not self.end > self.start:
             raise ValueError(
                 f"End of span ({self.end}) must be greater than start ({self.start}"
@@ -37,38 +32,31 @@ class Span:
         return self.end - self.start
 
 
-@attrs(frozen=True, slots=True)
-class Mention:
-    span: Span = attrib()
-    type: str = attrib(validator=validator_nonempty_str)
+class Mention(BaseModel, frozen=True):
+    span: Span
+    type: str = Field(min_length=1, description="Must be a non-empty string")
 
     def __len__(self) -> int:
         return len(self.span)
 
     def with_type(self, new_type: str) -> "Mention":
-        return Mention(self.span, new_type)
+        return Mention(span=self.span, type=new_type)
 
 
-@attrs(frozen=True, slots=True)
-class SequenceProvenance:
-    starting_line: int = attrib()
-    source: Optional[str] = attrib()
+class SequenceProvenance(BaseModel, frozen=True):
+    starting_line: int
+    source: Optional[str]
 
 
-@attrs(frozen=True, slots=True)
-class LabeledSequence(Sequence[str]):
-    tokens: tuple[str, ...] = attrib(converter=tuplify_strs)
-    labels: tuple[str, ...] = attrib(converter=tuplify_strs)
-    mentions: tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
-    other_fields: Optional[tuple[tuple[str, ...], ...]] = attrib(
-        default=None, kw_only=True, converter=tuplify_optional_nested_strs
-    )
-    provenance: Optional[SequenceProvenance] = attrib(
-        default=None, eq=False, kw_only=True
-    )
-    comment: Optional[str] = attrib(default=None, eq=False, kw_only=True)
+class LabeledSequence(BaseModel, frozen=True):
+    tokens: tuple[str, ...]
+    labels: tuple[str, ...]
+    mentions: tuple[Mention, ...] = tuple()
+    other_fields: Optional[tuple[tuple[str, ...], ...]] = None
+    provenance: Optional[SequenceProvenance] = None
+    comment: Optional[str] = None
 
-    def __attrs_post_init__(self) -> None:
+    def model_post_init(self, context: Any) -> None:
         # TODO: Check for overlapping mentions
 
         if len(self.tokens) != len(self.labels):
@@ -97,7 +85,29 @@ class LabeledSequence(Sequence[str]):
 
     def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSequence":
         return LabeledSequence(
-            self.tokens, self.labels, mentions, provenance=self.provenance
+            tokens=self.tokens,
+            labels=self.labels,
+            mentions=tuple(mentions),
+            provenance=self.provenance,
+        )
+
+    # Pydantic doesn't support excluding certain fields when it generates
+    # its default `__hash__` method when `frozen=True`
+    # To get around that limitation, define custom `__hash__` method
+    def __hash__(self) -> int:
+        # Do not hash `provenance` and `comment`
+        return hash((self.tokens, self.labels, self.mentions, self.other_fields))
+
+    # Do not check eq with `provenance` and `comment` fields
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, LabeledSequence):
+            return NotImplemented
+
+        return (
+            self.tokens == other.tokens
+            and self.labels == other.labels
+            and self.mentions == other.mentions
+            and self.other_fields == other.other_fields
         )
 
     @overload
@@ -110,9 +120,6 @@ class LabeledSequence(Sequence[str]):
 
     def __getitem__(self, i: Union[int, slice]) -> Union[str, tuple[str, ...]]:
         return self.tokens[i]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.tokens)
 
     def __len__(self) -> int:
         # Guaranteed that labels and tokens are same length by construction

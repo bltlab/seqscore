@@ -22,6 +22,7 @@ from seqscore.encoding import (
     SUPPORTED_ENCODINGS,
     SUPPORTED_REPAIR_METHODS,
 )
+from seqscore.model import LabeledSequence
 from seqscore.processing import modify_types
 
 
@@ -483,7 +484,10 @@ def extract_text(
             else:
                 first_doc = False
             for sentence in doc:
-                print(" ".join(sentence), file=output)
+                if isinstance(sentence, LabeledSequence):
+                    print(" ".join(sentence.tokens), file=output)
+                else:
+                    print(" ".join(sentence), file=output)
 
 
 def _normalize_tab(s: str) -> str:
