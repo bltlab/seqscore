@@ -1,8 +1,7 @@
 import pytest
 from attr import attrs
-
-from seqscore.encoding import REPAIR_NONE, EncodingError, get_encoding
-from seqscore.validation import validate_labels
+from seqscore_lib.encoding import REPAIR_NONE, EncodingError, get_encoding
+from seqscore_lib.validation import validate_labels
 
 
 @attrs(auto_attribs=True)

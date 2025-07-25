@@ -13,16 +13,16 @@ from typing import (
 from attr import attrib, attrs
 from tabulate import tabulate
 
-from seqscore.encoding import Encoding, EncodingError, get_encoding
-from seqscore.model import LabeledSequence, SequenceProvenance
-from seqscore.scoring import (
+from seqscore_lib.encoding import Encoding, EncodingError, get_encoding
+from seqscore_lib.model import LabeledSequence, SequenceProvenance
+from seqscore_lib.scoring import (
     AccuracyScore,
     ClassificationScore,
     compute_scores,
     convert_score,
 )
-from seqscore.util import PathType
-from seqscore.validation import (
+from seqscore_lib.util import PathType
+from seqscore_lib.validation import (
     InvalidLabelError,
     SequenceValidationResult,
     ValidationResult,

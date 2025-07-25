@@ -5,10 +5,10 @@ from typing import DefaultDict, Optional, Union
 
 from attr import Factory, attrib, attrs
 
-from seqscore.encoding import Encoding, EncodingError, get_encoding
-from seqscore.model import LabeledSequence, Mention
-from seqscore.util import tuplify_strs, validator_nonempty_str
-from seqscore.validation import validate_labels
+from seqscore_lib.encoding import Encoding, EncodingError, get_encoding
+from seqscore_lib.model import LabeledSequence, Mention
+from seqscore_lib.util import tuplify_strs, validator_nonempty_str
+from seqscore_lib.validation import validate_labels
 
 
 def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore"]:

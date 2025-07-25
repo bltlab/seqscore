@@ -1,7 +1,6 @@
 import pytest
 from attr import attrs
-
-from seqscore.encoding import (
+from seqscore_lib.encoding import (
     _ENCODING_NAMES,
     BIO,
     BIOES,
@@ -15,7 +14,7 @@ from seqscore.encoding import (
     EncodingError,
     get_encoding,
 )
-from seqscore.model import LabeledSequence, Mention, Span
+from seqscore_lib.model import LabeledSequence, Mention, Span
 
 FULL_SENTENCE_LABELS = {
     "IO": ["I-PER", "O", "I-ORG", "I-ORG", "I-ORG", "I-ORG", "I-ORG", "I-LOC"],

@@ -4,10 +4,8 @@ from collections import Counter
 from typing import Callable, Optional
 
 import click
-from tabulate import tabulate
-
-import seqscore
-from seqscore.conll import (
+import seqscore_lib
+from seqscore_lib.conll import (
     FORMAT_DELIM,
     SUPPORTED_SCORE_FORMATS,
     ingest_conll_file,
@@ -16,20 +14,21 @@ from seqscore.conll import (
     validate_conll_file,
     write_docs_using_encoding,
 )
-from seqscore.encoding import (
+from seqscore_lib.encoding import (
     DEFAULT_OUTSIDE,
     REPAIR_NONE,
     SUPPORTED_ENCODINGS,
     SUPPORTED_REPAIR_METHODS,
 )
-from seqscore.processing import modify_types
+from seqscore_lib.processing import modify_types
+from tabulate import tabulate
 
 
 # Set up a click command group
 @click.group(
-    help=f"Provides scoring and analysis tools for NER/chunking files (version {seqscore.__version__})"
+    help=f"Provides scoring and analysis tools for NER/chunking files (version {seqscore_lib.__version__})"
 )
-@click.version_option(seqscore.__version__)
+@click.version_option(seqscore_lib.__version__)
 # This is tested by a subprocess call in test_seqscore_main so coverage will miss it
 def cli() -> None:  # pragma: no cover
     pass

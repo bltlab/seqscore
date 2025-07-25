@@ -1,6 +1,5 @@
 import pytest
-
-from seqscore.model import LabeledSequence, Mention, SequenceProvenance, Span
+from seqscore_lib.model import LabeledSequence, Mention, SequenceProvenance, Span
 
 
 def test_span() -> None:

@@ -1,10 +1,9 @@
 from decimal import Decimal
 
 import pytest
-
-from seqscore.encoding import EncodingError
-from seqscore.model import LabeledSequence, Mention, SequenceProvenance, Span
-from seqscore.scoring import (
+from seqscore_lib.encoding import EncodingError
+from seqscore_lib.model import LabeledSequence, Mention, SequenceProvenance, Span
+from seqscore_lib.scoring import (
     AccuracyScore,
     ClassificationScore,
     TokenCountError,

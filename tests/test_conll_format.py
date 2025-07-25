@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import pytest
-
-from seqscore.conll import CoNLLFormatError, CoNLLIngester
-from seqscore.encoding import REPAIR_NONE, get_encoding
-from seqscore.validation import InvalidLabelError
+from seqscore_lib.conll import CoNLLFormatError, CoNLLIngester
+from seqscore_lib.encoding import REPAIR_NONE, get_encoding
+from seqscore_lib.validation import InvalidLabelError
 
 
 def test_parse_comments_true() -> None:

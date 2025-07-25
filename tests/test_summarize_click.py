@@ -2,7 +2,7 @@ import os
 
 from click.testing import CliRunner
 
-from seqscore.scripts.seqscore import summarize
+from seqscore.seqscore import summarize
 
 
 def test_summarize_bio_onedoc() -> None:

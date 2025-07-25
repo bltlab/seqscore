@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Optional
 
 from click.testing import CliRunner
+from seqscore_lib.util import file_fields_match
 
-from seqscore.scripts.seqscore import process
-from seqscore.util import file_fields_match
+from seqscore.seqscore import process
 
 TMP_DIR: Optional[tempfile.TemporaryDirectory] = None
 ANNOTATION_DIR = Path("tests", "conll_annotation")

@@ -3,7 +3,7 @@ import os
 
 from click.testing import CliRunner
 
-from seqscore.scripts.seqscore import score
+from seqscore.seqscore import score
 
 
 def test_score_correct_labels() -> None:

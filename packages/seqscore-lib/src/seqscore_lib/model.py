@@ -4,7 +4,7 @@ from typing import Any, Optional, Union, overload
 
 from attr import Attribute, attrib, attrs
 
-from seqscore.util import (
+from seqscore_lib.util import (
     tuplify_optional_nested_strs,
     tuplify_strs,
     validator_nonempty_str,

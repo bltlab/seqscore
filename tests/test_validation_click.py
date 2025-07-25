@@ -1,9 +1,9 @@
 import os
 
 from click.testing import CliRunner
+from seqscore_lib.util import normalize_str_with_path
 
-from seqscore.scripts.seqscore import validate
-from seqscore.util import normalize_str_with_path
+from seqscore.seqscore import validate
 
 
 def test_valid_bio() -> None:

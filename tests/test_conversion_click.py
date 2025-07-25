@@ -3,9 +3,9 @@ import tempfile
 from typing import Optional
 
 from click.testing import CliRunner
+from seqscore_lib.util import file_fields_match
 
-from seqscore.scripts.seqscore import convert
-from seqscore.util import file_fields_match
+from seqscore.seqscore import convert
 
 TMP_DIR: Optional[tempfile.TemporaryDirectory] = None
 

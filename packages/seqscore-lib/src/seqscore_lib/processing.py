@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from seqscore.model import LabeledSequence, Mention
+from seqscore_lib.model import LabeledSequence, Mention
 
 
 class TypeMapper:

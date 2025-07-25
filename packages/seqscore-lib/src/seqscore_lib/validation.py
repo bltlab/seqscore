@@ -3,8 +3,8 @@ from typing import Any, Optional
 
 from attr import attrib, attrs
 
-from seqscore.encoding import _ENCODING_NAMES, Encoding, EncodingError
-from seqscore.util import tuplify_strs
+from seqscore_lib.encoding import _ENCODING_NAMES, Encoding, EncodingError
+from seqscore_lib.util import tuplify_strs
 
 # All encodings can be validated
 VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(_ENCODING_NAMES)

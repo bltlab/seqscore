@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 from click.testing import CliRunner
 
-from seqscore.scripts.seqscore import extract_text
+from seqscore.seqscore import extract_text
 
 TMP_DIR: Optional[tempfile.TemporaryDirectory] = None
 MINIMAL_SENTENCES = [

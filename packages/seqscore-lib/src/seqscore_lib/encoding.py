@@ -9,7 +9,7 @@ from typing import (
 
 from attr import Factory, attrib, attrs
 
-from seqscore.model import LabeledSequence, Mention, Span
+from seqscore_lib.model import LabeledSequence, Mention, Span
 
 REPAIR_CONLL = "conlleval"
 REPAIR_DISCARD = "discard"
