@@ -1,6 +1,7 @@
 import json
 import sys
 from collections import Counter
+from contextlib import nullcontext
 from typing import Callable, Optional
 
 import click
@@ -273,11 +274,15 @@ def process(
 
 @cli.command(help="show counts for all the mentions contained in a file")
 @_multi_input_file_arguments
-@click.argument("output_file")
+@click.option(
+    "--output-file",
+    default=None,
+    help="path to write output to [default: stdout]",
+)
 @_repair_option()
 @_labels_option_default_bio()
 @click.option(
-    "--delim",
+    "--output-delim",
     default="\t",
     help="the delimiter to be used for output (has no effect on input) [default: tab]",
 )
@@ -285,20 +290,20 @@ def process(
 def count(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
-    output_file: str,
+    output_file: Optional[str],
     labels: str,
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
-    delim: str,
+    output_delim: str,
     repair_method: str,
     quiet: bool,
 ) -> None:
     if repair_method == REPAIR_NONE:
         repair_method = None
 
-    delim = _normalize_tab(delim)
-    if delim != "\t":
+    output_delim = _normalize_tab(output_delim)
+    if output_delim != "\t":
         print(
             "Warning: Using a delimiter other than tab is not recommended as fields are not quoted",
             file=sys.stderr,
@@ -322,9 +327,16 @@ def count(
                     key = (mention.type, sequence.mention_tokens(mention))
                     counts[key] += 1
 
-    with open(output_file, "w", encoding=file_encoding) as output:
+    with (
+        open(output_file, "w", encoding=file_encoding)
+        if output_file
+        else nullcontext(sys.stdout) as output
+    ):
         for item, item_count in counts.most_common():
-            print(delim.join((str(item_count), item[0], " ".join(item[1]))), file=output)
+            print(
+                output_delim.join((str(item_count), item[0], " ".join(item[1]))),
+                file=output,
+            )
 
 
 @cli.command(help="show counts of the documents, sentences, and entity types")

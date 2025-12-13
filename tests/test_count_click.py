@@ -29,6 +29,7 @@ def test_count_BIO() -> None:
             "--labels",
             "BIO",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
         ],
     )
@@ -37,6 +38,23 @@ def test_count_BIO() -> None:
         os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
         os.path.join("tests", "test_files", "count_minimal_ref.txt"),
     )
+
+
+def test_count_BIO_stdout() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        count,
+        [
+            "--labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    expected_lines = open(
+        os.path.join("tests", "test_files", "count_minimal_ref.txt")
+    ).read()
+    assert result.stdout == expected_lines
 
 
 def test_count_BIO_twofiles() -> None:
@@ -48,6 +66,7 @@ def test_count_BIO_twofiles() -> None:
             "BIO",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
             os.path.join("tests", "conll_annotation", "minimal2.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
         ],
     )
@@ -66,9 +85,10 @@ def test_count_BIO_tab1() -> None:
         [
             "--labels",
             "BIO",
-            "--delim",
+            "--output-delim",
             "\t",  # Actual tab
             os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
         ],
     )
@@ -86,9 +106,10 @@ def test_count_BIO_tab2() -> None:
         [
             "--labels",
             "BIO",
-            "--delim",
+            "--output-delim",
             r"\t",  # Backlash and t
             os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
         ],
     )
@@ -106,9 +127,10 @@ def test_count_BIO_tab3() -> None:
         [
             "--labels",
             "BIO",
-            "--delim",
+            "--output-delim",
             "tab",  # Tab spelled out
             os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
         ],
     )
@@ -126,9 +148,10 @@ def test_count_BIO_comma() -> None:
         [
             "--labels",
             "BIO",
-            "--delim",
+            "--output-delim",
             ",",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_out.txt"),
         ],
     )
@@ -149,6 +172,7 @@ def test_count_BIOES() -> None:
             "--repair-method",
             "none",
             os.path.join("tests", "conll_annotation", "minimal.bioes"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIOES_out.txt"),
         ],
     )
@@ -169,6 +193,7 @@ def test_count_IO() -> None:
             "--repair-method",
             "none",
             os.path.join("tests", "conll_annotation", "minimal.io"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_IO_out.txt"),
         ],
     )
@@ -189,6 +214,7 @@ def test_count_BIO_invalid_conlleval() -> None:
             "--repair-method",
             "conlleval",
             os.path.join("tests", "conll_annotation", "invalid1.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_conlleval_out.txt"),
         ],
     )
@@ -209,6 +235,7 @@ def test_count_BIO_invalid_discard() -> None:
             "--repair-method",
             "discard",
             os.path.join("tests", "conll_annotation", "invalid1.bio"),
+            "--output-file",
             os.path.join(TMP_DIR.name, "count_BIO_discard_out.txt"),
         ],
     )

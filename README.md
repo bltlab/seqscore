@@ -419,7 +419,7 @@ and document count is not printed.
 The `count` subcommand can produce the counts of chunks in the input
 file. Unlike `summarize`, it counts chunk-type pairs, not just types.
 For example, if we run
-`seqscore count --labels BIO samples/reference.bio counts.csv`,
+`seqscore count --labels BIO samples/reference.bio --output-file counts.csv`,
 tab-delimited counts would be written to `counts.csv` as follows:
 
 ```
@@ -427,6 +427,14 @@ tab-delimited counts would be written to `counts.csv` as follows:
 1	LOC	West Philadelphia
 1	LOC	Pennsylvania
 ```
+
+You can also call `count` without the `--output-file` argument to print counts to
+standard output. However, you may encounter Unicode issues if your terminal is not
+configured properly.
+
+You can use the `--output-delim` argument to change the delimiter used in the counts.
+The default delimiter of tab is strongly recommended, as there is no escaping or
+quoting of the names in the output.
 
 ## Process
 
