@@ -133,7 +133,7 @@ def compute_scores(
     pred_docs: Sequence[Sequence[LabeledSequence]],
     ref_docs: Sequence[Sequence[LabeledSequence]],
     *,
-    count_fp_fn: bool = False,
+    count_fp_fn_examples: bool = False,
 ) -> tuple[ClassificationScore, AccuracyScore]:
     accuracy = AccuracyScore()
     classification = ClassificationScore()
@@ -174,7 +174,7 @@ def compute_scores(
                 ref_sequence.mentions,
                 classification,
                 tokens=ref_sequence.tokens,
-                count_fp_fn=count_fp_fn,
+                count_fp_fn_examples=count_fp_fn_examples,
             )
 
     return classification, accuracy
@@ -205,13 +205,20 @@ def score_sequence_mentions(
     score: ClassificationScore,
     *,
     tokens: Optional[Sequence[str]] = (),
-    count_fp_fn: bool = False,
+    count_fp_fn_examples: bool = False,
 ) -> None:
     """Update a ClassificationScore for a single sequence's mentions.
 
     Since mentions are defined per-sequence, the behavior is not defined
-    if you provide mentions corresponding to multiple sequences.
+    if you provide mentions corresponding to multiple sequences. Tokens
+    must be provided if you want false positives and negative examples
+    to be counted.
     """
+    if count_fp_fn_examples and not tokens:
+        raise ValueError(
+            "Tokens must be provided to count false positive/negative examples"
+        )
+
     # Compute span accuracy
     pred_mentions_set = set(pred_mentions)
     ref_mentions_set = set(ref_mentions)
@@ -226,7 +233,7 @@ def score_sequence_mentions(
             # False positive
             score.false_pos += 1
             score.type_scores[pred.type].false_pos += 1
-            if count_fp_fn:
+            if count_fp_fn_examples:
                 error_tokens = tokens[pred.span.start : pred.span.end]
                 score.count_false_positive(error_tokens, pred.type)
 
@@ -235,7 +242,7 @@ def score_sequence_mentions(
         if ref not in pred_mentions_set:
             score.false_neg += 1
             score.type_scores[ref.type].false_neg += 1
-            if count_fp_fn:
+            if count_fp_fn_examples:
                 error_tokens = tokens[ref.span.start : ref.span.end]
                 score.count_false_negative(error_tokens, ref.type)
 

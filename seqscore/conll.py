@@ -514,7 +514,7 @@ def score_conll_files(
         )
 
         class_scores, acc_scores = compute_scores(
-            pred_docs, ref_docs, count_fp_fn=error_counts
+            pred_docs, ref_docs, count_fp_fn_examples=error_counts
         )
         all_class_scores.append(class_scores)
         all_acc_scores.append(class_scores)
