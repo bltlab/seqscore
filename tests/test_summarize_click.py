@@ -19,10 +19,12 @@ def test_summarize_bio_onedoc() -> None:
     assert (
         result.output
         == """File 'tests/conll_annotation/minimal.bio' contains 1 document(s) and 2 sentences
-| Entity Type   |   Count |
-|---------------|---------|
-| LOC           |       2 |
-| ORG           |       1 |
+Entity Type      Count
+-------------  -------
+LOC                  2
+ORG                  1
+-------------  -------
+TOTAL                3
 """
     )
 
@@ -41,10 +43,12 @@ def test_summarize_bio_onedoc_quiet() -> None:
     assert result.exit_code == 0
     assert (
         result.output
-        == """| Entity Type   |   Count |
-|---------------|---------|
-| LOC           |       2 |
-| ORG           |       1 |
+        == """Entity Type      Count
+-------------  -------
+LOC                  2
+ORG                  1
+-------------  -------
+TOTAL                3
 """
     )
 
@@ -63,10 +67,12 @@ def test_summarize_iob_twodoc() -> None:
     assert (
         result.output
         == """File 'tests/conll_annotation/minimal_fields.iob' contains 2 document(s) and 2 sentences
-| Entity Type   |   Count |
-|---------------|---------|
-| LOC           |       2 |
-| ORG           |       1 |
+Entity Type      Count
+-------------  -------
+LOC                  2
+ORG                  1
+-------------  -------
+TOTAL                3
 """
     )
 
@@ -88,9 +94,11 @@ def test_summarize_bio_twofiles() -> None:
         == """File 'tests/conll_annotation/minimal.bio' contains 1 document(s) and 2 sentences
 File 'tests/conll_annotation/minimal2.bio' contains 1 document(s) and 2 sentences
 Total 2 document(s) and 4 sentences
-| Entity Type   |   Count |
-|---------------|---------|
-| LOC           |       5 |
-| ORG           |       2 |
+Entity Type      Count
+-------------  -------
+LOC                  5
+ORG                  2
+-------------  -------
+TOTAL                7
 """
     )

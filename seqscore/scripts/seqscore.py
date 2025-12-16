@@ -2,10 +2,10 @@ import json
 import sys
 from collections import Counter
 from contextlib import nullcontext
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import click
-from tabulate import tabulate
+from tabulate import SEPARATING_LINE, tabulate
 
 import seqscore
 from seqscore.conll import (
@@ -389,8 +389,10 @@ def summarize(
         print(f"Total {total_documents} document(s) and {total_sentences} sentences")
 
     header = ["Entity Type", "Count"]
-    rows = sorted(type_counts.items())
-    print(tabulate(rows, header, tablefmt="github", floatfmt="6.2f"))
+    rows: list[Union[tuple[str, int], str]] = sorted(type_counts.items())
+    rows.append(SEPARATING_LINE)
+    rows.append(("TOTAL", sum(type_counts.values())))
+    print(tabulate(rows, header, intfmt=","))
 
 
 @cli.command(help="score a file and report performance or an error count table")
