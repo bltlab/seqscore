@@ -98,6 +98,14 @@ def _labels_option_default_bio() -> Callable:
     )
 
 
+def _output_delim_option() -> Callable:
+    return click.option(
+        "--output-delim",
+        default="\t",
+        help="the delimiter to be used for output (has no effect on input) [default: tab]",
+    )
+
+
 def _quiet_option() -> Callable:
     return click.option(
         "--quiet",
@@ -151,7 +159,7 @@ def validate(
 @click.argument("output_file")
 @_repair_required_option()
 @_labels_option()
-@click.option("--output-delim", default=" ", help="[default: space]")
+@_output_delim_option()
 @_quiet_option()
 def repair(
     file: str,
@@ -165,6 +173,7 @@ def repair(
     parse_comment_lines: bool,
     quiet: bool,
 ) -> None:
+    output_delim = _normalize_tab(output_delim)
     if repair_method == REPAIR_NONE:
         raise ValueError(f"Cannot repair with repair strategy {repr(repair_method)}")
 
@@ -184,7 +193,7 @@ def repair(
 @cli.command(help="convert between mention encodings")
 @_single_input_file_arguments
 @click.argument("output_file")
-@click.option("--output-delim", default=" ", help="[default: space]")
+@_output_delim_option()
 @click.option("--input-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 @click.option("--output-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 def convert(
@@ -198,6 +207,7 @@ def convert(
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
 ) -> None:
+    output_delim = _normalize_tab(output_delim)
     if input_labels == output_labels:
         raise ValueError("Conversion requires different input and output labels")
 
@@ -233,7 +243,7 @@ def convert(
     type=click.Path(dir_okay=False),
     help="a JSON file containing types to be modified, in the format of a dict with keys as the target type and values as the source type [example file: {'MISC': ['WorkOfArt', 'Event']}]",
 )
-@click.option("--output-delim", default=" ", help="[default: space]")
+@_output_delim_option()
 def process(
     file: str,
     output_file: str,
@@ -247,6 +257,7 @@ def process(
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
 ) -> None:
+    output_delim = _normalize_tab(output_delim)
     keep_types_set = _parse_type_list(keep_types)
     remove_types_set = _parse_type_list(remove_types)
     type_map_dict: dict[str, list[str]] = _load_type_map(type_map, file_encoding)
@@ -281,11 +292,7 @@ def process(
 )
 @_repair_option()
 @_labels_option_default_bio()
-@click.option(
-    "--output-delim",
-    default="\t",
-    help="the delimiter to be used for output (has no effect on input) [default: tab]",
-)
+@_output_delim_option()
 @_quiet_option()
 def count(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
