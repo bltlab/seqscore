@@ -346,6 +346,8 @@ def count(
             )
 
 
+# TODO: Add support for delimited file output
+# TODO: Take format argument for tabulate from command line
 @cli.command(help="show counts of the documents, sentences, and entity types")
 @_multi_input_file_arguments
 @_repair_option()
