@@ -81,6 +81,14 @@ def validate_labels(
         "Line numbers and labels must be the same length"
     )
 
+    # Validate tokens if supplied
+    if tokens:
+        for idx, tok in enumerate(tokens):
+            if not tok:
+                line_msg = f" on line {line_nums[idx]}" if line_nums else ""
+                source_msg = f" of {source_name}" if source_name else ""
+                raise ValueError(f"Invalid token {repr(tok)}{line_msg}{source_msg}")
+
     errors: list[ValidationError] = []
     outside = encoding.dialect.outside
 

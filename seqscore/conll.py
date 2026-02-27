@@ -156,7 +156,7 @@ class CoNLLIngester:
                     if not quiet:
                         msg = (
                             [
-                                f"Validation errors in sequence at line {line_nums[0]} of {source_name}:"
+                                f"Validation errors in sequence beginning at line {line_nums[0]} of {source_name}:"
                             ]
                             + [error.msg for error in validation.errors]
                             + [
@@ -182,14 +182,20 @@ class CoNLLIngester:
                     + " ".join(labels),
                 ) from e
 
-            sequences = LabeledSequence(
-                tokens,
-                labels,
-                mentions,
-                other_fields=other_fields,
-                provenance=SequenceProvenance(line_nums[0], source_name),
-                comment=comment,
-            )
+            try:
+                sequences = LabeledSequence(
+                    tokens,
+                    labels,
+                    mentions,
+                    other_fields=other_fields,
+                    provenance=SequenceProvenance(line_nums[0], source_name),
+                    comment=comment,
+                )
+            except ValueError as e:  # pragma: no cover
+                # Unreachable unless there is a bug in validation
+                raise ValueError(
+                    f"Invalid sequence error in sequence beginning at line {line_nums[0]} of {source_name}"
+                ) from e
             document.append(sequences)
 
         # Yield final document if non-empty
@@ -211,7 +217,7 @@ class CoNLLIngester:
                 # But we check anyway to be absolutely sure we aren't throwing away a sequence.
                 assert len(source_sequence) == 1
 
-                # If we care about document boundaries and we have results for this document,
+                # If we care about document boundaries and have results for this document,
                 # add it and move on.
                 if not self.ignore_document_boundaries and document_results:
                     all_results.append(document_results)
