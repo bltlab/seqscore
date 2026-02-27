@@ -70,3 +70,15 @@ def test_parse_comments_false() -> None:
             str(err.value)
             == "Could not parse label 'fields' on line 1 of test during validation: Label 'fields' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'. The first token '#' of this sentence starts with '#'. If it's a comment, consider enabling --parse-comment-lines."
         )
+
+
+def test_invalid_token_leading_space() -> None:
+    mention_encoding = get_encoding("BIO")
+    ingester = CoNLLIngester(mention_encoding)
+
+    path = Path("tests") / "test_files" / "minimal_bio_empty_token.txt"
+    with path.open(encoding="utf8") as file:
+        with pytest.raises(ValueError) as err:
+            list(ingester.ingest(file, "test", REPAIR_NONE))
+
+    assert str(err.value) == "Invalid token '' on line 9 of test"

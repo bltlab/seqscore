@@ -58,13 +58,15 @@ def test_labeled_sentence() -> None:
         # Empty
         LabeledSequence([], [])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as err:
         # Bad label
         LabeledSequence(["a"], [""])
+    assert str(err.value) == "Invalid label at sequence index 0: ''"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as err:
         # Bad token
         LabeledSequence([""], ["B-PER"])
+    assert str(err.value) == "Invalid token at sequence index 0: ''"
 
     s2 = s1.with_mentions([Mention(Span(0, 2), "PER")])
     assert s2.mentions == (Mention(Span(0, 2), "PER"),)

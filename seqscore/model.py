@@ -85,15 +85,15 @@ class LabeledSequence(Sequence[str]):
                 "must be of the same length"
             )
 
-        for label in self.labels:
+        for idx, label in enumerate(self.labels):
             # Labels cannot be None or an empty string
             if not label:
-                raise ValueError(f"Invalid label: {repr(label)}")
+                raise ValueError(f"Invalid label at sequence index {idx}: {repr(label)}")
 
-        for token in self.tokens:
-            # Labels cannot be None or an empty string
+        for idx, token in enumerate(self.tokens):
+            # Tokens cannot be None or an empty string
             if not token:
-                raise ValueError(f"Invalid token: {repr(token)}")
+                raise ValueError(f"Invalid token at sequence index {idx}: {repr(token)}")
 
     def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSequence":
         return LabeledSequence(

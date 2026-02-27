@@ -37,7 +37,7 @@ def test_repair_BIO_conlleval() -> None:
     assert result.exit_code == 0
     assert (
         normalize_str_with_path(
-            "Validation errors in sequence at line 7 of tests/conll_annotation/invalid1.bio:"
+            "Validation errors in sequence beginning at line 7 of tests/conll_annotation/invalid1.bio:"
         )
         in result.output
     )
@@ -83,7 +83,7 @@ def test_repair_BIO_discard() -> None:
     assert result.exit_code == 0
     assert (
         normalize_str_with_path(
-            "Validation errors in sequence at line 7 of tests/conll_annotation/invalid1.bio:"
+            "Validation errors in sequence beginning at line 7 of tests/conll_annotation/invalid1.bio:"
         )
         in result.output
     )
