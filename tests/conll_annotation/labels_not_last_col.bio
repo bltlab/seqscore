@@ -1,0 +1,16 @@
+This	O	DET
+is	O	VERB
+a	O	DET
+sentence	O	NOUN
+.	O	PUNCT
+
+University	B-ORG	NOUN
+of	I-ORG	ADP
+Pennsylvania	I-ORG	NOUN
+is	O	VERB
+in	O	ADP
+West	B-LOC	NOUN
+Philadelphia	I-LOC	NOUN
+,	O	PUNCT
+Pennsylvania	B-LOC	NOUN
+.	O	PUNCT
