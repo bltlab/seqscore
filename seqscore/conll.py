@@ -52,7 +52,7 @@ class _CoNLLToken:
     other_fields: tuple[str, ...] = attrib()
 
     @classmethod
-    def from_line(cls, line: str, line_num: int, source_name: str) -> "_CoNLLToken":
+    def from_line(cls, line: str, line_num: int, source_name: str, ner_label_index: int) -> "_CoNLLToken":
         # Note: The caller must strip the line of any trailing whitespace
         # TODO: Sense the file rather than the line so we get consistency across lines
         # Try tab first since it's safer, then space
@@ -72,9 +72,14 @@ class _CoNLLToken:
                     f"Line {line_num} of {source_name} is not delimited by space or tab: {repr(line)}"
                 )
 
+        if ner_label_index == 0:
+            raise ValueError("ner_label_index cannot be 0")
+
         text = splits[0]
-        label = splits[-1]
-        other_fields = tuple(splits[1:-1])
+        label = splits[ner_label_index]
+        other_fields = tuple(splits[1:ner_label_index])
+        if ner_label_index != -1:
+            other_fields += tuple(splits[ner_label_index + 1:])
         is_docstart = text == DOCSTART
         return cls(text, label, is_docstart, line_num, other_fields)
 
@@ -84,6 +89,7 @@ class CoNLLIngester:
     encoding: Encoding = attrib()
     parse_comment_lines: bool = attrib(default=False, kw_only=True)
     ignore_document_boundaries: bool = attrib(default=True, kw_only=True)
+    ner_label_index: int = attrib(default=-1, kw_only=True)
 
     def ingest(
         self,
@@ -210,7 +216,7 @@ class CoNLLIngester:
         document_results: list[SequenceValidationResult] = []
 
         for source_sequence, _ in self._parse_file(
-            source, source_name, parse_comments=self.parse_comment_lines
+            source, source_name, parse_comments=self.parse_comment_lines, ner_label_index=self.ner_label_index
         ):
             if source_sequence[0].is_docstart:
                 # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
@@ -253,7 +259,7 @@ class CoNLLIngester:
 
     @classmethod
     def _parse_file(
-        cls, input_file: TextIO, source_name: str, *, parse_comments: bool = False
+        cls, input_file: TextIO, source_name: str, *, parse_comments: bool = False, ner_label_index: int = -1
     ) -> Iterable[tuple[tuple[_CoNLLToken, ...], Optional[str]]]:
         sequence: list = []
         comment: Optional[str] = None
@@ -285,7 +291,7 @@ class CoNLLIngester:
                 # Always skip empty lines
                 continue
 
-            token = _CoNLLToken.from_line(line, line_num, source_name)
+            token = _CoNLLToken.from_line(line, line_num, source_name, ner_label_index)
             # Skip document starts, but ensure sequence is empty when we reach them
             if token.is_docstart:
                 if sequence:
@@ -352,12 +358,14 @@ def validate_conll_file(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
+    ner_label_index: int,
 ) -> ValidationResult:
     encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         encoding,
         parse_comment_lines=parse_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
+        ner_label_index=ner_label_index,
     )
     with open(input_path, encoding=file_encoding) as input_file:
         results = ingester.validate(input_file, input_path)
