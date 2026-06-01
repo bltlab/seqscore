@@ -214,3 +214,33 @@ def test_bad_label() -> None:
         str(result.exception)
         == "Could not parse label 'GPE' on line 4 during validation: Label 'GPE' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'."
     )
+
+
+def test_ner_label_index_pos() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        ["--labels", "BIO", "--ner-label-index", "1", os.path.join("tests", "conll_annotation", "labels_not_last_col.bio")],
+    )
+    assert result.output == "No errors found in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/labels_not_last_col.bio\n"
+    assert result.exit_code == 0
+
+
+def test_ner_label_index_neg() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        ["--labels", "BIO", "--ner-label-index", "-2", os.path.join("tests", "conll_annotation", "labels_not_last_col.bio")],
+    )
+    assert result.output == "No errors found in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/labels_not_last_col.bio\n"
+    assert result.exit_code == 0
+
+
+def test_ner_label_index_zero() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        ["--labels", "BIO", "--ner-label-index", "0", os.path.join("tests", "conll_annotation", "labels_not_last_col.bio")],
+    )
+    assert result.exit_code != 0
+    assert "ner_label_index cannot be 0" in str(result.exception)

@@ -106,6 +106,15 @@ def _output_delim_option() -> Callable:
     )
 
 
+def _ner_label_index_option() -> Callable:
+    return click.option(
+        "--ner-label-index",
+        default=-1,
+        show_default=True,
+        type=int,
+    )
+
+
 def _quiet_option() -> Callable:
     return click.option(
         "--quiet",
@@ -118,6 +127,7 @@ def _quiet_option() -> Callable:
 @cli.command(help="validate labels")
 @_multi_input_file_arguments
 @_labels_option()
+@_ner_label_index_option()
 @_quiet_option()
 def validate(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
@@ -126,6 +136,7 @@ def validate(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
+    ner_label_index: int,
     quiet: bool,
 ) -> None:
     error = False
@@ -136,6 +147,7 @@ def validate(
             file_encoding,
             ignore_document_boundaries=ignore_document_boundaries,
             parse_comment_lines=parse_comment_lines,
+            ner_label_index=ner_label_index,
         )
         if result.errors:
             print(
