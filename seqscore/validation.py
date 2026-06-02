@@ -106,7 +106,8 @@ def validate_labels(
             raise InvalidLabelError(
                 label,
                 f"Could not parse label {repr(label)}{line_msg}{source_msg} during validation: "
-                + str(e),
+                + str(e)
+                + " Use the --label-index argument if the label is not the last field.",
             ) from e
 
         if not encoding.is_valid_state(state):

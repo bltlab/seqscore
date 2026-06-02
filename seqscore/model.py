@@ -60,7 +60,7 @@ class LabeledSequence(Sequence[str]):
     tokens: tuple[str, ...] = attrib(converter=tuplify_strs)
     labels: tuple[str, ...] = attrib(converter=tuplify_strs)
     mentions: tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
-    other_fields: Optional[tuple[tuple[str, ...], ...]] = attrib(
+    orig_fields: Optional[tuple[tuple[str, ...], ...]] = attrib(
         default=None, kw_only=True, converter=tuplify_optional_nested_strs
     )
     provenance: Optional[SequenceProvenance] = attrib(
@@ -79,9 +79,9 @@ class LabeledSequence(Sequence[str]):
         if not self.tokens:
             raise ValueError("Tokens and labels must be non-empty")
 
-        if self.other_fields and len(self.tokens) != len(self.other_fields):
+        if self.orig_fields and len(self.tokens) != len(self.orig_fields):
             raise ValueError(
-                f"Tokens ({len(self.tokens)}) and other_fields ({len(self.other_fields)}) "
+                f"Tokens ({len(self.tokens)}) and orig_fields ({len(self.orig_fields)}) "
                 "must be of the same length"
             )
 
@@ -126,11 +126,11 @@ class LabeledSequence(Sequence[str]):
     def tokens_with_labels(self) -> tuple[tuple[str, str], ...]:
         return tuple(zip(self.tokens, self.labels))
 
-    def tokens_with_other_fields(
+    def tokens_with_orig_fields(
         self,
     ) -> tuple[tuple[str, Optional[tuple[str, ...]]], ...]:
-        if self.other_fields:
-            return tuple(zip(self.tokens, self.other_fields))
+        if self.orig_fields:
+            return tuple(zip(self.tokens, self.orig_fields))
         else:
             return tuple(zip(self.tokens, repeat(None)))
 

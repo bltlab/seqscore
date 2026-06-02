@@ -44,15 +44,35 @@ class CoNLLFormatError(Exception):
 
 
 @attrs(frozen=True)
+class LineSpec:
+    """Defines the fields and delimiters for a CoNLL-format line"""
+
+    token_index: int = attrib()
+    ner_label_index: int = attrib()
+
+    def __attrs_post_init__(self) -> None:
+        # This will only catch cases where the indices are identical, not
+        # when they refer to the same position, such as 1 and -1 in a
+        # sequence of length two
+        if self.token_index == self.ner_label_index:
+            raise ValueError(
+                f"Token index ({self.token_index}) and "
+                f"label index ({self.ner_label_index}) cannot be the same"
+            )
+
+
+@attrs(frozen=True)
 class _CoNLLToken:
     text: str = attrib()
     label: str = attrib()
     is_docstart: bool = attrib()
     line_num: int = attrib()
-    other_fields: tuple[str, ...] = attrib()
+    orig_fields: tuple[str, ...] = attrib()
 
     @classmethod
-    def from_line(cls, line: str, line_num: int, source_name: str, ner_label_index: int) -> "_CoNLLToken":
+    def from_line(
+        cls, line: str, line_num: int, source_name: str, line_spec: LineSpec
+    ) -> "_CoNLLToken":
         # Note: The caller must strip the line of any trailing whitespace
         # TODO: Sense the file rather than the line so we get consistency across lines
         # Try tab first since it's safer, then space
@@ -72,24 +92,19 @@ class _CoNLLToken:
                     f"Line {line_num} of {source_name} is not delimited by space or tab: {repr(line)}"
                 )
 
-        if ner_label_index == 0:
-            raise ValueError("ner_label_index cannot be 0")
-
-        text = splits[0]
-        label = splits[ner_label_index]
-        other_fields = tuple(splits[1:ner_label_index])
-        if ner_label_index != -1:
-            other_fields += tuple(splits[ner_label_index + 1:])
+        text = splits[line_spec.token_index]
+        label = splits[line_spec.ner_label_index]
+        orig_fields = tuple(splits)
         is_docstart = text == DOCSTART
-        return cls(text, label, is_docstart, line_num, other_fields)
+        return cls(text, label, is_docstart, line_num, orig_fields)
 
 
 @attrs(frozen=True)
 class CoNLLIngester:
     encoding: Encoding = attrib()
+    line_spec: LineSpec = attrib()
     parse_comment_lines: bool = attrib(default=False, kw_only=True)
     ignore_document_boundaries: bool = attrib(default=True, kw_only=True)
-    ner_label_index: int = attrib(default=-1, kw_only=True)
 
     def ingest(
         self,
@@ -119,7 +134,7 @@ class CoNLLIngester:
                 continue
 
             # Create mentions from tokens in sequence
-            tokens, labels, line_nums, other_fields = self._decompose_sequence(
+            tokens, labels, line_nums, orig_fields = self._decompose_sequence(
                 source_sequence
             )
 
@@ -193,7 +208,7 @@ class CoNLLIngester:
                     tokens,
                     labels,
                     mentions,
-                    other_fields=other_fields,
+                    orig_fields=orig_fields,
                     provenance=SequenceProvenance(line_nums[0], source_name),
                     comment=comment,
                 )
@@ -210,13 +225,17 @@ class CoNLLIngester:
             yield document
 
     def validate(
-        self, source: TextIO, source_name: str
+        self,
+        source: TextIO,
+        source_name: str,
     ) -> list[list[SequenceValidationResult]]:
         all_results: list[list[SequenceValidationResult]] = []
         document_results: list[SequenceValidationResult] = []
 
         for source_sequence, _ in self._parse_file(
-            source, source_name, parse_comments=self.parse_comment_lines, ner_label_index=self.ner_label_index
+            source,
+            source_name,
+            parse_comments=self.parse_comment_lines,
         ):
             if source_sequence[0].is_docstart:
                 # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
@@ -254,12 +273,15 @@ class CoNLLIngester:
         tokens = tuple(tok.text for tok in source_sequence)
         labels = tuple(tok.label for tok in source_sequence)
         line_nums = tuple(tok.line_num for tok in source_sequence)
-        other_fields = tuple(tok.other_fields for tok in source_sequence)
-        return tokens, labels, line_nums, other_fields
+        orig_fields = tuple(tok.orig_fields for tok in source_sequence)
+        return tokens, labels, line_nums, orig_fields
 
-    @classmethod
     def _parse_file(
-        cls, input_file: TextIO, source_name: str, *, parse_comments: bool = False, ner_label_index: int = -1
+        self,
+        input_file: TextIO,
+        source_name: str,
+        *,
+        parse_comments: bool = False,
     ) -> Iterable[tuple[tuple[_CoNLLToken, ...], Optional[str]]]:
         sequence: list = []
         comment: Optional[str] = None
@@ -284,14 +306,14 @@ class CoNLLIngester:
             if not line.strip():
                 # Clear out sequence if there's anything in it
                 if sequence:
-                    cls._check_sequence(sequence)
+                    self._check_sequence(sequence)
                     yield tuple(sequence), comment
                     sequence = []
                     comment = None
                 # Always skip empty lines
                 continue
 
-            token = _CoNLLToken.from_line(line, line_num, source_name, ner_label_index)
+            token = _CoNLLToken.from_line(line, line_num, source_name, self.line_spec)
             # Skip document starts, but ensure sequence is empty when we reach them
             if token.is_docstart:
                 if sequence:
@@ -301,7 +323,7 @@ class CoNLLIngester:
                 else:
                     # Yield it by itself. Since the sequence variable is empty, leave it unchanged.
                     tmp_sent = (token,)
-                    cls._check_sequence(tmp_sent)
+                    self._check_sequence(tmp_sent)
                     # Don't return the comment yet, it will be returned with the sequence
                     yield tmp_sent, None
             else:
@@ -309,7 +331,7 @@ class CoNLLIngester:
 
         # Finish the last sequence if needed
         if sequence:
-            cls._check_sequence(sequence)
+            self._check_sequence(sequence)
             yield tuple(sequence), comment
 
     @staticmethod
@@ -327,6 +349,7 @@ def ingest_conll_file(
     input_path: PathType,
     mention_encoding_name: str,
     file_encoding: str,
+    line_spec: LineSpec,
     *,
     repair: Optional[str] = None,
     ignore_document_boundaries: bool,
@@ -343,6 +366,7 @@ def ingest_conll_file(
 
     ingester = CoNLLIngester(
         mention_encoding,
+        line_spec,
         parse_comment_lines=parse_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
@@ -355,17 +379,17 @@ def validate_conll_file(
     input_path: str,
     mention_encoding_name: str,
     file_encoding: str,
+    line_spec: LineSpec,
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
-    ner_label_index: int,
 ) -> ValidationResult:
     encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         encoding,
+        line_spec,
         parse_comment_lines=parse_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
-        ner_label_index=ner_label_index,
     )
     with open(input_path, encoding=file_encoding) as input_file:
         results = ingester.validate(input_file, input_path)
@@ -388,6 +412,7 @@ def repair_conll_file(
     mention_encoding_name: str,
     repair: Optional[str],
     file_encoding: str,
+    line_spec: LineSpec,
     output_delim: str,
     *,
     ignore_document_boundaries: bool,
@@ -398,6 +423,7 @@ def repair_conll_file(
         input_file,
         mention_encoding_name,
         file_encoding,
+        line_spec,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
@@ -429,6 +455,7 @@ def write_docs_using_encoding(
     mention_encoding_name: str,
     file_encoding: str,
     delim: str,
+    line_spec: LineSpec,
     output_path: PathType,
 ) -> None:
     mention_encoding = get_encoding(mention_encoding_name)
@@ -437,7 +464,12 @@ def write_docs_using_encoding(
     with open(output_path, "w", encoding=file_encoding) as file:
         for doc in docs:
             write_doc_using_encoding(
-                doc, mention_encoding, delim, file, output_docstart=output_docstart
+                doc,
+                mention_encoding,
+                delim,
+                file,
+                line_spec,
+                output_docstart=output_docstart,
             )
 
 
@@ -446,32 +478,42 @@ def write_doc_using_encoding(
     encoding: Encoding,
     delim: str,
     file: TextIO,
+    line_spec: LineSpec,
     *,
     output_docstart: bool,
 ) -> None:
     if output_docstart:
-        # Get a single token to figure out how many other_fields entries it has
-        sequence_other_fields = doc[0].other_fields
-        fields = [DOCSTART]
-        if sequence_other_fields:
-            fields.extend([EMPTY_OTHER_FIELD for _ in sequence_other_fields[0]])
-        fields.append(encoding.dialect.outside)
-
+        # Get the fields of the first token of the first sentence
+        if doc[0].orig_fields:
+            # to figure out how many fields there are
+            sequence_orig_fields = doc[0].orig_fields[0]
+            # Create the write number of fields
+            fields = [EMPTY_OTHER_FIELD] * len(sequence_orig_fields)
+            # Fill in the token and label
+            fields[line_spec.token_index] = DOCSTART
+            fields[line_spec.ner_label_index] = encoding.dialect.outside
+        else:
+            fields = [DOCSTART, encoding.dialect.outside]
+        # Write output
         print(delim.join(fields), file=file)
         print(file=file)
 
     for sequence in doc:
         labels = encoding.encode_sequence(sequence)
-        # Lengths of labels and other_fields have previously been checked to match tokens
-        for (token, other_fields), label in zip(
-            sequence.tokens_with_other_fields(), labels
+        # Lengths of labels and orig_fields have previously been checked to match tokens
+        for (token, orig_fields), label in zip(
+            sequence.tokens_with_orig_fields(), labels
         ):
-            fields = [token]
-            if other_fields:
-                fields.extend(other_fields)
-            fields.append(label)
+            if orig_fields:
+                fields = list(orig_fields)
+                fields[line_spec.token_index] = token
+                fields[line_spec.ner_label_index] = label
+            else:
+                fields = [token, label]
+            # Write output
             print(delim.join(fields), file=file)
 
+        # Print an emtpy line after each sequence
         print(file=file)
 
 
@@ -482,6 +524,7 @@ def score_conll_files(
     mention_encoding_name: str,
     repair: Optional[str],
     file_encoding: str,
+    line_spec: LineSpec,
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
@@ -497,6 +540,7 @@ def score_conll_files(
         reference_file,
         mention_encoding_name,
         file_encoding,
+        line_spec,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
@@ -521,6 +565,7 @@ def score_conll_files(
             pred_file,
             mention_encoding_name,
             file_encoding,
+            line_spec,
             repair=repair,
             ignore_document_boundaries=ignore_document_boundaries,
             parse_comment_lines=parse_comment_lines,

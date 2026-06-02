@@ -73,4 +73,4 @@ def test_labeled_sentence() -> None:
 
     with pytest.raises(ValueError):
         # Mismatched length between tokens and other_fields
-        LabeledSequence(["a", "b"], ["B-PER", "I-PER"], other_fields=[["DT"]])
+        LabeledSequence(["a", "b"], ["B-PER", "I-PER"], orig_fields=[["DT"]])
