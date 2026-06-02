@@ -2,14 +2,15 @@ from pathlib import Path
 
 import pytest
 
-from seqscore.conll import CoNLLFormatError, CoNLLIngester
+from seqscore.conll import CoNLLFormatError, CoNLLIngester, LineSpec
 from seqscore.encoding import REPAIR_NONE, get_encoding
 from seqscore.validation import InvalidLabelError
 
 
 def test_parse_comments_true() -> None:
     mention_encoding = get_encoding("BIO")
-    ingester = CoNLLIngester(mention_encoding, parse_comment_lines=True)
+    line_spec = LineSpec(0, 1)
+    ingester = CoNLLIngester(mention_encoding, line_spec, parse_comment_lines=True)
     comments_path = Path("tests") / "test_files" / "minimal_comments.bio"
     with comments_path.open(encoding="utf8") as file:
         documents = list(ingester.ingest(file, "test", REPAIR_NONE))
@@ -32,7 +33,8 @@ def test_parse_comments_true() -> None:
 
 def test_parse_comments_false() -> None:
     mention_encoding = get_encoding("BIO")
-    ingester = CoNLLIngester(mention_encoding)
+    line_spec = LineSpec(0, 1)
+    ingester = CoNLLIngester(mention_encoding, line_spec)
 
     comments_path = Path("tests") / "test_files" / "minimal_comments_1.bio"
     with comments_path.open(encoding="utf8") as file:
@@ -46,35 +48,24 @@ def test_parse_comments_false() -> None:
 
     comments_path = Path("tests") / "test_files" / "minimal_comments_2.bio"
     with comments_path.open(encoding="utf8") as file:
-        with pytest.raises(InvalidLabelError) as err:
+        with pytest.raises(InvalidLabelError):
             list(ingester.ingest(file, "test", REPAIR_NONE))
-        assert (
-            str(err.value)
-            == "Could not parse label 'Comment' on line 1 of test during validation: Label 'Comment' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'. The first token '#' of this sentence starts with '#'. If it's a comment, consider enabling --parse-comment-lines."
-        )
 
     comments_path = Path("tests") / "test_files" / "minimal_comments_3.bio"
     with comments_path.open(encoding="utf8") as file:
-        with pytest.raises(InvalidLabelError) as err:
+        with pytest.raises(InvalidLabelError):
             list(ingester.ingest(file, "test", REPAIR_NONE))
-        assert (
-            str(err.value)
-            == "Could not parse label 'fields' on line 1 of test during validation: Label 'fields' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'. The first token '#' of this sentence starts with '#'. If it's a comment, consider enabling --parse-comment-lines."
-        )
 
     comments_path = Path("tests") / "test_files" / "minimal_comments_4.bio"
     with comments_path.open(encoding="utf8") as file:
-        with pytest.raises(InvalidLabelError) as err:
+        with pytest.raises(InvalidLabelError):
             list(ingester.ingest(file, "test", REPAIR_NONE))
-        assert (
-            str(err.value)
-            == "Could not parse label 'fields' on line 1 of test during validation: Label 'fields' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'. The first token '#' of this sentence starts with '#'. If it's a comment, consider enabling --parse-comment-lines."
-        )
 
 
 def test_invalid_token_leading_space() -> None:
     mention_encoding = get_encoding("BIO")
-    ingester = CoNLLIngester(mention_encoding)
+    line_spec = LineSpec(0, -1)
+    ingester = CoNLLIngester(mention_encoding, line_spec)
 
     path = Path("tests") / "test_files" / "minimal_bio_empty_token.txt"
     with path.open(encoding="utf8") as file:

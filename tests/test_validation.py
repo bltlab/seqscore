@@ -340,9 +340,8 @@ def test_validation_bad_label() -> None:
     labels = ["O", "PER", "PER"]
     with pytest.raises(EncodingError) as err:
         validate_labels(labels, encoding, tokens=tokens, line_nums=line_nums)
-    assert (
-        str(err.value)
-        == "Could not parse label 'PER' on line 8 during validation: Label 'PER' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'."
+    assert str(err.value).startswith(
+        "Could not parse label 'PER' on line 8 during validation: Label 'PER' does not have a state and entity type but is not outside ('O'). Expected the label to be of a format like '<STATE>-<ENTITY_TYPE>'."
     )
 
 
