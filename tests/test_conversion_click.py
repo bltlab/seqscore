@@ -174,6 +174,28 @@ def test_IOB_to_BIO_fields() -> None:
     )
 
 
+def test_IOB_to_BIO_fields_and_specified_indices() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        convert,
+        [
+            "--input-labels",
+            "BIO",
+            "--output-labels",
+            "BIOES",
+            "--label-index",
+            "1",
+            os.path.join("tests", "conll_annotation", "labels_not_last_col.bio"),
+            os.path.join(TMP_DIR.name, "labels_not_last_col.bioes"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_fields_match(
+        os.path.join(TMP_DIR.name, "labels_not_last_col.bioes"),
+        os.path.join("tests", "conll_annotation", "labels_not_last_col.bioes"),
+    )
+
+
 def test_IO_to_BIOES() -> None:
     runner = CliRunner()
     result = runner.invoke(
@@ -215,7 +237,7 @@ def test_BIOES_to_IO() -> None:
     )
 
 
-def test_same_input_and_output_labels_raises_error() -> None:
+def test_diff_token_label_indices() -> None:
     runner = CliRunner()
     result = runner.invoke(
         convert,
@@ -223,9 +245,17 @@ def test_same_input_and_output_labels_raises_error() -> None:
             "--input-labels",
             "BIO",
             "--output-labels",
-            "BIO",
-            os.path.join("tests", "conll_annotation", "minimal.bio"),
-            os.path.join(TMP_DIR.name, "temp.txt"),
+            "BIOES",
+            "--token-index",
+            "1",
+            "--label-index",
+            "2",
+            os.path.join("tests", "conll_annotation", "diff_token_label_indices.bio"),
+            os.path.join(TMP_DIR.name, "diff_token_label_indices_BIOES.txt"),
         ],
     )
-    assert result.exit_code != 0
+    assert result.exit_code == 0
+    assert file_fields_match(
+        os.path.join(TMP_DIR.name, "diff_token_label_indices_BIOES.txt"),
+        os.path.join("tests", "conll_annotation", "diff_token_label_indices.bioes"),
+    )

@@ -6,12 +6,12 @@ sentence	O	NOUN
 
 University	B-ORG	NOUN
 of	I-ORG	ADP
-Pennsylvania	I-ORG	NOUN
+Pennsylvania	E-ORG	NOUN
 is	O	VERB
 in	O	ADP
 West	B-LOC	NOUN
-Philadelphia	I-LOC	NOUN
+Philadelphia	E-LOC	NOUN
 ,	O	PUNCT
-Pennsylvania	B-LOC	NOUN
+Pennsylvania	S-LOC	NOUN
 .	O	PUNCT
 

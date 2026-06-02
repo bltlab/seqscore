@@ -30,13 +30,15 @@ def tuplify_optional_nested_strs(
 def file_fields_match(path1: PathType, path2: PathType, *, debug: bool = False) -> bool:
     """Return whether the whitespace-delimited fields of two files are identical."""
     with open(path1, encoding="utf8") as f1, open(path2, encoding="utf8") as f2:
+        line_count = 1
         for l1, l2 in zip_longest(f1, f2):
             if l1 is None or l2 is None or l1.split() != l2.split():
                 if debug:  # pragma: no cover
-                    print("Non-matching lines:")
+                    print(f"Failed to match at line {line_count}:")
                     print(repr(l1))
                     print(repr(l2))
                 return False
+            line_count += 1
         return True
 
 

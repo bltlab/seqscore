@@ -11,6 +11,7 @@ import seqscore
 from seqscore.conll import (
     FORMAT_DELIM,
     SUPPORTED_SCORE_FORMATS,
+    LineSpec,
     ingest_conll_file,
     repair_conll_file,
     score_conll_files,
@@ -43,6 +44,20 @@ def _input_file_options() -> list[Callable]:
         click.option("--parse-comment-lines", is_flag=True),
         click.option(
             "--ignore-document-boundaries/--use-document-boundaries", default=False
+        ),
+        click.option(
+            "--token-index",
+            default=0,
+            show_default=True,
+            type=int,
+            help="Index of the input field to use for the token",
+        ),
+        click.option(
+            "--label-index",
+            default=-1,
+            show_default=True,
+            type=int,
+            help="Index of the input field to use for the label",
         ),
     ]
 
@@ -127,7 +142,6 @@ def _quiet_option() -> Callable:
 @cli.command(help="validate labels")
 @_multi_input_file_arguments
 @_labels_option()
-@_ner_label_index_option()
 @_quiet_option()
 def validate(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
@@ -136,18 +150,20 @@ def validate(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
-    ner_label_index: int,
+    token_index: int,
+    label_index: int,
     quiet: bool,
 ) -> None:
+    line_spec = LineSpec(token_index, label_index)
     error = False
     for each_file in file:
         result = validate_conll_file(
             each_file,
             labels,
             file_encoding,
+            line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
             parse_comment_lines=parse_comment_lines,
-            ner_label_index=ner_label_index,
         )
         if result.errors:
             print(
@@ -178,6 +194,8 @@ def repair(
     output_file: str,
     labels: str,
     file_encoding: str,
+    token_index: int,
+    label_index: int,
     repair_method: str,
     output_delim: str,
     *,
@@ -188,6 +206,7 @@ def repair(
     output_delim = _normalize_tab(output_delim)
     if repair_method == REPAIR_NONE:
         raise ValueError(f"Cannot repair with repair strategy {repr(repair_method)}")
+    line_spec = LineSpec(token_index, label_index)
 
     repair_conll_file(
         file,
@@ -195,6 +214,7 @@ def repair(
         labels,
         repair_method,
         file_encoding,
+        line_spec,
         output_delim,
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
@@ -212,6 +232,8 @@ def convert(
     file: str,
     output_file: str,
     file_encoding: str,
+    token_index: int,
+    label_index: int,
     output_delim: str,
     input_labels: str,
     output_labels: str,
@@ -220,19 +242,19 @@ def convert(
     parse_comment_lines: bool,
 ) -> None:
     output_delim = _normalize_tab(output_delim)
-    if input_labels == output_labels:
-        raise ValueError("Conversion requires different input and output labels")
+    line_spec = LineSpec(token_index, label_index)
 
     docs = ingest_conll_file(
         file,
         input_labels,
         file_encoding,
+        line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
     )
 
     write_docs_using_encoding(
-        docs, output_labels, file_encoding, output_delim, output_file
+        docs, output_labels, file_encoding, output_delim, line_spec, output_file
     )
 
 
@@ -260,6 +282,8 @@ def process(
     file: str,
     output_file: str,
     file_encoding: str,
+    token_index: int,
+    label_index: int,
     output_delim: str,
     labels: str,
     keep_types: str,
@@ -270,6 +294,7 @@ def process(
     parse_comment_lines: bool,
 ) -> None:
     output_delim = _normalize_tab(output_delim)
+    line_spec = LineSpec(token_index, label_index)
     keep_types_set = _parse_type_list(keep_types)
     remove_types_set = _parse_type_list(remove_types)
     type_map_dict: dict[str, list[str]] = _load_type_map(type_map, file_encoding)
@@ -286,13 +311,16 @@ def process(
         file,
         labels,
         file_encoding,
+        line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
     )
 
     mod_docs = modify_types(docs, keep_types_set, remove_types_set, type_map_dict)
 
-    write_docs_using_encoding(mod_docs, labels, file_encoding, output_delim, output_file)
+    write_docs_using_encoding(
+        mod_docs, labels, file_encoding, output_delim, line_spec, output_file
+    )
 
 
 @cli.command(help="show counts for all the mentions contained in a file")
@@ -309,6 +337,8 @@ def process(
 def count(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
+    token_index: int,
+    label_index: int,
     output_file: Optional[str],
     labels: str,
     *,
@@ -318,6 +348,7 @@ def count(
     repair_method: str,
     quiet: bool,
 ) -> None:
+    line_spec = LineSpec(token_index, label_index)
     if repair_method == REPAIR_NONE:
         repair_method = None
 
@@ -334,6 +365,7 @@ def count(
             each_file,
             labels,
             file_encoding,
+            line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
             parse_comment_lines=parse_comment_lines,
             repair=repair_method,
@@ -368,6 +400,8 @@ def count(
 def summarize(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
+    token_index: int,
+    label_index: int,
     labels: str,
     *,
     ignore_document_boundaries: bool,
@@ -375,6 +409,7 @@ def summarize(
     repair_method: str,
     quiet: bool,
 ) -> None:
+    line_spec = LineSpec(token_index, label_index)
     if repair_method == REPAIR_NONE:
         repair_method = None
 
@@ -386,6 +421,7 @@ def summarize(
             each_file,
             labels,
             file_encoding,
+            line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
             parse_comment_lines=parse_comment_lines,
             repair=repair_method,
@@ -453,11 +489,15 @@ def score(
     reference: str,
     score_format: str,
     delim: str,
+    token_index: int,
+    label_index: int,
     repair_method: str,
     error_counts: bool,
     full_precision: bool,
     quiet: bool,
 ) -> None:
+    line_spec = LineSpec(token_index, label_index)
+
     if repair_method == REPAIR_NONE:
         repair_method = None
 
@@ -475,6 +515,7 @@ def score(
         labels,
         repair_method,
         file_encoding,
+        line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
         output_format=score_format,
@@ -492,18 +533,22 @@ def score(
 def extract_text(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
+    token_index: int,
+    label_index: int,
     labels: str,
     output_file: str,
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
 ) -> None:
+    line_spec = LineSpec(token_index, label_index)
     all_docs = []
     for each_file in file:
         docs = ingest_conll_file(
             each_file,
             labels,
             file_encoding,
+            line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
             parse_comment_lines=parse_comment_lines,
         )

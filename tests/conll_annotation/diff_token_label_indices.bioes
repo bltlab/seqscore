@@ -1,0 +1,17 @@
+1	This	O	DET
+2	is	O	VERB
+3	a	O	DET
+4	sentence	O	NOUN
+5	.	O	PUNCT
+
+6	University	B-ORG	NOUN
+7	of	I-ORG	ADP
+8	Pennsylvania	E-ORG	NOUN
+9	is	O	VERB
+10	in	O	ADP
+11	West	B-LOC	NOUN
+12	Philadelphia	E-LOC	NOUN
+13	,	O	PUNCT
+14	Pennsylvania	S-LOC	NOUN
+15	.	O	PUNCT
+
