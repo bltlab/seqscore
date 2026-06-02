@@ -6,12 +6,12 @@
 types-tabulate
 
 # For testing
-pytest==8.3.5
-pytest-cov==5.0.0
+pytest==9.0.3
+pytest-cov>=7.1.0
 
 # For development
-mypy==1.19.0
-ruff==0.14.9
+mypy==2.1.0
+ruff==0.15.15
 
 # Documentation build
 # Disabled for now since we don't need them
