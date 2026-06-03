@@ -576,7 +576,7 @@ def score_conll_files(
             pred_docs, ref_docs, count_fp_fn_examples=error_counts
         )
         all_class_scores.append(class_scores)
-        all_acc_scores.append(class_scores)
+        all_acc_scores.append(acc_scores)
 
         if error_counts:
             if multi_files:
