@@ -262,6 +262,48 @@ def test_score_multiple_files_pretty() -> None:
     assert "| ORG    |    100.00 |   0.00 |           1 |" in result.output
 
 
+def test_score_error_counts_single_file() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--error-counts",
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "|   Count | Error   | Type   | Tokens            |" in result.output
+    assert "|       1 | FP      | LOC    | West              |" in result.output
+    assert "|       1 | FP      | LOC    | Philadelphia      |" in result.output
+    assert "|       1 | FN      | LOC    | West Philadelphia |" in result.output
+
+
+def test_score_error_counts_delim_format() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--score-format",
+            "delim",
+            "--error-counts",
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Count\tError\tType\tTokens" in result.output
+    assert "1\tFP\tLOC\tWest" in result.output
+    assert "1\tFP\tLOC\tPhiladelphia" in result.output
+    assert "1\tFN\tLOC\tWest Philadelphia" in result.output
+
+
 def test_score_error_counts_multiple_files() -> None:
     # Cannot use error-counts with multiple files
     runner = CliRunner()
