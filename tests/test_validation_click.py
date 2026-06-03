@@ -207,7 +207,7 @@ def test_bad_label() -> None:
     runner = CliRunner()
     result = runner.invoke(
         validate,
-        ["--labels", "BIO", os.path.join("tests", "conll_annotation", "bad_label2.bio")],
+        ["--labels", "BIO", os.path.join("tests", "test_files", "bad_label1.bio")],
     )
     assert result.exit_code != 0
     assert str(result.exception).startswith(
