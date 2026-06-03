@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Iterator, Sequence
 from itertools import repeat
-from typing import Any, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 from attr import Attribute, attrib, attrs
 
@@ -9,6 +9,9 @@ from seqscore.util import (
     tuplify_strs,
     validator_nonempty_str,
 )
+
+if TYPE_CHECKING:
+    from seqscore.encoding import Encoding  # pragma: no cover
 
 
 def _validator_nonnegative(_inst: Any, _attr: Attribute, value: Any) -> None:
@@ -139,3 +142,14 @@ class LabeledSequence(Sequence[str]):
 
     def mention_tokens(self, mention: Mention) -> tuple[str, ...]:
         return self.span_tokens(mention.span)
+
+    @classmethod
+    def from_tokens_and_labels(
+        cls,
+        tokens: Sequence[str],
+        labels: Sequence[str],
+        encoding: "Encoding",
+        **kwargs: Any,
+    ) -> "LabeledSequence":
+        mentions = encoding.decode_labels(labels)
+        return cls(tokens, labels, mentions, **kwargs)
