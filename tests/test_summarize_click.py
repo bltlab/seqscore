@@ -77,6 +77,31 @@ TOTAL                3
     )
 
 
+def test_summarize_iob_twodoc_ignore_doc_boundaries() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        summarize,
+        [
+            "--labels",
+            "IOB",
+            "--ignore-document-boundaries",
+            os.path.join("tests", "conll_annotation", "minimal_fields.iob"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """File 'tests/conll_annotation/minimal_fields.iob' contains 1 document(s) and 2 sentences
+Entity Type      Count
+-------------  -------
+LOC                  2
+ORG                  1
+-------------  -------
+TOTAL                3
+"""
+    )
+
+
 def test_summarize_bio_twofiles() -> None:
     runner = CliRunner()
     result = runner.invoke(

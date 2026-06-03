@@ -104,7 +104,7 @@ class CoNLLIngester:
     encoding: Encoding = attrib()
     line_spec: LineSpec = attrib()
     parse_comment_lines: bool = attrib(default=False, kw_only=True)
-    ignore_document_boundaries: bool = attrib(default=True, kw_only=True)
+    ignore_document_boundaries: bool = attrib(default=False, kw_only=True)
 
     def ingest(
         self,
@@ -113,8 +113,8 @@ class CoNLLIngester:
         repair: Optional[str],
         *,
         quiet: bool = False,
-    ) -> Iterable[list[LabeledSequence]]:
-        document_counter = 0
+    ) -> list[list[LabeledSequence]]:
+        all_documents: list[list[LabeledSequence]] = []
         document: list[LabeledSequence] = []
 
         for source_sequence, comment in self._parse_file(
@@ -128,8 +128,7 @@ class CoNLLIngester:
                 # We skip this if the builder is empty, which will happen for the very
                 # first document in the corpus (as there is no previous document to end).
                 if not self.ignore_document_boundaries and document:
-                    document_counter += 1
-                    yield document
+                    all_documents.append(document)
                     document = []
                 continue
 
@@ -219,10 +218,11 @@ class CoNLLIngester:
                 ) from e
             document.append(sequences)
 
-        # Yield final document if non-empty
+        # Add final document if non-empty
         if document:
-            document_counter += 1
-            yield document
+            all_documents.append(document)
+
+        return all_documents
 
     def validate(
         self,
@@ -317,8 +317,8 @@ class CoNLLIngester:
             # Skip document starts, but ensure sequence is empty when we reach them
             if token.is_docstart:
                 if sequence:
-                    raise ValueError(
-                        f"Encountered DOCSTART at line {line_num} while still in sequence"
+                    raise CoNLLFormatError(
+                        f"Encountered {DOCSTART} at line {line_num} of {source_name} in the middle of a sequence"
                     )
                 else:
                     # Yield it by itself. Since the sequence variable is empty, leave it unchanged.
@@ -341,7 +341,7 @@ class CoNLLIngester:
         # get document boundaries as their own sequences.
         if sequence[0].is_docstart and len(sequence) > 1:
             raise ValueError(
-                f"Returned -DOCSTART- as part of a sequence at line {sequence[0].line_num}"
+                f"Returned {DOCSTART} as part of a sequence at line {sequence[0].line_num}"
             )
 
 
@@ -371,7 +371,7 @@ def ingest_conll_file(
         ignore_document_boundaries=ignore_document_boundaries,
     )
     with open(input_path, encoding=file_encoding) as input_file:
-        docs = list(ingester.ingest(input_file, str(input_path), repair, quiet=quiet))
+        docs = ingester.ingest(input_file, str(input_path), repair, quiet=quiet)
     return docs
 
 
