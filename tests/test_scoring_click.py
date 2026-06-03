@@ -1,4 +1,3 @@
-import glob
 import os
 
 from click.testing import CliRunner
@@ -232,9 +231,72 @@ def test_score_multiple_files() -> None:
             os.path.join("tests", "conll_annotation", "minimal.bio"),
             "--score-format",
             "delim",
-        ]
-        + glob.glob(os.path.join("tests", "conll_predictions", "*1.bio")),
+            os.path.join("tests", "conll_predictions", "correct1.bio"),
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
     )
     assert result.exit_code == 0
-    assert "SD\tALL\tNA\tNA\t30.30\tNA\tNA\tNA" in result.output
+    assert "SE\tALL\tNA\tNA\t21.43\tNA\tNA\tNA" in result.output
     assert "Mean\tALL\tNA\tNA\t78.57\tNA\tNA\tNA" in result.output
+
+
+def test_score_multiple_files_pretty() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_predictions", "correct1.bio"),
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.join("tests", "conll_predictions", "correct1.bio") in result.output
+    assert os.path.join("tests", "conll_predictions", "incorrect1.bio") in result.output
+    assert "Summary" in result.output
+    assert "| ALL    |     78.57 |  21.43 |           3 |" in result.output
+    assert "| LOC    |     70.00 |  30.00 |           2 |" in result.output
+    assert "| ORG    |    100.00 |   0.00 |           1 |" in result.output
+
+
+def test_score_error_counts_multiple_files() -> None:
+    # Cannot use error-counts with multiple files
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_predictions", "correct1.bio"),
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+            "--error-counts",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Cannot use error-counts with multiple files to be scored" in result.output
+
+
+def test_score_error_counts_conlleval_format() -> None:
+    # Cannot use error-counts with conlleval format
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--score-format",
+            "conlleval",
+            os.path.join("tests", "conll_predictions", "correct1.bio"),
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+            "--error-counts",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Cannot use error-counts with multiple files to be scored" in result.output

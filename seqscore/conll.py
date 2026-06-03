@@ -2,6 +2,7 @@ import sys
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from itertools import chain
+from math import sqrt
 from statistics import mean, stdev
 from typing import (
     Any,
@@ -37,6 +38,8 @@ FORMAT_PRETTY = "pretty"
 FORMAT_CONLLEVAL = "conlleval"
 FORMAT_DELIM = "delim"
 SUPPORTED_SCORE_FORMATS = (FORMAT_PRETTY, FORMAT_CONLLEVAL, FORMAT_DELIM)
+
+ALL_TYPES = "ALL"
 
 
 class CoNLLFormatError(Exception):
@@ -611,7 +614,8 @@ def score_conll_files(
         elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
             header, rows = format_output_table(class_scores, full_precision)
             if output_format == FORMAT_PRETTY:
-                # TODO: Should we raise an error for pretty output with full precision specified?
+                if full_precision:
+                    raise ValueError("Cannot use full_precision with pretty formatting")
                 # We don't allow full_precision in this case so we can use the usual float format
                 score_summaries.append(
                     tabulate(rows, header, tablefmt="github", floatfmt="6.2f")
@@ -640,31 +644,33 @@ def score_conll_files(
         else:
             raise ValueError(f"Unrecognized output format: {output_format}")
 
+    # Compute summary statistics across files when multiple files are scored
+    if multi_files:
+        type_scores: DefaultDict[str, list] = defaultdict(list)
+        for class_score in all_class_scores:
+            for entity_type, entity_score in class_score.type_scores.items():
+                type_scores[entity_type].append(entity_score.f1)
+
+        entity_type_means = {
+            entity_type: mean(scores) for entity_type, scores in type_scores.items()
+        }
+        entity_type_means[ALL_TYPES] = mean(score.f1 for score in all_class_scores)
+
+        entity_type_stderrs = {
+            entity_type: stdev(scores) / sqrt(len(scores))
+            for entity_type, scores in type_scores.items()
+        }
+        all_f1s = [score.f1 for score in all_class_scores]
+        entity_type_stderrs[ALL_TYPES] = stdev(all_f1s) / sqrt(len(all_f1s))
+
     # For delimited, just join all the rows
     if output_format == FORMAT_DELIM:
         if multi_files:
-            # Compute summary statistics
-            type_scores: DefaultDict[str, list] = defaultdict(list)
-            for class_score in all_class_scores:
-                for entity_type, entity_score in class_score.type_scores.items():
-                    type_scores[entity_type].append(entity_score.f1)
-
-            entity_type_means = {
-                entity_type: mean(scores) for entity_type, scores in type_scores.items()
-            }
-            entity_type_means["ALL"] = mean(score.f1 for score in all_class_scores)
-            # TODO: This should be standard error of the mean, not standard deviation
-            entity_type_sds = {
-                entity_type: stdev(scores) for entity_type, scores in type_scores.items()
-            }
-            entity_type_sds["ALL"] = stdev(score.f1 for score in all_class_scores)
-
-            for entity_type, num in entity_type_sds.items():
+            for entity_type, num in entity_type_stderrs.items():
                 score_summaries.append(
-                    # TODO: Change SD precision
                     _join_delim(
                         [
-                            "SD",
+                            "SE",
                             entity_type,
                             "NA",
                             "NA",
@@ -676,7 +682,6 @@ def score_conll_files(
                         delim,
                     )
                 )
-            # Add aggregates
             for entity_type, num in entity_type_means.items():
                 score_summaries.append(
                     _join_delim(
@@ -698,14 +703,46 @@ def score_conll_files(
         if not multi_files:
             print(score_summaries[0])
         else:
-            # TODO: Sort out aggregates here?
-            # Index because we care about when we're at the last entry
+            # Use the index because we care whether we're at the last entry
             for idx, (filename, summary) in enumerate(zip(pred_files, score_summaries)):
                 print(filename)
                 print(summary)
                 # Don't print an extra trailing newline
                 if idx != len(pred_files) - 1:
                     print()
+
+            # Print mean ± SE summary table
+            ref_scores = all_class_scores[0]
+            summary_header = ["Type", "Mean F1", "SE", "Reference"]
+            summary_rows = [
+                [
+                    ALL_TYPES,
+                    entity_type_means[ALL_TYPES] * 100,
+                    entity_type_stderrs[ALL_TYPES] * 100,
+                    ref_scores.total_ref,
+                ]
+            ]
+            for entity_type in sorted(entity_type_means):
+                if entity_type == ALL_TYPES:
+                    continue
+                summary_rows.append(
+                    [
+                        entity_type,
+                        entity_type_means[entity_type] * 100,
+                        entity_type_stderrs[entity_type] * 100,
+                        ref_scores.type_scores[entity_type].total_ref,
+                    ]
+                )
+            print()
+            print("Summary")
+            print(
+                tabulate(
+                    summary_rows,
+                    summary_header,
+                    tablefmt="github",
+                    floatfmt="6.2f",
+                )
+            )
 
 
 def format_output_conlleval(
@@ -757,7 +794,7 @@ def format_output_table(
     ]
     rows = [
         [
-            "ALL",
+            ALL_TYPES,
             convert_score(class_scores.precision, full_precision),
             convert_score(class_scores.recall, full_precision),
             convert_score(class_scores.f1, full_precision),

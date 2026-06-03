@@ -476,7 +476,7 @@ def summarize(
 @click.option(
     "--full-precision",
     is_flag=True,
-    help="whether to output floating values at full precision instead of rounding half even at two decimal places",
+    help="whether to output floating values at full precision instead of multiplying by 100 and rounding half even at two decimal places",
 )
 @_quiet_option()
 def score(
@@ -505,7 +505,7 @@ def score(
         raise ValueError(f"Can only use full-precision with score-format {FORMAT_DELIM}")
 
     if error_counts and len(file) > 1:
-        raise ValueError("Cannot use error-counts with multiple files to be scored")
+        raise click.UsageError("Cannot use error-counts with multiple files to be scored")
 
     delim = _normalize_tab(delim)
 
