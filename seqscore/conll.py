@@ -429,25 +429,9 @@ def repair_conll_file(
         parse_comment_lines=parse_comment_lines,
         quiet=quiet,
     )
-
-    output_docstart = len(docs) > 1
-
-    with open(output_file, "w", encoding=file_encoding) as file:
-        for doc in docs:
-            _write_doc_labels(doc, output_delim, file, output_docstart=output_docstart)
-
-
-def _write_doc_labels(
-    doc: Sequence[LabeledSequence], delim: str, file: TextIO, *, output_docstart: bool
-) -> None:
-    if output_docstart:
-        print(f"{DOCSTART}{delim}O", file=file)
-        print(file=file)
-
-    for sequence in doc:
-        for token, label in sequence.tokens_with_labels():
-            print(f"{token}{delim}{label}", file=file)
-        print(file=file)
+    write_docs_using_encoding(
+        docs, mention_encoding_name, file_encoding, output_delim, line_spec, output_file
+    )
 
 
 def write_docs_using_encoding(
