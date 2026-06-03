@@ -121,15 +121,6 @@ def _output_delim_option() -> Callable:
     )
 
 
-def _ner_label_index_option() -> Callable:
-    return click.option(
-        "--ner-label-index",
-        default=-1,
-        show_default=True,
-        type=int,
-    )
-
-
 def _quiet_option() -> Callable:
     return click.option(
         "--quiet",
@@ -205,7 +196,9 @@ def repair(
 ) -> None:
     output_delim = _normalize_tab(output_delim)
     if repair_method == REPAIR_NONE:
-        raise ValueError(f"Cannot repair with repair strategy {repr(repair_method)}")
+        raise click.UsageError(
+            f"Cannot repair with repair strategy {repr(repair_method)}"
+        )
     line_spec = LineSpec(token_index, label_index)
 
     repair_conll_file(
@@ -300,10 +293,10 @@ def process(
     type_map_dict: dict[str, list[str]] = _load_type_map(type_map, file_encoding)
 
     if keep_types_set and remove_types_set:
-        raise ValueError("Cannot specify both keep-types and remove-types")
+        raise click.UsageError("Cannot specify both keep-types and remove-types")
 
     if not keep_types_set and not remove_types_set and not type_map:
-        raise ValueError(
+        raise click.UsageError(
             "Must specify at least one of keep-types, remove-types, or type-map"
         )
 
@@ -316,7 +309,10 @@ def process(
         parse_comment_lines=parse_comment_lines,
     )
 
-    mod_docs = modify_types(docs, keep_types_set, remove_types_set, type_map_dict)
+    try:
+        mod_docs = modify_types(docs, keep_types_set, remove_types_set, type_map_dict)
+    except ValueError as err:
+        raise click.UsageError(str(err)) from err
 
     write_docs_using_encoding(
         mod_docs, labels, file_encoding, output_delim, line_spec, output_file
@@ -502,7 +498,9 @@ def score(
         repair_method = None
 
     if full_precision and score_format != FORMAT_DELIM:
-        raise ValueError(f"Can only use full-precision with score-format {FORMAT_DELIM}")
+        raise click.UsageError(
+            f"Can only use full-precision with score-format {FORMAT_DELIM}"
+        )
 
     if error_counts and len(file) > 1:
         raise click.UsageError("Cannot use error-counts with multiple files to be scored")
@@ -580,7 +578,7 @@ def _parse_type_list(types: str) -> set[str]:
     # Check for outside type
     for entity_type in split_types:
         if entity_type == DEFAULT_OUTSIDE:
-            raise ValueError(
+            raise click.UsageError(
                 f"Cannot specify the outside type {DEFAULT_OUTSIDE} in keep/remove types"
             )
     return set(split_types)
@@ -596,40 +594,42 @@ def _load_type_map(
         with open(type_map_path, encoding=file_encoding) as file:
             type_map = json.load(file)
     except FileNotFoundError as err:
-        raise ValueError(f"Could not open type map file {repr(type_map_path)}") from err
+        raise click.UsageError(
+            f"Could not open type map file {repr(type_map_path)}"
+        ) from err
     except json.decoder.JSONDecodeError as err:
-        raise ValueError(
+        raise click.UsageError(
             f"Type map provided in file {repr(type_map_path)} is not valid JSON"
         ) from err
 
     # Validate types
     if not isinstance(type_map, dict):
-        raise ValueError(
+        raise click.UsageError(
             f"Type map provided in file {repr(type_map_path)} is not a dictionary"
         )
 
     for from_type, to_types in type_map.items():
         if not isinstance(from_type, str) or not from_type:
-            raise ValueError(
+            raise click.UsageError(
                 f"Key {repr(from_type)} in type map {repr(type_map_path)} is not a non-empty string"
             )
         if from_type == DEFAULT_OUTSIDE:
-            raise ValueError(
+            raise click.UsageError(
                 f"Key {repr(from_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
             )
 
         if not isinstance(to_types, list):
-            raise ValueError(
+            raise click.UsageError(
                 f"Value {repr(to_types)} in type map {repr(type_map_path)} is not a list"
             )
 
         for to_type in to_types:
             if not isinstance(to_type, str) or not to_type:
-                raise ValueError(
+                raise click.UsageError(
                     f"Value {repr(to_type)} in type map {repr(type_map_path)} is not a non-empty string"
                 )
             if to_type == DEFAULT_OUTSIDE:
-                raise ValueError(
+                raise click.UsageError(
                     f"Value {repr(to_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
                 )
 

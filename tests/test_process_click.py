@@ -232,6 +232,27 @@ def test_map_types_keep_types() -> None:
     assert file_fields_match(TEST_FILES_DIR / "minimal_no_names.bio", output_path)
 
 
+def test_keep_and_remove_types() -> None:
+    runner = CliRunner()
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--keep-types",
+            "LOC,ORG",
+            "--remove-types",
+            "MISC",
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert "Cannot specify both keep-types and remove-types" in result.output
+
+
 def test_map_types_invalid_map() -> None:
     runner = CliRunner()
     map_path = str(TEST_FILES_DIR / "map_bad_value.json")
@@ -248,8 +269,11 @@ def test_map_types_invalid_map() -> None:
             output_path,
         ],
     )
-    # Malformed map, dictionary value is a string and not a list
-    assert result.exit_code != 0
+    assert result.exit_code == 2
+    assert (
+        "Value 'LOC' in type map 'tests/test_files/map_bad_value.json' is not a list"
+        in result.output
+    )
 
 
 def test_map_types_duplicate_mapping() -> None:
@@ -268,11 +292,31 @@ def test_map_types_duplicate_mapping() -> None:
             output_path,
         ],
     )
-    # Malformed map, dictionary value is a string and not a list
-    assert result.exit_code != 0
+    assert result.exit_code == 2
+    assert "Multiple mappings specified for type 'LOC' in type map" in result.output
 
 
-def test_keep_and_remove_types() -> None:
+def test_no_operation() -> None:
+    runner = CliRunner()
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert (
+        "Must specify at least one of keep-types, remove-types, or type-map"
+        in result.output
+    )
+
+
+def test_keep_outside_type() -> None:
     runner = CliRunner()
     input_path = str(ANNOTATION_DIR / "minimal.bio")
     output_path = str(Path(TMP_DIR.name) / "out.bio")
@@ -280,14 +324,188 @@ def test_keep_and_remove_types() -> None:
         process,
         [
             "--keep-types",
-            "LOC,ORG",
-            "--remove-types",
-            "MISC",
+            "O",
             "--labels",
             "BIO",
             input_path,
             output_path,
         ],
     )
-    # Can't specify both keep and remove
-    assert result.exit_code != 0
+    assert result.exit_code == 2
+    assert "Cannot specify the outside type O in keep/remove types" in result.output
+
+
+def test_remove_outside_type() -> None:
+    runner = CliRunner()
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--remove-types",
+            "O",
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert "Cannot specify the outside type O in keep/remove types" in result.output
+
+
+def test_type_map_missing_file() -> None:
+    runner = CliRunner()
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            "nonexistent_map.json",
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert "Could not open type map file 'nonexistent_map.json'" in result.output
+
+
+def test_type_map_invalid_json() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_invalid_json.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert (
+        "Type map provided in file 'tests/test_files/map_invalid_json.json' is not valid JSON"
+        in result.output
+    )
+
+
+def test_type_map_not_dict() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_not_dict.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert (
+        "Type map provided in file 'tests/test_files/map_not_dict.json' is not a dictionary"
+        in result.output
+    )
+
+
+def test_type_map_empty_key() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_empty_key.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert (
+        "Key '' in type map 'tests/test_files/map_empty_key.json' is not a non-empty string"
+        in result.output
+    )
+
+
+def test_type_map_outside_key() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_outside_key.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert (
+        "Key 'O' in type map 'tests/test_files/map_outside_key.json' is the outside type O"
+        in result.output
+    )
+
+
+def test_type_map_empty_value() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_empty_value.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert (
+        "Value '' in type map 'tests/test_files/map_empty_value.json' is not a non-empty string"
+        in result.output
+    )
+
+
+def test_type_map_outside_value() -> None:
+    runner = CliRunner()
+    map_path = str(TEST_FILES_DIR / "map_outside_value.json")
+    input_path = str(ANNOTATION_DIR / "minimal.bio")
+    output_path = str(Path(TMP_DIR.name) / "out.bio")
+    result = runner.invoke(
+        process,
+        [
+            "--type-map",
+            map_path,
+            "--labels",
+            "BIO",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert (
+        "Value 'O' in type map 'tests/test_files/map_outside_value.json' is the outside type O"
+        in result.output
+    )

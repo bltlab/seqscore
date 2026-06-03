@@ -26,6 +26,27 @@ def test_score_correct_labels() -> None:
     assert "ORG\t100.00\t100.00\t100.00\t1\t1\t1" in result.output
 
 
+def test_score_no_predictions() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--score-format",
+            "delim",
+            os.path.join("tests", "conll_predictions", "incorrect1_nopredictions.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Type\tPrecision\tRecall\tF1\tReference\tPredicted\tCorrect" in result.output
+    assert "ALL\t0.00\t0.00\t0.00\t3\t0\t0" in result.output
+    assert "LOC\t0.00\t0.00\t0.00\t2\t0\t0" in result.output
+    assert "ORG\t0.00\t0.00\t0.00\t1\t0\t0" in result.output
+
+
 def test_score_incorrect_default_format() -> None:
     runner = CliRunner()
     result = runner.invoke(
@@ -150,7 +171,8 @@ def test_score_invalid_sequence_none() -> None:
             ),
         ],
     )
-    assert result.exit_code != 0
+    assert result.exit_code == 1
+    assert "Invalid transition 'O' -> 'I-ORG'" in str(result.exception)
 
 
 def test_score_valid_incorrect_sequence() -> None:
@@ -217,7 +239,10 @@ def test_score_invalid_labels() -> None:
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
         ],
     )
-    assert result.exit_code != 0
+    assert result.exit_code == 1
+    assert "The above labels are not valid for the chunk encoding BIO." in str(
+        result.exception
+    )
 
 
 def test_score_multiple_files() -> None:
@@ -319,8 +344,25 @@ def test_score_error_counts_multiple_files() -> None:
             "--error-counts",
         ],
     )
-    assert result.exit_code != 0
+    assert result.exit_code == 2
     assert "Cannot use error-counts with multiple files to be scored" in result.output
+
+
+def test_score_full_precision_not_delim() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--full-precision",
+            os.path.join("tests", "conll_predictions", "correct1.bio"),
+        ],
+    )
+    assert result.exit_code == 2
+    assert "Can only use full-precision with score-format delim" in result.output
 
 
 def test_score_error_counts_conlleval_format() -> None:
@@ -340,5 +382,5 @@ def test_score_error_counts_conlleval_format() -> None:
             "--error-counts",
         ],
     )
-    assert result.exit_code != 0
+    assert result.exit_code == 2
     assert "Cannot use error-counts with multiple files to be scored" in result.output

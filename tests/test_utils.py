@@ -33,11 +33,11 @@ def test_empty_file() -> None:
 
 def test_differing_whitespace() -> None:
     assert file_fields_match(
-        os.path.join("tests", "test_files", "space_delim.txt"),
+        os.path.join("tests", "test_files", "minimal_space_delim.txt"),
         os.path.join("tests", "conll_annotation", "minimal.bio"),
     )
     assert not file_lines_match(
-        os.path.join("tests", "test_files", "space_delim.txt"),
+        os.path.join("tests", "test_files", "minimal_space_delim.txt"),
         os.path.join("tests", "conll_annotation", "minimal.bio"),
     )
 
