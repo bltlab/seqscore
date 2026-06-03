@@ -27,6 +27,60 @@ def test_score_correct_labels() -> None:
     assert "ORG\t100.00\t100.00\t100.00\t1\t1\t1" in result.output
 
 
+def test_score_incorrect_default_format() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert (
+        "| ALL    |       50.00 |    66.67 |  57.14 |           3 |           4 |         2 |"
+        in result.output
+    )
+    assert (
+        "| LOC    |       33.33 |    50.00 |  40.00 |           2 |           3 |         1 |"
+        in result.output
+    )
+    assert (
+        "| ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |"
+        in result.output
+    )
+
+
+def test_score_incorrect_conlleval_format() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--score-format",
+            "conlleval",
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert (
+        "processed 15 tokens with 3 phrases; found: 4 phrases; correct: 2."
+        in result.output
+    )
+    assert (
+        "accuracy:  93.33%; precision:  50.00%; recall:  66.67%; FB1:  57.14"
+        in result.output
+    )
+    assert "LOC: precision:  33.33%; recall:  50.00%; FB1:  40.00  3" in result.output
+    assert "ORG: precision: 100.00%; recall: 100.00%; FB1: 100.00  1" in result.output
+
+
 def test_score_invalid_sequence_conlleval() -> None:
     runner = CliRunner()
     result = runner.invoke(

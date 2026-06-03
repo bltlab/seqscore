@@ -9,8 +9,11 @@ from seqscore.conll import (
     LineSpec,
     _CoNLLToken,
     ingest_conll_file,
+    write_docs_using_encoding,
 )
 from seqscore.encoding import REPAIR_NONE, get_encoding
+from seqscore.model import LabeledSequence
+from seqscore.util import file_fields_match
 from seqscore.validation import InvalidLabelError
 
 BIO = get_encoding("BIO")
@@ -114,12 +117,15 @@ def test_no_delims() -> None:
 
 def test_validate_with_docstart() -> None:
     ingester = CoNLLIngester(BIO, LINE_SPEC, ignore_document_boundaries=False)
-    path = Path("tests") / "test_files" / "minimal_docstart.bio"
-    with path.open(encoding="utf8") as file:
-        ingester.validate(
-            file,
-            str(path),
-        )
+    # Check two variants, one with docstart in its own sentence and another with
+    # docstart at the start of the sentence
+    for filename in ("minimal_docstart1.bio", "minimal_docstart2.bio"):
+        path = Path("tests") / "test_files" / filename
+        with path.open(encoding="utf8") as file:
+            ingester.validate(
+                file,
+                str(path),
+            )
 
 
 def test_repair_bad_name() -> None:
@@ -149,6 +155,36 @@ def test_bad_label1() -> None:
 
     assert str(err.value).startswith(
         "Could not parse label 'GPE' on line 4 of tests/test_files/bad_label1.bio during validation"
+    )
+
+
+def test_write_docs_no_orig_fields(tmp_path: Path) -> None:
+    sent1 = LabeledSequence(
+        tokens=("This", "is", "a", "sentence", "."),
+        labels=("O", "O", "O", "O", "O"),
+        mentions=(),
+    )
+    sent2 = LabeledSequence.from_tokens_and_labels(
+        (
+            "University",
+            "of",
+            "Pennsylvania",
+            "is",
+            "in",
+            "West",
+            "Philadelphia",
+            ",",
+            "Pennsylvania",
+            ".",
+        ),
+        ("B-ORG", "I-ORG", "I-ORG", "O", "O", "B-LOC", "I-LOC", "O", "B-LOC", "O"),
+        BIO,
+    )
+    docs = [[sent1], [sent2]]
+    output_file = tmp_path / "out.bio"
+    write_docs_using_encoding(docs, "BIO", "utf-8", "\t", LINE_SPEC, output_file)
+    assert file_fields_match(
+        output_file, Path("tests") / "test_files" / "minimal_docstart1.bio", debug=True
     )
 
 
