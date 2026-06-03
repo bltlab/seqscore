@@ -608,6 +608,7 @@ To install from a clone of this repository, use:
 # Contributors
 
 SeqScore was developed by the BLT Lab at Brandeis University under the
-direction of PI and lead developer Constantine Lignos. Chester Palen-Michel
-and Nolan Holley contributed to its development. Gordon Dou, Maya Kruse, and
-Andrew Rueda gave feedback on its features and assisted in README writing.
+direction of PI and lead developer Constantine Lignos. Chester
+Palen-Michel, Nolan Holley, and Claire Wang contributed to its
+development.  Gordon Dou, Maya Kruse, and Andrew Rueda gave feedback
+on its features and assisted in README writing.
