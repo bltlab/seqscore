@@ -595,15 +595,19 @@ The following instructions are for the project maintainers only.
 For development, check out the `dev` branch (latest, but less tested
 than `main`).
 
-To install from a clone of this repository, use:
-`pip install -e .`
-
 ## Setting up an environment for development
+
+### Using uv
+
+1. Create an environment: `uv venv --python 3.10 .venv`
+2. Install seqscore and development dependencies: `uv pip install -e ".[dev]"`
+
+### Using conda
 
 1. Create an environment: `conda create -yn seqscore python=3.10`
 2. Activate the environment: `conda activate seqscore`
 3. Install seqscore: `pip install -e .`
-4. Install development dependencies: `pip install -r requirements.txt`
+4. Install development dependencies: `pip install -e ".[dev]"`
 
 # Contributors
 
