@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-flowmark -i --nobackup *.md
+flowmark -i --nobackup ./*.md
 files=(seqscore/ tests/)
 ruff check --fix "${files[@]}"
 ruff check --select I --fix "${files[@]}"  # Organize imports
