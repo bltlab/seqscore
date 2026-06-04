@@ -586,6 +586,16 @@ For development, check out the `dev` branch (latest, but less tested than `main`
 3. Install seqscore: `pip install -e .`
 4. Install development dependencies: `pip install -e ".[dev]"`
 
+## Release
+
+The release script is located at `scripts/release.sh` and can only be used by project
+maintainers. To make a release:
+
+1. Make sure `__version__` is up to date in `seqscore/__init__.py`.
+2. Make sure you are on the main branch with no uncommitted changes.
+3. Run `scripts/release.sh`. If anything goes wrong between tagging and releasing, you
+   will have to delete the tag on GitHub and try again.
+
 # Contributors
 
 SeqScore was developed by the BLT Lab at Brandeis University under the direction of PI
