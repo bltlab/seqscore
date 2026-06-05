@@ -411,18 +411,16 @@ def validate_conll_file(
 
 def repair_conll_file(
     input_file: PathType,
-    output_file: PathType,
     mention_encoding_name: str,
     repair: Optional[str],
     file_encoding: str,
     line_spec: LineSpec,
-    output_delim: str,
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
     quiet: bool,
-) -> None:
-    docs = ingest_conll_file(
+) -> list[list[LabeledSequence]]:
+    return ingest_conll_file(
         input_file,
         mention_encoding_name,
         file_encoding,
@@ -431,9 +429,6 @@ def repair_conll_file(
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
         quiet=quiet,
-    )
-    write_docs_using_encoding(
-        docs, mention_encoding_name, file_encoding, output_delim, line_spec, output_file
     )
 
 
@@ -444,6 +439,8 @@ def write_docs_using_encoding(
     delim: str,
     line_spec: LineSpec,
     output_path: PathType,
+    *,
+    discard_extra_fields: bool = False,
 ) -> None:
     mention_encoding = get_encoding(mention_encoding_name)
     output_docstart = len(docs) > 1
@@ -457,6 +454,7 @@ def write_docs_using_encoding(
                 file,
                 line_spec,
                 output_docstart=output_docstart,
+                discard_extra_fields=discard_extra_fields,
             )
 
 
@@ -468,10 +466,11 @@ def write_doc_using_encoding(
     line_spec: LineSpec,
     *,
     output_docstart: bool,
+    discard_extra_fields: bool = False,
 ) -> None:
     if output_docstart:
         # Get the fields of the first token of the first sentence
-        if doc[0].orig_fields:
+        if doc[0].orig_fields and not discard_extra_fields:
             # to figure out how many fields there are
             sequence_orig_fields = doc[0].orig_fields[0]
             # Create the write number of fields
@@ -491,7 +490,7 @@ def write_doc_using_encoding(
         for (token, orig_fields), label in zip(
             sequence.tokens_with_orig_fields(), labels
         ):
-            if orig_fields:
+            if orig_fields and not discard_extra_fields:
                 fields = list(orig_fields)
                 fields[line_spec.token_index] = token
                 fields[line_spec.ner_label_index] = label

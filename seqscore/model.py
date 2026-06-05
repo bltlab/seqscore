@@ -100,7 +100,12 @@ class LabeledSequence(Sequence[str]):
 
     def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSequence":
         return LabeledSequence(
-            self.tokens, self.labels, mentions, provenance=self.provenance
+            self.tokens,
+            self.labels,
+            mentions,
+            orig_fields=self.orig_fields,
+            provenance=self.provenance,
+            comment=self.comment,
         )
 
     @overload

@@ -26,6 +26,8 @@ from seqscore.encoding import (
 )
 from seqscore.processing import modify_types
 
+# TODO: For each command, reorder click decorators so that --help has the most important arguments first
+
 
 # Set up a click command group
 @click.group(
@@ -121,6 +123,10 @@ def _output_delim_option() -> Callable:
     )
 
 
+def _discard_extra_fields_option() -> Callable:
+    return click.option("--discard-extra-fields", is_flag=True)
+
+
 def _quiet_option() -> Callable:
     return click.option(
         "--quiet",
@@ -179,6 +185,7 @@ def validate(
 @_repair_required_option()
 @_labels_option()
 @_output_delim_option()
+@_discard_extra_fields_option()
 @_quiet_option()
 def repair(
     file: str,
@@ -192,6 +199,7 @@ def repair(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
+    discard_extra_fields: bool,
     quiet: bool,
 ) -> None:
     output_delim = _normalize_tab(output_delim)
@@ -201,17 +209,24 @@ def repair(
         )
     line_spec = LineSpec(token_index, label_index)
 
-    repair_conll_file(
+    docs = repair_conll_file(
         file,
-        output_file,
         labels,
         repair_method,
         file_encoding,
         line_spec,
-        output_delim,
         ignore_document_boundaries=ignore_document_boundaries,
         parse_comment_lines=parse_comment_lines,
         quiet=quiet,
+    )
+    write_docs_using_encoding(
+        docs,
+        labels,
+        file_encoding,
+        output_delim,
+        line_spec,
+        output_file,
+        discard_extra_fields=discard_extra_fields,
     )
 
 
@@ -219,6 +234,7 @@ def repair(
 @_single_input_file_arguments
 @click.argument("output_file")
 @_output_delim_option()
+@_discard_extra_fields_option()
 @click.option("--input-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 @click.option("--output-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 def convert(
@@ -233,6 +249,7 @@ def convert(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
+    discard_extra_fields: bool,
 ) -> None:
     output_delim = _normalize_tab(output_delim)
     line_spec = LineSpec(token_index, label_index)
@@ -247,7 +264,13 @@ def convert(
     )
 
     write_docs_using_encoding(
-        docs, output_labels, file_encoding, output_delim, line_spec, output_file
+        docs,
+        output_labels,
+        file_encoding,
+        output_delim,
+        line_spec,
+        output_file,
+        discard_extra_fields=discard_extra_fields,
     )
 
 
@@ -271,6 +294,7 @@ def convert(
     help="a JSON file containing types to be modified, in the format of a dict with keys as the target type and values as the source type [example file: {'MISC': ['WorkOfArt', 'Event']}]",
 )
 @_output_delim_option()
+@_discard_extra_fields_option()
 def process(
     file: str,
     output_file: str,
@@ -285,6 +309,7 @@ def process(
     *,
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
+    discard_extra_fields: bool,
 ) -> None:
     output_delim = _normalize_tab(output_delim)
     line_spec = LineSpec(token_index, label_index)
@@ -315,7 +340,13 @@ def process(
         raise click.UsageError(str(err)) from err
 
     write_docs_using_encoding(
-        mod_docs, labels, file_encoding, output_delim, line_spec, output_file
+        mod_docs,
+        labels,
+        file_encoding,
+        output_delim,
+        line_spec,
+        output_file,
+        discard_extra_fields=discard_extra_fields,
     )
 
 
