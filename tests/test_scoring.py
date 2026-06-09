@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from seqscore.encoding import EncodingError
-from seqscore.model import LabeledSequence, Mention, SequenceProvenance, Span
+from seqscore.model import AnnotatedSequence, Mention, SequenceProvenance, Span
 from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,
@@ -234,10 +234,10 @@ def test_compute_scores() -> None:
         Mention(Span(4, 5), "ORG"),
     )
     tokens = ("a", "b", "c", "d", "e")
-    ref_sequence = LabeledSequence(
+    ref_sequence = AnnotatedSequence(
         tokens=tokens, labels=ref_labels, mentions=ref_mentions
     )
-    pred_sequence = LabeledSequence(
+    pred_sequence = AnnotatedSequence(
         tokens=tokens, labels=pred_labels, mentions=pred_mentions
     )
     class_score, acc_score = compute_scores([[pred_sequence]], [[ref_sequence]])
@@ -251,14 +251,16 @@ def test_compute_scores() -> None:
 def test_token_count_error() -> None:
     ref_labels = ("O", "B-ORG", "I-ORG", "O")
     pred_labels = ("O", "B-ORG", "I-ORG", "O", "O")
-    ref_sequence = LabeledSequence(
+    ref_sequence = AnnotatedSequence(
         tokens=("a", "b", "c", "d"),
         labels=ref_labels,
+        mentions=(),
         provenance=SequenceProvenance(0, "test"),
     )
-    pred_sequence = LabeledSequence(
+    pred_sequence = AnnotatedSequence(
         tokens=("a", "b", "c", "d", "e"),
         labels=pred_labels,
+        mentions=(),
         provenance=SequenceProvenance(0, "test"),
     )
     with pytest.raises(TokenCountError):
@@ -267,7 +269,9 @@ def test_token_count_error() -> None:
 
 def test_token_count_error_provenance_none_raises_error() -> None:
     labels = ("O", "B-ORG")
-    sequence = LabeledSequence(tokens=("a", "b"), labels=labels, provenance=None)
+    sequence = AnnotatedSequence(
+        tokens=("a", "b"), labels=labels, mentions=(), provenance=None
+    )
     with pytest.raises(ValueError):
         TokenCountError.from_predicted_sequence(2, sequence)
 
@@ -276,11 +280,17 @@ def test_differing_num_docs() -> None:
     ref_labels = ("O", "B-ORG")
     pred_labels = ("O", "B-LOC")
     tokens = ("a", "b")
-    ref_sequence = LabeledSequence(
-        tokens=tokens, labels=ref_labels, provenance=SequenceProvenance(0, "test")
+    ref_sequence = AnnotatedSequence(
+        tokens=tokens,
+        labels=ref_labels,
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
     )
-    pred_sequence = LabeledSequence(
-        tokens=tokens, labels=pred_labels, provenance=SequenceProvenance(0, "test")
+    pred_sequence = AnnotatedSequence(
+        tokens=tokens,
+        labels=pred_labels,
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
     )
     with pytest.raises(ValueError):
         compute_scores([[pred_sequence]], [[ref_sequence], [ref_sequence]])
@@ -290,11 +300,17 @@ def test_differing_doc_length() -> None:
     ref_labels = ("O", "B-ORG")
     pred_labels = ("O", "B-LOC")
     tokens = ("a", "b")
-    ref_sequence = LabeledSequence(
-        tokens=tokens, labels=ref_labels, provenance=SequenceProvenance(0, "test")
+    ref_sequence = AnnotatedSequence(
+        tokens=tokens,
+        labels=ref_labels,
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
     )
-    pred_sequence = LabeledSequence(
-        tokens=tokens, labels=pred_labels, provenance=SequenceProvenance(0, "test")
+    pred_sequence = AnnotatedSequence(
+        tokens=tokens,
+        labels=pred_labels,
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
     )
     with pytest.raises(ValueError):
         compute_scores([[pred_sequence]], [[ref_sequence, ref_sequence]])
@@ -303,11 +319,17 @@ def test_differing_doc_length() -> None:
 def test_differing_pred_and_ref_tokens() -> None:
     ref_labels = ("O", "B-ORG")
     pred_labels = ("O", "B-LOC")
-    ref_sequence = LabeledSequence(
-        tokens=("a", "b"), labels=ref_labels, provenance=SequenceProvenance(0, "test")
+    ref_sequence = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=ref_labels,
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
     )
-    pred_sequence = LabeledSequence(
-        tokens=("a", "c"), labels=pred_labels, provenance=SequenceProvenance(0, "test")
+    pred_sequence = AnnotatedSequence(
+        tokens=("a", "c"),
+        labels=pred_labels,
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
     )
     with pytest.raises(ValueError):
         compute_scores([[pred_sequence]], [[ref_sequence]])

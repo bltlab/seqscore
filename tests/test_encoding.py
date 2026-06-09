@@ -15,7 +15,7 @@ from seqscore.encoding import (
     EncodingError,
     get_encoding,
 )
-from seqscore.model import LabeledSequence, Mention, Span
+from seqscore.model import AnnotatedSequence, LabeledSequence, Mention, Span
 
 FULL_SENTENCE_LABELS = {
     "IO": ["I-PER", "O", "I-ORG", "I-ORG", "I-ORG", "I-ORG", "I-ORG", "I-LOC"],
@@ -159,7 +159,7 @@ def test_basic_encoding() -> None:
         assert encoding.encode_mentions(mentions, len(labels)) == labels
         # Also test encoding sentence object, intentionally putting no mentions in the
         # sentence labels to make sure encoding using the mentions, not the labels
-        sentence = LabeledSequence(
+        sentence = AnnotatedSequence(
             tokens=tuple("a" for _ in labels),
             labels=tuple("O" for _ in labels),
             mentions=tuple(mentions),

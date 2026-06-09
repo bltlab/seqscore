@@ -1,6 +1,12 @@
 import pytest
 
-from seqscore.model import LabeledSequence, Mention, SequenceProvenance, Span
+from seqscore.model import (
+    AnnotatedSequence,
+    LabeledSequence,
+    Mention,
+    SequenceProvenance,
+    Span,
+)
 
 
 def test_span() -> None:
@@ -38,11 +44,13 @@ def test_mention() -> None:
         Mention(Span(0, 1), None)  # type: ignore
 
 
-def test_labeled_sentence() -> None:
+def test_labeled_sequence() -> None:
     s1 = LabeledSequence(
         tokens=("a", "b"),
         labels=("B-PER", "I-PER"),
         provenance=SequenceProvenance(7, "test"),
+        token_fields=(("NOUN",), ("VERB",)),
+        comment="Comment",
     )
     assert s1.tokens == ("a", "b")
     assert s1[0] == "a"
@@ -53,10 +61,9 @@ def test_labeled_sentence() -> None:
     assert str(s1) == "a/B-PER b/I-PER"
     assert s1.tokens_with_labels() == (("a", "B-PER"), ("b", "I-PER"))
     assert s1.span_tokens(Span(0, 1)) == ("a",)
-    assert s1.mention_tokens(Mention(Span(0, 1), "PER")) == ("a",)
 
     s2 = LabeledSequence(tokens=s1.tokens, labels=s1.labels)
-    # Provenance not included in equality
+    # Attributes other than tokens and labels not included in equality
     assert s1 == s2
     # Hashes identical for equal objects
     assert hash(s1) == hash(s2)
@@ -81,11 +88,41 @@ def test_labeled_sentence() -> None:
         LabeledSequence(tokens=("",), labels=("B-PER",))
     assert "Invalid token at sequence index 0: ''" in str(err.value)
 
-    s2 = s1.with_mentions([Mention(Span(0, 2), "PER")])
-    assert s2.mentions == (Mention(Span(0, 2), "PER"),)
-
     with pytest.raises(ValueError):
-        # Mismatched length between tokens and other_fields
+        # Mismatched length between tokens and token_fields
         LabeledSequence(
             tokens=("a", "b"), labels=("B-PER", "I-PER"), token_fields=(("DT",),)
         )
+
+
+def test_annotated_sequence() -> None:
+    s1 = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=("B-PER", "I-PER"),
+        mentions=(Mention(Span(0, 2), "PER"),),
+        provenance=SequenceProvenance(7, "test"),
+        token_fields=(("NOUN",), ("VERB",)),
+        comment="Comment",
+    )
+    assert s1.tokens == ("a", "b")
+    assert s1[0] == "a"
+    assert s1[0:2] == ("a", "b")
+    assert list(s1) == ["a", "b"]
+    assert s1.labels == ("B-PER", "I-PER")
+    assert s1.mentions == (Mention(Span(0, 2), "PER"),)
+    assert s1.provenance == SequenceProvenance(7, "test")
+    assert str(s1) == "a/B-PER b/I-PER"
+    assert s1.tokens_with_labels() == (("a", "B-PER"), ("b", "I-PER"))
+    assert s1.span_tokens(Span(0, 1)) == ("a",)
+    assert s1.mention_tokens(Mention(Span(0, 1), "PER")) == ("a",)
+
+    s2 = AnnotatedSequence(tokens=s1.tokens, labels=s1.labels, mentions=s1.mentions)
+    # Attributes other than tokens, labels, and mentions not included in equality
+    assert s1 == s2
+    # Hashes identical for equal objects
+    assert hash(s1) == hash(s2)
+    # Equality fails for objects of other types
+    assert s1 != ""
+
+    s3 = s1.with_mentions([Mention(Span(0, 1), "ORG")])
+    assert s3.mentions == (Mention(Span(0, 1), "ORG"),)

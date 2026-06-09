@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from seqscore.encoding import Encoding  # pragma: no cover
 
 __all__ = [
+    "AnnotatedSequence",
     "LabeledSequence",
     "Mention",
     "SequenceProvenance",
@@ -120,37 +121,19 @@ class TokenSequence(Protocol):
     ) -> tuple[tuple[str, Optional[tuple[str, ...]]], ...]: ...
 
 
-class LabeledSequence(BaseModel, Sequence[str]):
-    """A sequence of tokens with associated labels and optional mentions.
-
-    Tokens and labels must be non-empty and of equal length. Iterating
-    over a LabeledSequence yields its tokens.
-    """
+class _SequenceBase(BaseModel, Sequence[str]):
+    """Shared base for token sequences with labels."""
 
     model_config = ConfigDict(frozen=True)
 
     tokens: tuple[str, ...]
     labels: tuple[str, ...]
-    mentions: tuple[Mention, ...] = ()
     token_fields: Optional[tuple[tuple[str, ...], ...]] = None
     provenance: Optional[SequenceProvenance] = None
     comment: Optional[str] = None
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, LabeledSequence):
-            return NotImplemented
-        return (
-            self.tokens == other.tokens
-            and self.labels == other.labels
-            and self.mentions == other.mentions
-            and self.token_fields == other.token_fields
-        )
-
-    def __hash__(self) -> int:
-        return hash((self.tokens, self.labels, self.mentions, self.token_fields))
-
     @model_validator(mode="after")
-    def _validate_fields(self) -> "LabeledSequence":
+    def _validate_fields(self) -> "_SequenceBase":
         if len(self.tokens) != len(self.labels):
             raise ValueError(
                 f"Tokens ({len(self.tokens)}) and labels ({len(self.labels)}) "
@@ -174,17 +157,6 @@ class LabeledSequence(BaseModel, Sequence[str]):
                 raise ValueError(f"Invalid token at sequence index {idx}: {repr(token)}")
 
         return self
-
-    def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSequence":
-        """Return a copy of this sequence with different mentions."""
-        return LabeledSequence(
-            tokens=self.tokens,
-            labels=self.labels,
-            mentions=tuple(mentions),
-            token_fields=self.token_fields,
-            provenance=self.provenance,
-            comment=self.comment,
-        )
 
     @overload
     def __getitem__(self, index: int) -> str: ...
@@ -223,6 +195,56 @@ class LabeledSequence(BaseModel, Sequence[str]):
         """Return the tokens included in the given span."""
         return self.tokens[span.start : span.end]
 
+
+class LabeledSequence(_SequenceBase):
+    """A sequence of tokens with their labels.
+
+    This class only contains labels and tokens. For mentions, use
+    AnnotatedSequence.
+
+    Equality and hashing are defined using only the tokens and labels.
+    """
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, LabeledSequence):
+            return False
+        return self.tokens == other.tokens and self.labels == other.labels
+
+    def __hash__(self) -> int:
+        return hash((self.tokens, self.labels))
+
+
+class AnnotatedSequence(_SequenceBase):
+    """A sequence of tokens with labels and decoded mentions.
+
+    Equality and hashing are defined using only the tokens, labels, and mentions.
+    """
+
+    mentions: tuple[Mention, ...]
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AnnotatedSequence):
+            return False
+        return (
+            self.tokens == other.tokens
+            and self.labels == other.labels
+            and self.mentions == other.mentions
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.tokens, self.labels, self.mentions))
+
+    def with_mentions(self, mentions: Sequence[Mention]) -> "AnnotatedSequence":
+        """Return a copy of this sequence with different mentions."""
+        return AnnotatedSequence(
+            tokens=self.tokens,
+            labels=self.labels,
+            mentions=tuple(mentions),
+            token_fields=self.token_fields,
+            provenance=self.provenance,
+            comment=self.comment,
+        )
+
     def mention_tokens(self, mention: Mention) -> tuple[str, ...]:
         """Return the tokens included in the given mention."""
         return self.span_tokens(mention.span)
@@ -234,8 +256,8 @@ class LabeledSequence(BaseModel, Sequence[str]):
         labels: Sequence[str],
         encoding: "Encoding",
         **kwargs: Any,
-    ) -> "LabeledSequence":
-        """Create a LabeledSequence by decoding mentions from the labels using the given encoding."""
+    ) -> "AnnotatedSequence":
+        """Create an AnnotatedSequence by decoding mentions from labels using the given encoding."""
         mentions = encoding.decode_labels(labels)
         return cls(
             tokens=tuple(tokens), labels=tuple(labels), mentions=tuple(mentions), **kwargs

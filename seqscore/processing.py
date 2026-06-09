@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from seqscore.model import LabeledSequence, Mention
+from seqscore.model import AnnotatedSequence, Mention
 
 
 class TypeMapper:
@@ -30,7 +30,7 @@ class TypeMapper:
                 else:
                     self.type_map[from_type] = to_type
 
-    def map_types(self, sequence: LabeledSequence) -> LabeledSequence:
+    def map_types(self, sequence: AnnotatedSequence) -> AnnotatedSequence:
         new_mentions: list[Mention] = []
         for mention in sequence.mentions:
             if mention.type in self.type_map:
@@ -47,13 +47,13 @@ class TypeMapper:
 
 
 def modify_types(
-    docs: list[list[LabeledSequence]],
+    docs: list[list[AnnotatedSequence]],
     keep_types: set[str],
     remove_types: set[str],
     type_map: dict[str, list[str]],
-) -> list[list[LabeledSequence]]:
+) -> list[list[AnnotatedSequence]]:
     mapper = TypeMapper(keep_types, remove_types, type_map)
-    mapped_docs: list[list[LabeledSequence]] = []
+    mapped_docs: list[list[AnnotatedSequence]] = []
     for doc in docs:
         mapped_docs.append([mapper.map_types(sequence) for sequence in doc])
 

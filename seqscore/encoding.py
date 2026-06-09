@@ -9,7 +9,7 @@ from typing import (
 
 from attr import Factory, attrib, attrs
 
-from seqscore.model import LabeledSequence, Mention, Span
+from seqscore.model import AnnotatedSequence, LabeledSequence, Mention, Span
 
 REPAIR_CONLL = "conlleval"
 REPAIR_DISCARD = "discard"
@@ -134,7 +134,7 @@ class Encoding(Protocol):
 
     def encode_sequence(
         self,
-        sequence: LabeledSequence,
+        sequence: AnnotatedSequence,
     ) -> Sequence[str]:
         labels = self.encode_mentions(sequence.mentions, len(sequence))
         assert len(labels) == len(sequence)

@@ -6,7 +6,7 @@ from typing import DefaultDict, Optional, Union
 from attr import Factory, attrib, attrs
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
-from seqscore.model import LabeledSequence, Mention
+from seqscore.model import AnnotatedSequence, Mention
 from seqscore.util import tuplify_strs, validator_nonempty_str
 from seqscore.validation import validate_labels
 
@@ -48,7 +48,7 @@ class TokenCountError(ValueError):
 
     @classmethod
     def from_predicted_sequence(
-        cls, reference_token_count: int, pred_sequence: LabeledSequence
+        cls, reference_token_count: int, pred_sequence: AnnotatedSequence
     ) -> "TokenCountError":
         if pred_sequence.provenance is None:
             raise ValueError(
@@ -130,8 +130,8 @@ class AccuracyScore:
 
 
 def compute_scores(
-    pred_docs: Sequence[Sequence[LabeledSequence]],
-    ref_docs: Sequence[Sequence[LabeledSequence]],
+    pred_docs: Sequence[Sequence[AnnotatedSequence]],
+    ref_docs: Sequence[Sequence[AnnotatedSequence]],
     *,
     count_fp_fn_examples: bool = False,
 ) -> tuple[ClassificationScore, AccuracyScore]:

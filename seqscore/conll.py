@@ -15,7 +15,7 @@ from attr import attrib, attrs
 from tabulate import tabulate
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
-from seqscore.model import LabeledSequence, SequenceProvenance
+from seqscore.model import AnnotatedSequence, SequenceProvenance
 from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,
@@ -116,9 +116,9 @@ class CoNLLIngester:
         repair: Optional[str],
         *,
         quiet: bool = False,
-    ) -> list[list[LabeledSequence]]:
-        all_documents: list[list[LabeledSequence]] = []
-        document: list[LabeledSequence] = []
+    ) -> list[list[AnnotatedSequence]]:
+        all_documents: list[list[AnnotatedSequence]] = []
+        document: list[AnnotatedSequence] = []
 
         for source_sequence, comment in self._parse_file(
             source, source_name, parse_comments=self.parse_comment_lines
@@ -206,7 +206,7 @@ class CoNLLIngester:
                 ) from e
 
             try:
-                sequences = LabeledSequence(
+                sequences = AnnotatedSequence(
                     tokens=tokens,
                     labels=labels,
                     mentions=tuple(mentions),
@@ -358,7 +358,7 @@ def ingest_conll_file(
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
     quiet: bool = False,
-) -> list[list[LabeledSequence]]:
+) -> list[list[AnnotatedSequence]]:
     mention_encoding = get_encoding(mention_encoding_name)
 
     if repair and repair not in mention_encoding.supported_repair_methods():
@@ -419,7 +419,7 @@ def repair_conll_file(
     ignore_document_boundaries: bool,
     parse_comment_lines: bool,
     quiet: bool,
-) -> list[list[LabeledSequence]]:
+) -> list[list[AnnotatedSequence]]:
     return ingest_conll_file(
         input_file,
         mention_encoding_name,
@@ -433,7 +433,7 @@ def repair_conll_file(
 
 
 def write_docs_using_encoding(
-    docs: Sequence[Sequence[LabeledSequence]],
+    docs: Sequence[Sequence[AnnotatedSequence]],
     mention_encoding_name: str,
     file_encoding: str,
     delim: str,
@@ -459,7 +459,7 @@ def write_docs_using_encoding(
 
 
 def write_doc_using_encoding(
-    doc: Sequence[LabeledSequence],
+    doc: Sequence[AnnotatedSequence],
     encoding: Encoding,
     delim: str,
     file: TextIO,

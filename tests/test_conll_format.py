@@ -12,7 +12,7 @@ from seqscore.conll import (
     write_docs_using_encoding,
 )
 from seqscore.encoding import REPAIR_NONE, get_encoding
-from seqscore.model import LabeledSequence
+from seqscore.model import AnnotatedSequence
 from seqscore.util import file_fields_match
 from seqscore.validation import InvalidLabelError
 
@@ -159,12 +159,12 @@ def test_bad_label1() -> None:
 
 
 def test_write_docs_no_orig_fields(tmp_path: Path) -> None:
-    sent1 = LabeledSequence(
+    sent1 = AnnotatedSequence(
         tokens=("This", "is", "a", "sentence", "."),
         labels=("O", "O", "O", "O", "O"),
         mentions=(),
     )
-    sent2 = LabeledSequence.from_tokens_and_labels(
+    sent2 = AnnotatedSequence.from_tokens_and_labels(
         (
             "University",
             "of",
