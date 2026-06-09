@@ -1,13 +1,12 @@
 from abc import abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import (
     AbstractSet,
     Optional,
     Protocol,
 )
-
-from attr import Factory, attrib, attrs
 
 from seqscore.model import AnnotatedSequence, LabeledSequence, Mention, Span
 
@@ -660,11 +659,11 @@ def get_encoding(name: str) -> Encoding:
         raise ValueError(f"Unknown encoder {repr(name)}")
 
 
-@attrs
+@dataclass
 class _MentionBuilder:
-    start_idx: Optional[int] = attrib(default=None, init=False)
-    entity_type: Optional[str] = attrib(default=None, init=False)
-    mentions: list[Mention] = attrib(default=Factory(list), init=False)
+    start_idx: Optional[int] = field(default=None, init=False)
+    entity_type: Optional[str] = field(default=None, init=False)
+    mentions: list[Mention] = field(default_factory=list, init=False)
 
     def start_mention(self, start_idx: int, entity_type: str) -> None:
         # Check arguments

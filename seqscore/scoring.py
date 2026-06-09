@@ -1,13 +1,11 @@
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 from typing import DefaultDict, Optional, Union
 
-from attr import Factory, attrib, attrs
-
 from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import AnnotatedSequence, Mention
-from seqscore.util import tuplify_strs, validator_nonempty_str
 from seqscore.validation import validate_labels
 
 
@@ -15,10 +13,10 @@ def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore
     return defaultdict(ClassificationScore)
 
 
-@attrs(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)
 class TokensWithType:
-    tokens: tuple[str, ...] = attrib(converter=tuplify_strs)
-    type: str = attrib(validator=validator_nonempty_str)
+    tokens: tuple[str, ...]
+    type: str
 
 
 class TokenCountError(ValueError):
@@ -62,16 +60,16 @@ class TokenCountError(ValueError):
         )
 
 
-@attrs
+@dataclass
 class ClassificationScore:
-    true_pos: int = attrib(default=0, kw_only=True)
-    false_pos: int = attrib(default=0, kw_only=True)
-    false_neg: int = attrib(default=0, kw_only=True)
-    type_scores: DefaultDict[str, "ClassificationScore"] = attrib(
-        default=Factory(_defaultdict_classification_score), kw_only=True
+    true_pos: int = field(default=0, kw_only=True)
+    false_pos: int = field(default=0, kw_only=True)
+    false_neg: int = field(default=0, kw_only=True)
+    type_scores: DefaultDict[str, "ClassificationScore"] = field(
+        default_factory=_defaultdict_classification_score, kw_only=True
     )
-    false_pos_examples: Counter[TokensWithType] = attrib(default=Factory(Counter))
-    false_neg_examples: Counter[TokensWithType] = attrib(default=Factory(Counter))
+    false_pos_examples: Counter[TokensWithType] = field(default_factory=Counter)
+    false_neg_examples: Counter[TokensWithType] = field(default_factory=Counter)
 
     def count_false_positive(self, tokens: Iterable[str], type_: str) -> None:
         self.false_pos_examples[TokensWithType(tuple(tokens), type_)] += 1
@@ -117,10 +115,10 @@ class ClassificationScore:
         return 2 * (precision * recall) / (precision + recall)
 
 
-@attrs
+@dataclass
 class AccuracyScore:
-    hits: int = attrib(default=0, kw_only=True)
-    total: int = attrib(default=0, kw_only=True)
+    hits: int = field(default=0, kw_only=True)
+    total: int = field(default=0, kw_only=True)
 
     @property
     def accuracy(self) -> float:

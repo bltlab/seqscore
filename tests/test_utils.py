@@ -3,14 +3,7 @@ import os
 from seqscore.util import (
     file_fields_match,
     file_lines_match,
-    tuplify_strs,
 )
-
-
-def test_tuplify_strs() -> None:
-    strs = ["a", "b", "c"]
-    tup = tuplify_strs(strs)
-    assert tup == ("a", "b", "c")
 
 
 def test_identical_files() -> None:

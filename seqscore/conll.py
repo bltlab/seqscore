@@ -1,6 +1,7 @@
 import sys
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
 from itertools import chain
 from math import sqrt
 from statistics import mean, stdev
@@ -11,7 +12,6 @@ from typing import (
     TextIO,
 )
 
-from attr import attrib, attrs
 from tabulate import tabulate
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
@@ -46,17 +46,17 @@ class CoNLLFormatError(Exception):
     pass
 
 
-@attrs(frozen=True)
+@dataclass(frozen=True)
 class LineSpec:
     """Defines the fields and delimiters for a CoNLL-format line"""
 
-    token_index: int = attrib()
-    ner_label_index: int = attrib()
+    token_index: int
+    ner_label_index: int
 
-    def __attrs_post_init__(self) -> None:
+    def __post_init__(self) -> None:
         # This will only catch cases where the indices are identical, not
-        # when they refer to the same position, such as 1 and -1 in a
-        # sequence of length two
+        # when they refer to the same position (such as 1 and -1 in a
+        # sequence of length two).
         if self.token_index == self.ner_label_index:
             raise ValueError(
                 f"Token index ({self.token_index}) and "
@@ -64,13 +64,13 @@ class LineSpec:
             )
 
 
-@attrs(frozen=True)
+@dataclass(frozen=True, slots=True)
 class _CoNLLToken:
-    text: str = attrib()
-    label: str = attrib()
-    is_docstart: bool = attrib()
-    line_num: int = attrib()
-    orig_fields: tuple[str, ...] = attrib()
+    text: str
+    label: str
+    is_docstart: bool
+    line_num: int
+    orig_fields: tuple[str, ...]
 
     @classmethod
     def from_line(
@@ -102,12 +102,12 @@ class _CoNLLToken:
         return cls(text, label, is_docstart, line_num, orig_fields)
 
 
-@attrs(frozen=True)
+@dataclass(frozen=True)
 class CoNLLIngester:
-    encoding: Encoding = attrib()
-    line_spec: LineSpec = attrib()
-    parse_comment_lines: bool = attrib(default=False, kw_only=True)
-    ignore_document_boundaries: bool = attrib(default=False, kw_only=True)
+    encoding: Encoding
+    line_spec: LineSpec
+    parse_comment_lines: bool = field(default=False, kw_only=True)
+    ignore_document_boundaries: bool = field(default=False, kw_only=True)
 
     def ingest(
         self,
@@ -401,7 +401,7 @@ def validate_conll_file(
     n_sequences = sum(len(doc_results) for doc_results in results)
     n_tokens = sum(sent.n_tokens for doc_results in results for sent in doc_results)
 
-    errors = list(
+    errors = tuple(
         chain.from_iterable(
             result.errors for doc_results in results for result in doc_results
         )

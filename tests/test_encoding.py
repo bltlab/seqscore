@@ -1,5 +1,6 @@
+from dataclasses import dataclass
+
 import pytest
-from attr import attrs
 
 from seqscore.encoding import (
     _ENCODING_NAMES,
@@ -51,7 +52,7 @@ VALID_ENCODING_STATES = {
 }
 
 
-@attrs(auto_attribs=True)
+@dataclass
 class EdgeTestSentence:
     name: str
     mentions: list[Mention]

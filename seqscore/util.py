@@ -1,21 +1,12 @@
 import os
-from collections.abc import Iterable
 from itertools import zip_longest
 from os import PathLike
 from pathlib import Path
-from typing import Any, Union
-
-from attr import Attribute, validators
+from typing import Union
 
 # Union[str, Path] isn't enough to appease PyCharm's type checker, so adding Path here
 # avoids warnings.
 PathType = Union[str, Path, PathLike]
-
-
-# Type-specific implementations to work around type checker limitations. No, writing these as
-# generic functions with type variables does not satisfy all type checkers.
-def tuplify_strs(strs: Iterable[str]) -> tuple[str, ...]:
-    return tuple(strs)
 
 
 def file_fields_match(path1: PathType, path2: PathType, *, debug: bool = False) -> bool:
@@ -49,15 +40,3 @@ def file_lines_match(path1: PathType, path2: PathType, debug: bool = False) -> b
 def normalize_str_with_path(s: str) -> str:
     """Normalize the OS path separator to '/'."""
     return s.replace(os.path.sep, "/")
-
-
-# Instantiate in advance for _validator_nonempty_str
-_instance_of_str = validators.instance_of(str)
-
-
-def validator_nonempty_str(_inst: Any, attr: Attribute, value: Any) -> None:
-    # Check type
-    _instance_of_str(value, attr, value)
-    # Check string isn't empty
-    if not value:
-        raise ValueError(f"Empty string: {repr(value)}")

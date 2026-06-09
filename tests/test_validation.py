@@ -1,11 +1,12 @@
+from dataclasses import dataclass
+
 import pytest
-from attr import attrs
 
 from seqscore.encoding import REPAIR_NONE, EncodingError, get_encoding
 from seqscore.validation import validate_labels
 
 
-@attrs(auto_attribs=True)
+@dataclass
 class RepairTest:
     original_labels: list[str]
     n_errors: int

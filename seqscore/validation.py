@@ -1,24 +1,22 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any, Optional
 
-from attr import attrib, attrs
-
 from seqscore.encoding import _ENCODING_NAMES, Encoding, EncodingError
-from seqscore.util import tuplify_strs
 
 # All encodings can be validated
 VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(_ENCODING_NAMES)
 
 
-@attrs
+@dataclass
 class ValidationError:
-    msg: str = attrib()
-    label: str = attrib()
-    type: str = attrib()
-    state: str = attrib()
-    token: Optional[str] = attrib(default=None)
-    line_num: Optional[int] = attrib(default=None)
-    source_name: Optional[str] = attrib(default=None)
+    msg: str
+    label: str
+    type: str
+    state: str
+    token: Optional[str] = None
+    line_num: Optional[int] = None
+    source_name: Optional[str] = None
 
 
 class InvalidStateError(ValidationError):
@@ -35,17 +33,11 @@ class InvalidLabelError(EncodingError):
         self.label: str = label
 
 
-def tuplify_errors(errors: Iterable[ValidationError]) -> tuple[ValidationError, ...]:
-    return tuple(errors)
-
-
-@attrs
+@dataclass
 class SequenceValidationResult:
-    errors: Sequence[ValidationError] = attrib(converter=tuplify_errors)
-    n_tokens: int = attrib()
-    repaired_labels: Optional[tuple[str, ...]] = attrib(
-        converter=tuplify_strs, default=()
-    )
+    errors: tuple[ValidationError, ...]
+    n_tokens: int
+    repaired_labels: tuple[str, ...] = ()
 
     def is_valid(self) -> bool:
         return not self.errors
@@ -57,12 +49,12 @@ class SequenceValidationResult:
         return len(self.errors)
 
 
-@attrs(frozen=True)
+@dataclass(frozen=True)
 class ValidationResult:
-    errors: Sequence[ValidationError] = attrib(converter=tuplify_errors)
-    n_tokens: int = attrib()
-    n_sequences: int = attrib()
-    n_docs: int = attrib()
+    errors: tuple[ValidationError, ...]
+    n_tokens: int
+    n_sequences: int
+    n_docs: int
 
 
 def validate_labels(
@@ -190,6 +182,8 @@ def validate_labels(
 
     if errors and repair:
         repaired_labels = encoding.repair_labels(labels, repair)
-        return SequenceValidationResult(errors, len(labels), repaired_labels)
+        return SequenceValidationResult(
+            tuple(errors), len(labels), tuple(repaired_labels)
+        )
     else:
-        return SequenceValidationResult(errors, len(labels))
+        return SequenceValidationResult(tuple(errors), len(labels))
