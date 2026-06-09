@@ -207,10 +207,10 @@ class CoNLLIngester:
 
             try:
                 sequences = LabeledSequence(
-                    tokens,
-                    labels,
-                    mentions,
-                    orig_fields=orig_fields,
+                    tokens=tokens,
+                    labels=labels,
+                    mentions=tuple(mentions),
+                    token_fields=orig_fields,
                     provenance=SequenceProvenance(line_nums[0], source_name),
                     comment=comment,
                 )
@@ -470,9 +470,9 @@ def write_doc_using_encoding(
 ) -> None:
     if output_docstart:
         # Get the fields of the first token of the first sentence
-        if doc[0].orig_fields and not discard_extra_fields:
+        if doc[0].token_fields and not discard_extra_fields:
             # to figure out how many fields there are
-            sequence_orig_fields = doc[0].orig_fields[0]
+            sequence_orig_fields = doc[0].token_fields[0]
             # Create the write number of fields
             fields = [EMPTY_OTHER_FIELD] * len(sequence_orig_fields)
             # Fill in the token and label
@@ -487,9 +487,7 @@ def write_doc_using_encoding(
     for sequence in doc:
         labels = encoding.encode_sequence(sequence)
         # Lengths of labels and orig_fields have previously been checked to match tokens
-        for (token, orig_fields), label in zip(
-            sequence.tokens_with_orig_fields(), labels
-        ):
+        for (token, orig_fields), label in zip(sequence.tokens_with_fields(), labels):
             if orig_fields and not discard_extra_fields:
                 fields = list(orig_fields)
                 fields[line_spec.token_index] = token

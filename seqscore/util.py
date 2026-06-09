@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from itertools import zip_longest
 from os import PathLike
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from attr import Attribute, validators
 
@@ -16,15 +16,6 @@ PathType = Union[str, Path, PathLike]
 # generic functions with type variables does not satisfy all type checkers.
 def tuplify_strs(strs: Iterable[str]) -> tuple[str, ...]:
     return tuple(strs)
-
-
-def tuplify_optional_nested_strs(
-    items: Optional[Iterable[Iterable[str]]],
-) -> Optional[tuple[tuple[str, ...], ...]]:
-    if items is not None:
-        return tuple(tuple(item) for item in items)
-    else:
-        return None
 
 
 def file_fields_match(path1: PathType, path2: PathType, *, debug: bool = False) -> bool:

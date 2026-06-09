@@ -159,7 +159,11 @@ def test_basic_encoding() -> None:
         assert encoding.encode_mentions(mentions, len(labels)) == labels
         # Also test encoding sentence object, intentionally putting no mentions in the
         # sentence labels to make sure encoding using the mentions, not the labels
-        sentence = LabeledSequence(["a"] * len(labels), ["O"] * len(labels), mentions)
+        sentence = LabeledSequence(
+            tokens=tuple("a" for _ in labels),
+            labels=tuple("O" for _ in labels),
+            mentions=tuple(mentions),
+        )
         assert encoding.encode_sequence(sentence) == labels
 
 
@@ -267,21 +271,21 @@ def test_labeled_sequence() -> None:
     # Test length mismatch
     with pytest.raises(ValueError):
         LabeledSequence(
-            ["a"] * 10,
-            ["O"] * 9,
+            tokens=("a",) * 10,
+            labels=("O",) * 9,
         )
 
 
 def test_decode_bio_invalid_continue() -> None:
     decoder = get_encoding("BIO")
-    sent1 = LabeledSequence(("a", "b"), ("B-PER", "I-LOC"))
+    sent1 = LabeledSequence(tokens=("a", "b"), labels=("B-PER", "I-LOC"))
     with pytest.raises(AssertionError):
         assert decoder.decode_sequence(sent1)
 
 
 def test_decode_iob_invalid_begin() -> None:
     decoder = get_encoding("IOB")
-    sent = LabeledSequence(("a", "b"), ("I-PER", "B-LOC"))
+    sent = LabeledSequence(tokens=("a", "b"), labels=("I-PER", "B-LOC"))
     with pytest.raises(AssertionError):
         assert decoder.decode_sequence(sent)
 
@@ -289,8 +293,8 @@ def test_decode_iob_invalid_begin() -> None:
 def test_decode_bioes_invalid_start() -> None:
     decoder = get_encoding("BIOES")
     sents = [
-        LabeledSequence(("a",), ("I-PER",)),
-        LabeledSequence(("a",), ("E-PER",)),
+        LabeledSequence(tokens=("a",), labels=("I-PER",)),
+        LabeledSequence(tokens=("a",), labels=("E-PER",)),
     ]
     for sent in sents:
         with pytest.raises(AssertionError):
@@ -301,14 +305,14 @@ def test_decode_bioes_invalid_end() -> None:
     decoder = get_encoding("BIOES")
     sents = [
         # Single-token mentions must start (and end) with S
-        LabeledSequence(("a", "b"), ("B-PER", "S-PER")),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "S-PER")),
         # Multi-token mentions must end in E
-        LabeledSequence(("a",), ("B-PER",)),
-        LabeledSequence(("a", "b"), ("B-PER", "I-PER")),
+        LabeledSequence(tokens=("a",), labels=("B-PER",)),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "I-PER")),
         # Ends with wrong type
-        LabeledSequence(("a", "b", "c"), ("B-PER", "I-PER", "E-ORG")),
+        LabeledSequence(tokens=("a", "b", "c"), labels=("B-PER", "I-PER", "E-ORG")),
         # Multi-token mentions cannot end in S
-        LabeledSequence(("a", "b", "c"), ("B-PER", "I-PER", "S-PER")),
+        LabeledSequence(tokens=("a", "b", "c"), labels=("B-PER", "I-PER", "S-PER")),
     ]
     for sent in sents:
         with pytest.raises(AssertionError):
@@ -319,10 +323,10 @@ def test_decode_bioes_invalid_continue() -> None:
     decoder = get_encoding("BIOES")
     sents = [
         # B must be followed by I or E of the same type
-        LabeledSequence(("a", "b"), ("B-PER", "B-PER")),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "B-PER")),
         # Cannot change types mid-mention
-        LabeledSequence(("a", "b"), ("B-PER", "E-ORG")),
-        LabeledSequence(("a", "b", "c"), ("B-PER", "I-PER", "E-ORG")),
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER", "E-ORG")),
+        LabeledSequence(tokens=("a", "b", "c"), labels=("B-PER", "I-PER", "E-ORG")),
     ]
     for sent in sents:
         with pytest.raises(AssertionError):

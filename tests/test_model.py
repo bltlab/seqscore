@@ -9,10 +9,19 @@ def test_span() -> None:
     assert len(Span(0, 2)) == 2
 
     with pytest.raises(ValueError):
+        Span(-2, -1)
+
+    with pytest.raises(ValueError):
         Span(-1, 0)
 
     with pytest.raises(ValueError):
+        Span(0, -1)
+
+    with pytest.raises(ValueError):
         Span(0, 0)
+
+    with pytest.raises(ValueError):
+        Span(3, 1)
 
 
 def test_mention() -> None:
@@ -31,8 +40,8 @@ def test_mention() -> None:
 
 def test_labeled_sentence() -> None:
     s1 = LabeledSequence(
-        ["a", "b"],
-        ["B-PER", "I-PER"],
+        tokens=("a", "b"),
+        labels=("B-PER", "I-PER"),
         provenance=SequenceProvenance(7, "test"),
     )
     assert s1.tokens == ("a", "b")
@@ -46,31 +55,37 @@ def test_labeled_sentence() -> None:
     assert s1.span_tokens(Span(0, 1)) == ("a",)
     assert s1.mention_tokens(Mention(Span(0, 1), "PER")) == ("a",)
 
-    s2 = LabeledSequence(s1.tokens, s1.labels)
+    s2 = LabeledSequence(tokens=s1.tokens, labels=s1.labels)
     # Provenance not included in equality
     assert s1 == s2
+    # Hashes identical for equal objects
+    assert hash(s1) == hash(s2)
+    # Equality fails for objects of other types
+    assert s1 != ""
 
     with pytest.raises(ValueError):
         # Mismatched length
-        LabeledSequence(["a", "b"], ["B-PER"])
+        LabeledSequence(tokens=("a", "b"), labels=("B-PER",))
 
     with pytest.raises(ValueError):
         # Empty
-        LabeledSequence([], [])
+        LabeledSequence(tokens=(), labels=())
 
     with pytest.raises(ValueError) as err:
         # Bad label
-        LabeledSequence(["a"], [""])
-    assert str(err.value) == "Invalid label at sequence index 0: ''"
+        LabeledSequence(tokens=("a",), labels=("",))
+    assert "Invalid label at sequence index 0: ''" in str(err.value)
 
     with pytest.raises(ValueError) as err:
         # Bad token
-        LabeledSequence([""], ["B-PER"])
-    assert str(err.value) == "Invalid token at sequence index 0: ''"
+        LabeledSequence(tokens=("",), labels=("B-PER",))
+    assert "Invalid token at sequence index 0: ''" in str(err.value)
 
     s2 = s1.with_mentions([Mention(Span(0, 2), "PER")])
     assert s2.mentions == (Mention(Span(0, 2), "PER"),)
 
     with pytest.raises(ValueError):
         # Mismatched length between tokens and other_fields
-        LabeledSequence(["a", "b"], ["B-PER", "I-PER"], orig_fields=[["DT"]])
+        LabeledSequence(
+            tokens=("a", "b"), labels=("B-PER", "I-PER"), token_fields=(("DT",),)
+        )

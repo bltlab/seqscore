@@ -1,6 +1,10 @@
 import os
 
-from seqscore.util import file_fields_match, file_lines_match, tuplify_strs
+from seqscore.util import (
+    file_fields_match,
+    file_lines_match,
+    tuplify_strs,
+)
 
 
 def test_tuplify_strs() -> None:

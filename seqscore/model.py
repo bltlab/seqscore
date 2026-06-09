@@ -1,36 +1,49 @@
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
 from itertools import repeat
-from typing import TYPE_CHECKING, Any, Optional, Union, overload
-
-from attr import Attribute, attrib, attrs
-
-from seqscore.util import (
-    tuplify_optional_nested_strs,
-    tuplify_strs,
-    validator_nonempty_str,
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Protocol,
+    Union,
+    overload,
+    runtime_checkable,
 )
+
+from pydantic import BaseModel, ConfigDict, model_validator
 
 if TYPE_CHECKING:
     from seqscore.encoding import Encoding  # pragma: no cover
 
-
-def _validator_nonnegative(_inst: Any, _attr: Attribute, value: Any) -> None:
-    if value < 0:
-        raise ValueError(f"Negative value: {repr(value)}")
-
-
-def _tuplify_mentions(
-    mentions: Iterable["Mention"],
-) -> tuple["Mention", ...]:
-    return tuple(mentions)
+__all__ = [
+    "LabeledSequence",
+    "Mention",
+    "SequenceProvenance",
+    "Span",
+    "TokenSequence",
+]
 
 
-@attrs(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)
 class Span:
-    start: int = attrib(validator=_validator_nonnegative)
-    end: int = attrib(validator=_validator_nonnegative)
+    """A token index range [start, end) within a sequence.
 
-    def __attrs_post_init__(self) -> None:
+    The start index is inclusive, and the end index is exclusive.
+    Both start and end must be non-negative, and end must be
+    greater than start. Zero-length spans are not allowed.
+    """
+
+    start: int
+    end: int
+
+    def __post_init__(self) -> None:
+        if self.start < 0:
+            raise ValueError(f"Start ({self.start}) cannot be negative")
+
+        if self.end < 0:
+            raise ValueError(f"End ({self.end}) cannot be negative")
+
         if not self.end > self.start:
             raise ValueError(
                 f"End of span ({self.end}) must be greater than start ({self.start}"
@@ -40,40 +53,104 @@ class Span:
         return self.end - self.start
 
 
-@attrs(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)
 class Mention:
-    span: Span = attrib()
-    type: str = attrib(validator=validator_nonempty_str)
+    """A typed span representing a named entity or chunk.
+
+    Combines a Span with a string entity type.
+    """
+
+    span: Span
+    type: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.type, str):
+            raise TypeError(f"Expected str for type, got {type(self.type).__name__}")
+        if not self.type:
+            raise ValueError(f"Empty string for type: {repr(self.type)}")
 
     def __len__(self) -> int:
         return len(self.span)
 
     def with_type(self, new_type: str) -> "Mention":
+        """Return a new Mention with the same span and the provided type."""
         return Mention(self.span, new_type)
 
 
-@attrs(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)
 class SequenceProvenance:
-    starting_line: int = attrib()
-    source: Optional[str] = attrib()
+    """Origin of a sequence, with a starting line and optional source name."""
+
+    starting_line: int
+    source: Optional[str]
 
 
-@attrs(frozen=True, slots=True)
-class LabeledSequence(Sequence[str]):
-    tokens: tuple[str, ...] = attrib(converter=tuplify_strs)
-    labels: tuple[str, ...] = attrib(converter=tuplify_strs)
-    mentions: tuple[Mention, ...] = attrib(default=(), converter=_tuplify_mentions)
-    orig_fields: Optional[tuple[tuple[str, ...], ...]] = attrib(
-        default=None, kw_only=True, converter=tuplify_optional_nested_strs
-    )
-    provenance: Optional[SequenceProvenance] = attrib(
-        default=None, eq=False, kw_only=True
-    )
-    comment: Optional[str] = attrib(default=None, eq=False, kw_only=True)
+@runtime_checkable
+class TokenSequence(Protocol):
+    """Protocol for a sequence of tokens with optional metadata."""
 
-    def __attrs_post_init__(self) -> None:
-        # TODO: Check for overlapping mentions
+    @property
+    def tokens(self) -> tuple[str, ...]: ...
 
+    @property
+    def token_fields(self) -> Optional[tuple[tuple[str, ...], ...]]: ...
+
+    @property
+    def provenance(self) -> Optional[SequenceProvenance]: ...
+
+    @property
+    def comment(self) -> Optional[str]: ...
+
+    @overload
+    def __getitem__(self, index: int) -> str: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> tuple[str, ...]: ...
+
+    def __getitem__(self, i: Union[int, slice]) -> Union[str, tuple[str, ...]]: ...
+
+    def __iter__(self) -> Iterator[str]: ...
+
+    def __len__(self) -> int: ...
+
+    def span_tokens(self, span: Span) -> tuple[str, ...]: ...
+
+    def tokens_with_fields(
+        self,
+    ) -> tuple[tuple[str, Optional[tuple[str, ...]]], ...]: ...
+
+
+class LabeledSequence(BaseModel, Sequence[str]):
+    """A sequence of tokens with associated labels and optional mentions.
+
+    Tokens and labels must be non-empty and of equal length. Iterating
+    over a LabeledSequence yields its tokens.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    tokens: tuple[str, ...]
+    labels: tuple[str, ...]
+    mentions: tuple[Mention, ...] = ()
+    token_fields: Optional[tuple[tuple[str, ...], ...]] = None
+    provenance: Optional[SequenceProvenance] = None
+    comment: Optional[str] = None
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, LabeledSequence):
+            return NotImplemented
+        return (
+            self.tokens == other.tokens
+            and self.labels == other.labels
+            and self.mentions == other.mentions
+            and self.token_fields == other.token_fields
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.tokens, self.labels, self.mentions, self.token_fields))
+
+    @model_validator(mode="after")
+    def _validate_fields(self) -> "LabeledSequence":
         if len(self.tokens) != len(self.labels):
             raise ValueError(
                 f"Tokens ({len(self.tokens)}) and labels ({len(self.labels)}) "
@@ -82,48 +159,46 @@ class LabeledSequence(Sequence[str]):
         if not self.tokens:
             raise ValueError("Tokens and labels must be non-empty")
 
-        if self.orig_fields and len(self.tokens) != len(self.orig_fields):
+        if self.token_fields and len(self.tokens) != len(self.token_fields):
             raise ValueError(
-                f"Tokens ({len(self.tokens)}) and orig_fields ({len(self.orig_fields)}) "
+                f"Tokens ({len(self.tokens)}) and token_fields ({len(self.token_fields)}) "
                 "must be of the same length"
             )
 
         for idx, label in enumerate(self.labels):
-            # Labels cannot be None or an empty string
             if not label:
                 raise ValueError(f"Invalid label at sequence index {idx}: {repr(label)}")
 
         for idx, token in enumerate(self.tokens):
-            # Tokens cannot be None or an empty string
             if not token:
                 raise ValueError(f"Invalid token at sequence index {idx}: {repr(token)}")
 
+        return self
+
     def with_mentions(self, mentions: Sequence[Mention]) -> "LabeledSequence":
+        """Return a copy of this sequence with different mentions."""
         return LabeledSequence(
-            self.tokens,
-            self.labels,
-            mentions,
-            orig_fields=self.orig_fields,
+            tokens=self.tokens,
+            labels=self.labels,
+            mentions=tuple(mentions),
+            token_fields=self.token_fields,
             provenance=self.provenance,
             comment=self.comment,
         )
 
     @overload
-    def __getitem__(self, index: int) -> str:
-        raise NotImplementedError
+    def __getitem__(self, index: int) -> str: ...
 
     @overload
-    def __getitem__(self, index: slice) -> tuple[str, ...]:
-        raise NotImplementedError
+    def __getitem__(self, index: slice) -> tuple[str, ...]: ...
 
     def __getitem__(self, i: Union[int, slice]) -> Union[str, tuple[str, ...]]:
         return self.tokens[i]
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[str]:  # type: ignore[override]
         return iter(self.tokens)
 
     def __len__(self) -> int:
-        # Guaranteed that labels and tokens are same length by construction
         return len(self.tokens)
 
     def __str__(self) -> str:
@@ -132,20 +207,24 @@ class LabeledSequence(Sequence[str]):
         )
 
     def tokens_with_labels(self) -> tuple[tuple[str, str], ...]:
+        """Return a tuple of (token, label) tuples."""
         return tuple(zip(self.tokens, self.labels))
 
-    def tokens_with_orig_fields(
+    def tokens_with_fields(
         self,
     ) -> tuple[tuple[str, Optional[tuple[str, ...]]], ...]:
-        if self.orig_fields:
-            return tuple(zip(self.tokens, self.orig_fields))
+        """Return a tuple of (token, token_fields) pairs, with None if token_fields is absent."""
+        if self.token_fields:
+            return tuple(zip(self.tokens, self.token_fields))
         else:
             return tuple(zip(self.tokens, repeat(None)))
 
     def span_tokens(self, span: Span) -> tuple[str, ...]:
+        """Return the tokens included in the given span."""
         return self.tokens[span.start : span.end]
 
     def mention_tokens(self, mention: Mention) -> tuple[str, ...]:
+        """Return the tokens included in the given mention."""
         return self.span_tokens(mention.span)
 
     @classmethod
@@ -156,5 +235,8 @@ class LabeledSequence(Sequence[str]):
         encoding: "Encoding",
         **kwargs: Any,
     ) -> "LabeledSequence":
+        """Create a LabeledSequence by decoding mentions from the labels using the given encoding."""
         mentions = encoding.decode_labels(labels)
-        return cls(tokens, labels, mentions, **kwargs)
+        return cls(
+            tokens=tuple(tokens), labels=tuple(labels), mentions=tuple(mentions), **kwargs
+        )
