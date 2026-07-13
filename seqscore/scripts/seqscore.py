@@ -131,7 +131,11 @@ def _output_delim_option() -> Callable:
 
 
 def _discard_extra_fields_option() -> Callable:
-    return click.option("--discard-extra-fields", is_flag=True)
+    return click.option(
+        "--discard-extra-fields",
+        is_flag=True,
+        help="discard any fields other than the token and label when writing output files",
+    )
 
 
 def _quiet_option() -> Callable:

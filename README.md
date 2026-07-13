@@ -87,7 +87,7 @@ For a list of commands, run `seqscore --help`:
 $ seqscore --help
 Usage: seqscore [OPTIONS] COMMAND [ARGS]...
 
-  Provides scoring and analysis tools for NER/chunking files (version 0.6.0)
+  Provides scoring and analysis tools for NER/chunking files (version 0.9.0)
 
 Options:
   --version  Show the version and exit.
@@ -210,7 +210,7 @@ scoring will fail:
 
 ```
 seqscore.encoding.EncodingError: Stopping due to validation errors in invalid.bio:
-Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
+Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of invalid.bio
 ```
 
 To score output with invalid transitions, we need to specify a repair method which can
@@ -219,8 +219,8 @@ we refer to as "begin" repair in our paper):
 `seqscore score --labels BIO --repair-method conlleval --reference samples/reference.bio samples/invalid.bio`:
 
 ```
-Validation errors in sequence at line 7 of invalid.bio:
-Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
+Validation errors in sequence beginning at line 7 of invalid.bio:
+Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of invalid.bio
 Used method conlleval to repair:
 Old: ('I-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
 New: ('B-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
@@ -272,14 +272,14 @@ To check if a file has any invalid transitions, we can run
 `seqscore validate --labels BIO samples/reference.bio`:
 
 ```
-No errors found in 0 tokens, 2 sequences, and 1 documents in reference.bio
+No errors found in 15 tokens, 2 sequences, and 1 document(s) in reference.bio
 ```
 
 For the example of the [samples/invalid.bio](samples/invalid.bio), we can run
 `seqscore validate --labels BIO samples/invalid.bio`:
 
 ```
-Encountered 1 errors in 1 tokens, 2 sequences, and 1 documents in invalid.bio
+Encountered 1 errors in 15 tokens, 2 sequences, and 1 document(s) in invalid.bio
 Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
 ```
 
@@ -314,11 +314,21 @@ We can get a list of available chunk encodings by running `seqscore convert --he
 ```
 Usage: seqscore convert [OPTIONS] FILE OUTPUT_FILE
 
+  convert between mention encodings
+
 Options:
   --file-encoding TEXT            [default: UTF-8]
-  --ignore-comment-lines
-  --ignore-document-boundaries / --use-document-boundaries
-  --output-delim TEXT             [default: space]
+  --allow-comment-lines           allow comment lines starting with # before
+                                  sequences
+  --ignore-document-boundaries    ignore any document boundaries in the input
+  --token-index INTEGER           index of the input field to use for the
+                                  token  [default: 0]
+  --label-index INTEGER           index of the input field to use for the
+                                  label  [default: -1]
+  --output-delim TEXT             the delimiter to be used for output (has no
+                                  effect on input) [default: tab]
+  --discard-extra-fields          discard any fields other than the token and
+                                  label when writing output files
   --input-labels [BIO|BIOES|BILOU|BMES|BMEOW|IO|IOB]
                                   [required]
   --output-labels [BIO|BIOES|BILOU|BMES|BMEOW|IO|IOB]
@@ -388,11 +398,13 @@ For example, if we run `seqscore summarize --labels BIO samples/reference.bio` w
 the following output:
 
 ```
-File 'samples/reference.bio' contains 1 document(s) with the following mentions:
+File 'samples/reference.bio' contains 1 document(s) and 2 sentences
 | Entity Type   |   Count |
 |---------------|---------|
 | LOC           |       2 |
 | ORG           |       1 |
+|---------------|---------|
+| TOTAL         |       3 |
 ```
 
 If the quiet (`-q`) flag is provided, the first line giving the filename and document
