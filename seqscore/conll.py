@@ -15,7 +15,7 @@ from typing import (
 from tabulate import tabulate
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
-from seqscore.model import AnnotatedSequence, SequenceProvenance
+from seqscore.model import AnnotatedSequence, LabeledSequence, SequenceProvenance
 from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,
@@ -441,9 +441,10 @@ def write_docs_using_encoding(
     output_path: PathType,
     *,
     discard_extra_fields: bool = False,
+    always_write_docstart: bool = False,
 ) -> None:
     mention_encoding = get_encoding(mention_encoding_name)
-    output_docstart = len(docs) > 1
+    output_docstart = len(docs) > 1 or always_write_docstart
 
     with open(output_path, "w", encoding=file_encoding) as file:
         for doc in docs:
@@ -458,6 +459,75 @@ def write_docs_using_encoding(
             )
 
 
+def write_docs_raw(
+    docs: Sequence[Sequence[LabeledSequence]],
+    file_encoding: str,
+    delim: str,
+    line_spec: LineSpec,
+    output_path: PathType,
+    *,
+    outside_label: str = "O",
+    discard_extra_fields: bool = False,
+    always_write_docstart: bool = False,
+) -> None:
+    output_docstart = len(docs) > 1 or always_write_docstart
+
+    with open(output_path, "w", encoding=file_encoding) as file:
+        for doc in docs:
+            write_doc_raw(
+                doc,
+                delim,
+                file,
+                line_spec,
+                output_docstart=output_docstart,
+                outside_label=outside_label,
+                discard_extra_fields=discard_extra_fields,
+            )
+
+
+def write_doc_raw(
+    doc: Sequence[LabeledSequence],
+    delim: str,
+    file: TextIO,
+    line_spec: LineSpec,
+    *,
+    output_docstart: bool,
+    outside_label: str = "O",
+    discard_extra_fields: bool = False,
+) -> None:
+    if output_docstart:
+        # Get the fields of the first token of the first sentence
+        if doc[0].token_fields and not discard_extra_fields:
+            # Figure out how many fields there are
+            sequence_orig_fields = doc[0].token_fields[0]
+            # Create the right number of fields
+            fields = [EMPTY_OTHER_FIELD] * len(sequence_orig_fields)
+            # Fill in the token and label
+            fields[line_spec.token_index] = DOCSTART
+            fields[line_spec.ner_label_index] = outside_label
+        else:
+            fields = [DOCSTART, outside_label]
+        # Write output
+        print(delim.join(fields), file=file)
+        print(file=file)
+
+    for sequence in doc:
+        for (token, orig_fields), label in zip(
+            sequence.tokens_with_fields(), sequence.labels
+        ):
+            if orig_fields and not discard_extra_fields:
+                fields = list(orig_fields)
+                fields[line_spec.token_index] = token
+                fields[line_spec.ner_label_index] = label
+            else:
+                fields = [token, label]
+            # Write output
+            print(delim.join(fields), file=file)
+
+        # Print an empty line after each sequence
+        print(file=file)
+
+
 def write_doc_using_encoding(
     doc: Sequence[AnnotatedSequence],
     encoding: Encoding,
@@ -468,37 +538,28 @@ def write_doc_using_encoding(
     output_docstart: bool,
     discard_extra_fields: bool = False,
 ) -> None:
-    if output_docstart:
-        # Get the fields of the first token of the first sentence
-        if doc[0].token_fields and not discard_extra_fields:
-            # to figure out how many fields there are
-            sequence_orig_fields = doc[0].token_fields[0]
-            # Create the write number of fields
-            fields = [EMPTY_OTHER_FIELD] * len(sequence_orig_fields)
-            # Fill in the token and label
-            fields[line_spec.token_index] = DOCSTART
-            fields[line_spec.ner_label_index] = encoding.dialect.outside
-        else:
-            fields = [DOCSTART, encoding.dialect.outside]
-        # Write output
-        print(delim.join(fields), file=file)
-        print(file=file)
-
-    for sequence in doc:
-        labels = encoding.encode_sequence(sequence)
-        # Lengths of labels and orig_fields have previously been checked to match tokens
-        for (token, orig_fields), label in zip(sequence.tokens_with_fields(), labels):
-            if orig_fields and not discard_extra_fields:
-                fields = list(orig_fields)
-                fields[line_spec.token_index] = token
-                fields[line_spec.ner_label_index] = label
-            else:
-                fields = [token, label]
-            # Write output
-            print(delim.join(fields), file=file)
-
-        # Print an emtpy line after each sequence
-        print(file=file)
+    # Re-encode mentions -> labels for each sequence, then defer to write_doc_raw
+    # for the actual DOCSTART/token/blank-line writing so the two writers share
+    # one implementation.
+    raw_doc = [
+        LabeledSequence(
+            tokens=sequence.tokens,
+            labels=tuple(encoding.encode_sequence(sequence)),
+            token_fields=sequence.token_fields,
+            provenance=sequence.provenance,
+            comment=sequence.comment,
+        )
+        for sequence in doc
+    ]
+    write_doc_raw(
+        raw_doc,
+        delim,
+        file,
+        line_spec,
+        output_docstart=output_docstart,
+        outside_label=encoding.dialect.outside,
+        discard_extra_fields=discard_extra_fields,
+    )
 
 
 # TODO: Refactor to remove CoNLL-specific file loading so that this can move to the scoring module

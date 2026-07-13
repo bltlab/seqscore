@@ -9,10 +9,11 @@ from seqscore.conll import (
     LineSpec,
     _CoNLLToken,
     ingest_conll_file,
+    write_docs_raw,
     write_docs_using_encoding,
 )
 from seqscore.encoding import REPAIR_NONE, get_encoding
-from seqscore.model import AnnotatedSequence
+from seqscore.model import AnnotatedSequence, LabeledSequence
 from seqscore.util import file_fields_match
 from seqscore.validation import InvalidLabelError
 
@@ -158,6 +159,18 @@ def test_bad_label1() -> None:
     )
 
 
+def test_bad_label2() -> None:
+    ingester = CoNLLIngester(BIO, LINE_SPEC)
+    path = Path("tests") / "test_files" / "bad_label2.bio"
+    with path.open(encoding="utf8") as file:
+        with pytest.raises(InvalidLabelError) as err:
+            ingester.ingest(file, str(path), repair=REPAIR_NONE)
+
+    assert str(err.value).startswith(
+        "Could not parse label 'OUT' on line 1 of tests/test_files/bad_label2.bio during validation"
+    )
+
+
 def test_write_docs_no_orig_fields(tmp_path: Path) -> None:
     sent1 = AnnotatedSequence(
         tokens=("This", "is", "a", "sentence", "."),
@@ -188,13 +201,119 @@ def test_write_docs_no_orig_fields(tmp_path: Path) -> None:
     )
 
 
-def test_bad_label2() -> None:
-    ingester = CoNLLIngester(BIO, LINE_SPEC)
-    path = Path("tests") / "test_files" / "bad_label2.bio"
-    with path.open(encoding="utf8") as file:
-        with pytest.raises(InvalidLabelError) as err:
-            ingester.ingest(file, str(path), repair=REPAIR_NONE)
-
-    assert str(err.value).startswith(
-        "Could not parse label 'OUT' on line 1 of tests/test_files/bad_label2.bio during validation"
+def test_write_docs_using_encoding_single_doc_no_docstart_by_default(
+    tmp_path: Path,
+) -> None:
+    sent = AnnotatedSequence(
+        tokens=("This", "is", "a", "sentence", "."),
+        labels=("O", "O", "O", "O", "O"),
+        mentions=(),
     )
+    output_file = tmp_path / "out.bio"
+    write_docs_using_encoding([[sent]], "BIO", "utf-8", " ", LINE_SPEC, output_file)
+    assert DOCSTART not in output_file.read_text()
+
+
+def test_write_docs_using_encoding_single_doc_always_write_docstart(
+    tmp_path: Path,
+) -> None:
+    sent = AnnotatedSequence(
+        tokens=("This", "is", "a", "sentence", "."),
+        labels=("O", "O", "O", "O", "O"),
+        mentions=(),
+    )
+    output_file = tmp_path / "out.bio"
+    write_docs_using_encoding(
+        [[sent]],
+        "BIO",
+        "utf-8",
+        " ",
+        LINE_SPEC,
+        output_file,
+        always_write_docstart=True,
+    )
+    text = output_file.read_text()
+    assert text.count(DOCSTART) == 1
+    assert text == "-DOCSTART- O\n\nThis O\nis O\na O\nsentence O\n. O\n\n"
+
+
+def test_write_docs_raw_single_doc_no_docstart_by_default(tmp_path: Path) -> None:
+    sent = LabeledSequence(
+        tokens=("This", "is", "a", "sentence", "."),
+        labels=("O", "O", "O", "O", "O"),
+    )
+    output_file = tmp_path / "out.bio"
+    write_docs_raw([[sent]], "utf-8", " ", LINE_SPEC, output_file)
+    assert DOCSTART not in output_file.read_text()
+
+
+def test_write_docs_raw_single_doc_always_write_docstart(tmp_path: Path) -> None:
+    sent = LabeledSequence(
+        tokens=("This", "is", "a", "sentence", "."),
+        labels=("O", "O", "O", "O", "O"),
+    )
+    output_file = tmp_path / "out.bio"
+    write_docs_raw(
+        [[sent]], "utf-8", " ", LINE_SPEC, output_file, always_write_docstart=True
+    )
+    text = output_file.read_text()
+    assert text.count(DOCSTART) == 1
+    assert text == "-DOCSTART- O\n\nThis O\nis O\na O\nsentence O\n. O\n\n"
+
+
+def test_write_docs_raw_outside_label(
+    tmp_path: Path,
+) -> None:
+    sent = LabeledSequence(tokens=("A",), labels=("O",))
+    output_file = tmp_path / "out.bio"
+    write_docs_raw(
+        [[sent]],
+        "utf-8",
+        " ",
+        LINE_SPEC,
+        output_file,
+        outside_label="NONE",
+        always_write_docstart=True,
+    )
+    assert output_file.read_text().startswith("-DOCSTART- NONE\n")
+
+
+def test_write_docs_raw_invalid_labels(
+    tmp_path: Path,
+) -> None:
+    # Completely invalid labels are written without error
+    sent = LabeledSequence(tokens=("A", "B", "C"), labels=("B-", "B-AAA", "I-YYY"))
+    output_file = tmp_path / "out.bio"
+    write_docs_raw(
+        [[sent]],
+        "utf-8",
+        " ",
+        LINE_SPEC,
+        output_file,
+    )
+    assert output_file.read_text().startswith("A B-\nB B-AAA\nC I-YYY")
+
+
+def test_write_docs_using_encoding_multi_doc_always_write_docstart(
+    tmp_path: Path,
+) -> None:
+    sent1 = AnnotatedSequence(
+        tokens=("This", "is", "a", "sentence", "."),
+        labels=("O", "O", "O", "O", "O"),
+        mentions=(),
+    )
+    sent2 = AnnotatedSequence(
+        tokens=("Another", "sentence", "."),
+        labels=("O", "O", "O"),
+        mentions=(),
+    )
+    docs = [[sent1], [sent2]]
+    default_file = tmp_path / "default.bio"
+    forced_file = tmp_path / "forced.bio"
+    write_docs_using_encoding(docs, "BIO", "utf-8", " ", LINE_SPEC, default_file)
+    write_docs_using_encoding(
+        docs, "BIO", "utf-8", " ", LINE_SPEC, forced_file, always_write_docstart=True
+    )
+    # Setting always_write_docstart=True has no effect.
+    # DOCSTART is always written once per document.
+    assert default_file.read_text() == forced_file.read_text()
