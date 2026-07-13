@@ -44,23 +44,29 @@ def cli() -> None:  # pragma: no cover
 def _input_file_options() -> list[Callable]:
     return [
         click.option("--file-encoding", default="UTF-8", show_default=True),
-        click.option("--parse-comment-lines", is_flag=True),
         click.option(
-            "--ignore-document-boundaries/--use-document-boundaries", default=False
+            "--allow-comment-lines",
+            is_flag=True,
+            help="allow comment lines starting with # before sequences",
+        ),
+        click.option(
+            "--ignore-document-boundaries",
+            is_flag=True,
+            help="ignore any document boundaries in the input",
         ),
         click.option(
             "--token-index",
             default=0,
             show_default=True,
             type=int,
-            help="Index of the input field to use for the token",
+            help="index of the input field to use for the token",
         ),
         click.option(
             "--label-index",
             default=-1,
             show_default=True,
             type=int,
-            help="Index of the input field to use for the label",
+            help="index of the input field to use for the label",
         ),
     ]
 
@@ -147,7 +153,7 @@ def validate(
     file_encoding: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     token_index: int,
     label_index: int,
     quiet: bool,
@@ -161,7 +167,7 @@ def validate(
             file_encoding,
             line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
-            parse_comment_lines=parse_comment_lines,
+            allow_comment_lines=allow_comment_lines,
         )
         if result.errors:
             print(
@@ -200,7 +206,7 @@ def repair(
     output_delim: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     discard_extra_fields: bool,
     quiet: bool,
 ) -> None:
@@ -218,7 +224,7 @@ def repair(
         file_encoding,
         line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
         quiet=quiet,
     )
     write_docs_using_encoding(
@@ -250,7 +256,7 @@ def convert(
     output_labels: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     discard_extra_fields: bool,
 ) -> None:
     output_delim = _normalize_tab(output_delim)
@@ -262,7 +268,7 @@ def convert(
         file_encoding,
         line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
     )
 
     write_docs_using_encoding(
@@ -310,7 +316,7 @@ def process(
     type_map: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     discard_extra_fields: bool,
 ) -> None:
     output_delim = _normalize_tab(output_delim)
@@ -333,7 +339,7 @@ def process(
         file_encoding,
         line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
     )
 
     try:
@@ -372,7 +378,7 @@ def count(
     labels: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     output_delim: str,
     repair_method: str,
     quiet: bool,
@@ -396,7 +402,7 @@ def count(
             file_encoding,
             line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
-            parse_comment_lines=parse_comment_lines,
+            allow_comment_lines=allow_comment_lines,
             repair=repair_method,
             quiet=quiet,
         )
@@ -434,7 +440,7 @@ def summarize(
     labels: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     repair_method: str,
     quiet: bool,
 ) -> None:
@@ -452,7 +458,7 @@ def summarize(
             file_encoding,
             line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
-            parse_comment_lines=parse_comment_lines,
+            allow_comment_lines=allow_comment_lines,
             repair=repair_method,
             quiet=quiet,
         )
@@ -514,7 +520,7 @@ def score(
     labels: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     reference: str,
     score_format: str,
     delim: str,
@@ -548,7 +554,7 @@ def score(
         file_encoding,
         line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
         output_format=score_format,
         delim=delim,
         error_counts=error_counts,
@@ -570,7 +576,7 @@ def extract_text(
     output_file: str,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
 ) -> None:
     line_spec = LineSpec(token_index, label_index)
     all_docs = []
@@ -581,7 +587,7 @@ def extract_text(
             file_encoding,
             line_spec,
             ignore_document_boundaries=ignore_document_boundaries,
-            parse_comment_lines=parse_comment_lines,
+            allow_comment_lines=allow_comment_lines,
         )
         all_docs.extend(docs)
 

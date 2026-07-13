@@ -29,7 +29,7 @@ def _score(
         file_encoding="utf-8",
         line_spec=LineSpec(0, -1),
         ignore_document_boundaries=False,
-        parse_comment_lines=False,
+        allow_comment_lines=False,
         delim="\t",
         output_format=output_format,
         error_counts=error_counts,

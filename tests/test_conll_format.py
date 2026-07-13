@@ -22,7 +22,7 @@ LINE_SPEC = LineSpec(0, -1)
 
 
 def test_parse_comments_true() -> None:
-    ingester = CoNLLIngester(BIO, LINE_SPEC, parse_comment_lines=True)
+    ingester = CoNLLIngester(BIO, LINE_SPEC, allow_comment_lines=True)
     comments_path = Path("tests") / "test_files" / "minimal_comments.bio"
     with comments_path.open(encoding="utf8") as file:
         documents = ingester.ingest(file, "test", REPAIR_NONE)
@@ -52,7 +52,7 @@ def test_parse_comments_false() -> None:
             ingester.ingest(file, "test", REPAIR_NONE)
         assert (
             str(err1.value)
-            == "Line 1 of test does not appear to be delimited and begins with #. Perhaps you want to use the --parse-comment-lines flag? Line contents: '#'"
+            == "Line 1 of test does not appear to be delimited and begins with #. Perhaps you want to use the --allow-comment-lines flag? Line contents: '#'"
         )
 
     comments_path = Path("tests") / "test_files" / "minimal_comments_2.bio"
@@ -139,7 +139,7 @@ def test_repair_bad_name() -> None:
             LINE_SPEC,
             repair="conlleval",
             ignore_document_boundaries=False,
-            parse_comment_lines=False,
+            allow_comment_lines=False,
         )
 
     assert str(err.value).startswith(

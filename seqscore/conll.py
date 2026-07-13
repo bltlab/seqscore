@@ -87,7 +87,7 @@ class _CoNLLToken:
             if line.startswith("#"):
                 raise CoNLLFormatError(
                     f"Line {line_num} of {source_name} does not appear to be delimited "
-                    "and begins with #. Perhaps you want to use the --parse-comment-lines "
+                    "and begins with #. Perhaps you want to use the --allow-comment-lines "
                     f"flag? Line contents: {repr(line)}"
                 )
             else:
@@ -106,7 +106,7 @@ class _CoNLLToken:
 class CoNLLIngester:
     encoding: Encoding
     line_spec: LineSpec
-    parse_comment_lines: bool = field(default=False, kw_only=True)
+    allow_comment_lines: bool = field(default=False, kw_only=True)
     ignore_document_boundaries: bool = field(default=False, kw_only=True)
 
     def ingest(
@@ -121,7 +121,7 @@ class CoNLLIngester:
         document: list[AnnotatedSequence] = []
 
         for source_sequence, comment in self._parse_file(
-            source, source_name, parse_comments=self.parse_comment_lines
+            source, source_name, parse_comments=self.allow_comment_lines
         ):
             if source_sequence[0].is_docstart:
                 # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
@@ -157,7 +157,7 @@ class CoNLLIngester:
                         err.label,
                         str(err)
                         + f" The first token {repr(tokens[0])} of this sentence starts with '#'."
-                        + " If it's a comment, consider enabling --parse-comment-lines.",
+                        + " If it's a comment, consider enabling --allow-comment-lines.",
                     ) from err
                 else:
                     raise err
@@ -238,7 +238,7 @@ class CoNLLIngester:
         for source_sequence, _ in self._parse_file(
             source,
             source_name,
-            parse_comments=self.parse_comment_lines,
+            parse_comments=self.allow_comment_lines,
         ):
             if source_sequence[0].is_docstart:
                 # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
@@ -356,7 +356,7 @@ def ingest_conll_file(
     *,
     repair: Optional[str] = None,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     quiet: bool = False,
 ) -> list[list[AnnotatedSequence]]:
     mention_encoding = get_encoding(mention_encoding_name)
@@ -370,7 +370,7 @@ def ingest_conll_file(
     ingester = CoNLLIngester(
         mention_encoding,
         line_spec,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
     with open(input_path, encoding=file_encoding) as input_file:
@@ -385,13 +385,13 @@ def validate_conll_file(
     line_spec: LineSpec,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
 ) -> ValidationResult:
     encoding = get_encoding(mention_encoding_name)
     ingester = CoNLLIngester(
         encoding,
         line_spec,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
         ignore_document_boundaries=ignore_document_boundaries,
     )
     with open(input_path, encoding=file_encoding) as input_file:
@@ -417,7 +417,7 @@ def repair_conll_file(
     line_spec: LineSpec,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     quiet: bool,
 ) -> list[list[AnnotatedSequence]]:
     return ingest_conll_file(
@@ -427,7 +427,7 @@ def repair_conll_file(
         line_spec,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
         quiet=quiet,
     )
 
@@ -572,7 +572,7 @@ def score_conll_files(
     line_spec: LineSpec,
     *,
     ignore_document_boundaries: bool,
-    parse_comment_lines: bool,
+    allow_comment_lines: bool,
     output_format: str,
     delim: str,
     error_counts: bool = False,
@@ -588,7 +588,7 @@ def score_conll_files(
         line_spec,
         repair=repair,
         ignore_document_boundaries=ignore_document_boundaries,
-        parse_comment_lines=parse_comment_lines,
+        allow_comment_lines=allow_comment_lines,
         quiet=quiet,
     )
 
@@ -613,7 +613,7 @@ def score_conll_files(
             line_spec,
             repair=repair,
             ignore_document_boundaries=ignore_document_boundaries,
-            parse_comment_lines=parse_comment_lines,
+            allow_comment_lines=allow_comment_lines,
             quiet=quiet,
         )
 
