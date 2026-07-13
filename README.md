@@ -587,10 +587,13 @@ For development, check out the `dev` branch (latest, but less tested than `main`
 
 ## Setting up an environment for development
 
+Python 3.10 (the minimum version SeqScore supports) is used for development to avoid
+accidentally using newer Python features.
+
 ### Using uv
 
-1. Create an environment: `uv venv --python 3.10 .venv`
-2. Install seqscore and development dependencies: `uv pip install -e ".[dev]"`
+Create an environment and install seqscore with development dependencies:
+`uv sync --python 3.10 --extra dev`
 
 ### Using conda
 
