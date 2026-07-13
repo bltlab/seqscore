@@ -34,7 +34,8 @@ from seqscore.processing import modify_types
     help=f"Provides scoring and analysis tools for NER/chunking files (version {seqscore.__version__})"
 )
 @click.version_option(seqscore.__version__)
-# This is tested by a subprocess call in test_seqscore_main so coverage will miss it
+# Tests invoke subcommands directly (e.g. runner.invoke(validate, [...])) rather
+# than through this group, so tests never actually call this function.
 def cli() -> None:  # pragma: no cover
     pass
 

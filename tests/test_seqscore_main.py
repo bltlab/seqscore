@@ -1,19 +1,20 @@
-import subprocess
+from click.testing import CliRunner
 
 import seqscore
+from seqscore.scripts.seqscore import cli
 
 HELP_OUTPUT = "Usage: seqscore [OPTIONS] COMMAND [ARGS]..."
 
 
 def test_seqscore_help() -> None:
-    result = subprocess.run(["seqscore", "--help"], capture_output=True, encoding="UTF-8")
-    assert result.returncode == 0
-    assert result.stdout.startswith(HELP_OUTPUT)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--help"], prog_name="seqscore")
+    assert result.exit_code == 0
+    assert result.output.startswith(HELP_OUTPUT)
 
 
 def test_seqscore_version() -> None:
-    result = subprocess.run(
-        ["seqscore", "--version"], capture_output=True, encoding="UTF-8"
-    )
-    assert result.returncode == 0
-    assert result.stdout == f"seqscore, version {seqscore.__version__}\n"
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--version"], prog_name="seqscore")
+    assert result.exit_code == 0
+    assert result.output == f"seqscore, version {seqscore.__version__}\n"
