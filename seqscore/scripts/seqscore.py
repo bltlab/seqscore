@@ -168,7 +168,8 @@ def validate(
                 f"Encountered {len(result.errors)} errors in {result.n_tokens} tokens, "
                 + f"{result.n_sequences} sequences, and {result.n_docs} document(s) in {each_file}"
             )
-            print("\n".join(err.msg for err in result.errors))
+            if not quiet:
+                print("\n".join(err.msg for err in result.errors))
             error = True
         elif not quiet:
             print(

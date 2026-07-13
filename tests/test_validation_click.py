@@ -64,12 +64,11 @@ def test_mixed_valid_bio_twofiles_quiet() -> None:
             os.path.join("tests", "conll_annotation", "invalid1.bio"),
         ],
     )
+    # Only summary line, no individual invalid transitions printed out
     assert result.output == (
         "Encountered 3 errors in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/invalid1.bio\n"
-        "Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7\n"
-        "Invalid transition 'O' -> 'I-LOC' for token 'West' on line 12\n"
-        "Invalid transition 'O' -> 'I-LOC' for token 'Pennsylvania' on line 15\n"
     )
+    assert "Invalid transition" not in result.output
     assert result.exit_code != 0
 
 
@@ -131,6 +130,27 @@ def test_invalid_bio() -> None:
         "Invalid transition 'O' -> 'I-LOC' for token 'Pennsylvania' on line 15"
         in result.output
     )
+
+
+def test_invalid_bio_quiet() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        [
+            "--labels",
+            "BIO",
+            "-q",
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
+        ],
+    )
+    assert result.exit_code != 0
+    assert (
+        normalize_str_with_path(
+            "Encountered 3 errors in 15 tokens, 2 sequences, and 1 document(s) in tests/conll_annotation/invalid1.bio\n"
+        )
+        == result.output
+    )
+    assert "Invalid transition" not in result.output
 
 
 def test_invalid_bioes() -> None:
