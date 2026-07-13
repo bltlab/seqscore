@@ -75,6 +75,7 @@ Other papers related to SeqScore include:
 * [If You Build Your Own NER Scorer, Non-replicable Results Will Come](https://aclanthology.org/2020.insights-1.15.pdf)
 * [Toward More Meaningful Resources for Lower-resourced Languages](https://aclanthology.org/2022.findings-acl.44/)
 * [CoNLL#: Fine-grained Error Analysis and a Corrected Test Set for CoNLL-03 English](https://aclanthology.org/2024.lrec-main.330/)
+* [OpenNER 1.0: Standardized Open-Access Named Entity Recognition Datasets in 50+ Languages](https://aclanthology.org/2025.emnlp-main.1708/)
 
 # Usage
 
