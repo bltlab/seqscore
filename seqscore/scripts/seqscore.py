@@ -484,7 +484,7 @@ def summarize(
     rows: list[Union[tuple[str, int], str]] = sorted(type_counts.items())
     rows.append(SEPARATING_LINE)
     rows.append(("TOTAL", sum(type_counts.values())))
-    print(tabulate(rows, header, intfmt=","))
+    print(tabulate(rows, header, tablefmt="github", intfmt=","))
 
 
 @cli.command(help="score a file and report performance or an error count table")
