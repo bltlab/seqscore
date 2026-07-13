@@ -136,10 +136,10 @@ def compute_scores(
     accuracy = AccuracyScore()
     classification = ClassificationScore()
 
-    # TODO: Recommend use of ignore_document_boundaries if this error is encountered
     if len(pred_docs) != len(ref_docs):
         raise ValueError(
-            f"Prediction has {len(pred_docs)} documents, reference has {len(ref_docs)}"
+            f"Prediction has {len(pred_docs)} documents, reference has {len(ref_docs)}. "
+            "Consider setting --ignore-document-boundaries/ignore_document_boundaries."
         )
 
     for pred_doc, ref_doc in zip(pred_docs, ref_docs):
