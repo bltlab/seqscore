@@ -301,10 +301,17 @@ def test_score_error_counts_single_file() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert "|   Count | Error   | Type   | Tokens            |" in result.output
-    assert "|       1 | FP      | LOC    | West              |" in result.output
-    assert "|       1 | FP      | LOC    | Philadelphia      |" in result.output
-    assert "|       1 | FN      | LOC    | West Philadelphia |" in result.output
+    # Ordering within the same count is deterministic and determined by
+    # the token string
+    assert (
+        result.output
+        == """|   Count | Error   | Type   | Tokens            |
+|---------|---------|--------|-------------------|
+|       1 | FP      | LOC    | Philadelphia      |
+|       1 | FP      | LOC    | West              |
+|       1 | FN      | LOC    | West Philadelphia |
+"""
+    )
 
 
 def test_score_error_counts_delim_format() -> None:
@@ -323,10 +330,14 @@ def test_score_error_counts_delim_format() -> None:
         ],
     )
     assert result.exit_code == 0
-    assert "Count\tError\tType\tTokens" in result.output
-    assert "1\tFP\tLOC\tWest" in result.output
-    assert "1\tFP\tLOC\tPhiladelphia" in result.output
-    assert "1\tFN\tLOC\tWest Philadelphia" in result.output
+    assert (
+        result.output
+        == """Count\tError\tType\tTokens
+1\tFP\tLOC\tPhiladelphia
+1\tFP\tLOC\tWest
+1\tFN\tLOC\tWest Philadelphia
+"""
+    )
 
 
 def test_score_error_counts_multiple_files() -> None:

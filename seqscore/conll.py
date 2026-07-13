@@ -647,13 +647,19 @@ def score_conll_files(
                             (error_type, item.type, " ".join(item.tokens))
                         ] = count
 
+                # Sort by count descending (the negative reverses the default
+                # ascending sort), breaking ties on the token string
+                # (item[0] is the (error_type, mention_type, token_str) key,
+                # so item[0][2] is the token string; item[1] is the count).
                 rows = [
                     [count, error_type, mention_type, token_str]
                     for (
                         error_type,
                         mention_type,
                         token_str,
-                    ), count in combined_counts.most_common()
+                    ), count in sorted(
+                        combined_counts.items(), key=lambda item: (-item[1], item[0][2])
+                    )
                 ]
 
                 if output_format == FORMAT_PRETTY:
