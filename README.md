@@ -87,13 +87,14 @@ For a list of commands, run `seqscore --help`:
 $ seqscore --help
 Usage: seqscore [OPTIONS] COMMAND [ARGS]...
 
-  Provides scoring and analysis tools for NER/chunking files (version 0.9.0)
+  Provides scoring and analysis tools for NER/chunking files (version 0.10.0)
 
 Options:
   --version  Show the version and exit.
   --help     Show this message and exit.
 
 Commands:
+  analyze       extract mentions with their sentence context
   convert       convert between mention encodings
   count         show counts for all the mentions contained in a file
   extract-text  extract text from a file
@@ -430,6 +431,26 @@ configured properly.
 You can use the `--output-delim` argument to change the delimiter used in the counts.
 The default delimiter of tab is strongly recommended, as there is no escaping or quoting
 of the names in the output.
+
+## Analyze
+
+The `analyze` subcommand extracts each mention along with the sentence it appears in,
+which is useful for inspecting predictions or looking for annotation errors. For
+example, running `seqscore analyze samples/reference.bio --output-file mentions.tsv`
+writes tab-delimited output to `mentions.tsv` as follows:
+
+```
+Mention	Type	Span	Sentence
+University of Pennsylvania	ORG	0-3	University of Pennsylvania is in West Philadelphia , Pennsylvania .
+West Philadelphia	LOC	5-7	University of Pennsylvania is in West Philadelphia , Pennsylvania .
+Pennsylvania	LOC	8-9	University of Pennsylvania is in West Philadelphia , Pennsylvania .
+```
+
+Each row contains one mention, so if there are multiple mentions in a sentence, there
+will be multiple rows with the same sentence. The `Span` column gives the token indices
+of the mention within its sentence, where the start index is inclusive and the end index
+is exclusive. You can omit `--output-file` to print to standard output, and you can
+change the delimiter with `--output-delim`.
 
 ## Process
 

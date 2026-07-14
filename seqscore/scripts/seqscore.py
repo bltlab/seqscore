@@ -26,6 +26,8 @@ from seqscore.encoding import (
 )
 from seqscore.processing import modify_types
 
+DEFAULT_OUTPUT_DELIM = "\t"
+
 
 # Set up a click command group
 @click.group(
@@ -128,7 +130,7 @@ def _labels_option_default_bio() -> Callable:
 def _output_delim_option() -> Callable:
     return click.option(
         "--output-delim",
-        default="\t",
+        default=DEFAULT_OUTPUT_DELIM,
         help="the delimiter to be used for output (has no effect on input) [default: tab]",
     )
 
@@ -569,10 +571,64 @@ def score(
     )
 
 
+@cli.command(help="extract mentions with their sentence context")
+@_multi_input_file_arguments
+@_output_file_option()
+@_labels_option_default_bio()
+@_repair_option()
+@_output_delim_option()
+def analyze(
+    file: list[str],  # Name is "file" to make sense on the command line, but it's a list
+    file_encoding: str,
+    token_index: int,
+    label_index: int,
+    output_file: Optional[str],
+    labels: str,
+    *,
+    ignore_document_boundaries: bool,
+    allow_comment_lines: bool,
+    output_delim: str,
+    repair_method: str,
+) -> None:
+    line_spec = LineSpec(token_index, label_index)
+    if repair_method == REPAIR_NONE:
+        repair_method = None
+
+    output_delim = _normalize_delim(output_delim)
+
+    rows = []
+    for each_file in file:
+        docs = ingest_conll_file(
+            each_file,
+            labels,
+            file_encoding,
+            line_spec,
+            ignore_document_boundaries=ignore_document_boundaries,
+            allow_comment_lines=allow_comment_lines,
+            repair=repair_method,
+        )
+        for doc in docs:
+            for sequence in doc:
+                sentence_text = " ".join(sequence.tokens)
+                for mention in sequence.mentions:
+                    mention_text = " ".join(sequence.mention_tokens(mention))
+                    span_text = f"{mention.span.start}-{mention.span.end}"
+                    rows.append((mention_text, mention.type, span_text, sentence_text))
+
+    with (
+        open(output_file, "w", encoding=file_encoding)
+        if output_file
+        else nullcontext(sys.stdout) as output
+    ):
+        print(output_delim.join(("Mention", "Type", "Span", "Sentence")), file=output)
+        for row in rows:
+            print(output_delim.join(row), file=output)
+
+
 @cli.command(help="extract text from a file")
 @_multi_input_file_arguments
-@_labels_option_default_bio()
 @click.argument("output_file")
+@_labels_option_default_bio()
 def extract_text(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
