@@ -26,8 +26,6 @@ from seqscore.encoding import (
 )
 from seqscore.processing import modify_types
 
-# TODO: For each command, reorder click decorators so that --help has the most important arguments first
-
 
 # Set up a click command group
 @click.group(
@@ -43,7 +41,12 @@ def cli() -> None:  # pragma: no cover
 # Argument helpers for commands
 def _input_file_options() -> list[Callable]:
     return [
-        click.option("--file-encoding", default="UTF-8", show_default=True),
+        click.option(
+            "--file-encoding",
+            default="UTF-8",
+            show_default=True,
+            help="encoding for input and output files",
+        ),
         click.option(
             "--allow-comment-lines",
             is_flag=True,
@@ -138,6 +141,14 @@ def _discard_extra_fields_option() -> Callable:
     )
 
 
+def _output_file_option() -> Callable:
+    return click.option(
+        "--output-file",
+        default=None,
+        help="path to write output to [default: stdout]",
+    )
+
+
 def _quiet_option() -> Callable:
     return click.option(
         "--quiet",
@@ -194,8 +205,8 @@ def validate(
 @cli.command(help="repair invalid label transitions")
 @_single_input_file_arguments
 @click.argument("output_file")
-@_repair_required_option()
 @_labels_option()
+@_repair_required_option()
 @_output_delim_option()
 @_discard_extra_fields_option()
 @_quiet_option()
@@ -214,7 +225,7 @@ def repair(
     discard_extra_fields: bool,
     quiet: bool,
 ) -> None:
-    output_delim = _normalize_tab(output_delim)
+    output_delim = _normalize_delim(output_delim)
     if repair_method == REPAIR_NONE:
         raise click.UsageError(
             f"Cannot repair with repair strategy {repr(repair_method)}"
@@ -245,10 +256,10 @@ def repair(
 @cli.command(help="convert between mention encodings")
 @_single_input_file_arguments
 @click.argument("output_file")
-@_output_delim_option()
-@_discard_extra_fields_option()
 @click.option("--input-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 @click.option("--output-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
+@_output_delim_option()
+@_discard_extra_fields_option()
 def convert(
     file: str,
     output_file: str,
@@ -263,7 +274,7 @@ def convert(
     allow_comment_lines: bool,
     discard_extra_fields: bool,
 ) -> None:
-    output_delim = _normalize_tab(output_delim)
+    output_delim = _normalize_delim(output_delim)
     line_spec = LineSpec(token_index, label_index)
 
     docs = ingest_conll_file(
@@ -323,7 +334,7 @@ def process(
     allow_comment_lines: bool,
     discard_extra_fields: bool,
 ) -> None:
-    output_delim = _normalize_tab(output_delim)
+    output_delim = _normalize_delim(output_delim)
     line_spec = LineSpec(token_index, label_index)
     keep_types_set = _parse_type_list(keep_types)
     remove_types_set = _parse_type_list(remove_types)
@@ -364,13 +375,9 @@ def process(
 
 @cli.command(help="show counts for all the mentions contained in a file")
 @_multi_input_file_arguments
-@click.option(
-    "--output-file",
-    default=None,
-    help="path to write output to [default: stdout]",
-)
-@_repair_option()
+@_output_file_option()
 @_labels_option_default_bio()
+@_repair_option()
 @_output_delim_option()
 @_quiet_option()
 def count(
@@ -391,12 +398,7 @@ def count(
     if repair_method == REPAIR_NONE:
         repair_method = None
 
-    output_delim = _normalize_tab(output_delim)
-    if output_delim != "\t":
-        print(
-            "Warning: Using a delimiter other than tab is not recommended as fields are not quoted",
-            file=sys.stderr,
-        )
+    output_delim = _normalize_delim(output_delim)
 
     counts: Counter[tuple[str, tuple[str, ...]]] = Counter()
     for each_file in file:
@@ -433,8 +435,8 @@ def count(
 # TODO: Take format argument for tabulate from command line
 @cli.command(help="show counts of the documents, sentences, and entity types")
 @_multi_input_file_arguments
-@_repair_option()
 @_labels_option_default_bio()
+@_repair_option()
 @_quiet_option()
 def summarize(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
@@ -548,7 +550,7 @@ def score(
     if error_counts and len(file) > 1:
         raise click.UsageError("Cannot use error-counts with multiple files to be scored")
 
-    delim = _normalize_tab(delim)
+    delim = _normalize_delim(delim)
 
     score_conll_files(
         file,
@@ -595,7 +597,7 @@ def extract_text(
         )
         all_docs.extend(docs)
 
-    with open(output_file, "w", encoding="utf8") as output:
+    with open(output_file, "w", encoding=file_encoding) as output:
         first_doc = True
         for doc in all_docs:
             # Print empty line between documents
@@ -607,12 +609,18 @@ def extract_text(
                 print(" ".join(sentence), file=output)
 
 
-def _normalize_tab(s: str) -> str:
+def _normalize_delim(s: str) -> str:
     if s == "tab":
-        return "\t"
+        delim = "\t"
     else:
         # Clean up the string r"\t" if it's been given
-        return s.replace(r"\t", "\t")
+        delim = s.replace(r"\t", "\t")
+    if delim != "\t":
+        print(
+            "Warning: Using a delimiter other than tab is not recommended as fields are not quoted",
+            file=sys.stderr,
+        )
+    return delim
 
 
 def _parse_type_list(types: str) -> set[str]:
