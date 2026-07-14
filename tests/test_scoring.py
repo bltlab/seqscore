@@ -9,6 +9,7 @@ from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,
     TokenCountError,
+    TokenMismatchError,
     TokensWithType,
     compute_scores,
     convert_score,
@@ -263,8 +264,14 @@ def test_token_count_error() -> None:
         mentions=(),
         provenance=SequenceProvenance(0, "test"),
     )
-    with pytest.raises(TokenCountError):
+    with pytest.raises(TokenCountError) as exc_info:
         compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert exc_info.value.ref_token_count == 4
+    assert exc_info.value.pred_token_count == 5
+    assert exc_info.value.ref_last_token == "d"
+    assert exc_info.value.pred_last_token == "e"
+    assert "was truncated" in str(exc_info.value)
+    assert "outside label (O)" in str(exc_info.value)
 
 
 def test_token_count_error_provenance_none_raises_error() -> None:
@@ -272,8 +279,14 @@ def test_token_count_error_provenance_none_raises_error() -> None:
     sequence = AnnotatedSequence(
         tokens=("a", "b"), labels=labels, mentions=(), provenance=None
     )
+    ref_sequence = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=labels,
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
+    )
     with pytest.raises(ValueError):
-        TokenCountError.from_predicted_sequence(2, sequence)
+        TokenCountError.from_sequences(ref_sequence, sequence)
 
 
 def test_differing_num_docs() -> None:
@@ -331,8 +344,145 @@ def test_differing_pred_and_ref_tokens() -> None:
         mentions=(),
         provenance=SequenceProvenance(0, "test"),
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TokenMismatchError) as exc_info:
         compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert exc_info.value.ref_token == "b"
+    assert exc_info.value.pred_token == "c"
+    assert exc_info.value.differing_index == 1
+    assert "First differing index: 1" in str(exc_info.value)
+
+
+def test_token_count_error_provenance_with_source() -> None:
+    ref_sequence = AnnotatedSequence(
+        tokens=("a", "b", "c"),
+        labels=("O", "B-ORG", "O"),
+        mentions=(),
+        provenance=SequenceProvenance(5, "document.txt"),
+    )
+    pred_sequence = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=("O", "B-ORG"),
+        mentions=(),
+        provenance=SequenceProvenance(5, "document.txt"),
+    )
+    with pytest.raises(TokenCountError) as exc_info:
+        compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert "of document.txt" in str(exc_info.value)
+    assert "line 5" in str(exc_info.value)
+
+
+def test_token_count_error_last_token_ref_len1() -> None:
+    ref_sequence = AnnotatedSequence(
+        tokens=("a",),
+        labels=("O",),
+        mentions=(),
+        provenance=SequenceProvenance(1, "test"),
+    )
+    pred_sequence = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=("O", "B-ORG"),
+        mentions=(),
+        provenance=SequenceProvenance(1, "test"),
+    )
+    with pytest.raises(TokenCountError) as exc_info:
+        compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert exc_info.value.ref_last_token == "a"
+    assert exc_info.value.pred_last_token == "b"
+    assert "Last token of reference sequence: 'a'" in str(exc_info.value)
+
+
+def test_token_count_error_last_token_pred_len1() -> None:
+    ref_sequence = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=("O", "B-ORG"),
+        mentions=(),
+        provenance=SequenceProvenance(1, "test"),
+    )
+    pred_sequence = AnnotatedSequence(
+        tokens=("a",),
+        labels=("O",),
+        mentions=(),
+        provenance=SequenceProvenance(1, "test"),
+    )
+    with pytest.raises(TokenCountError) as exc_info:
+        compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert exc_info.value.pred_last_token == "a"
+
+
+def test_token_mismatch_error_first_differing_index() -> None:
+    ref_sequence = AnnotatedSequence(
+        tokens=("a", "b", "c", "d"),
+        labels=("O", "B-ORG", "I-ORG", "O"),
+        mentions=(),
+        provenance=SequenceProvenance(3, "data.txt"),
+    )
+    pred_sequence = AnnotatedSequence(
+        tokens=("a", "x", "c", "d"),
+        labels=("O", "B-LOC", "I-LOC", "O"),
+        mentions=(),
+        provenance=SequenceProvenance(3, "data.txt"),
+    )
+    with pytest.raises(TokenMismatchError) as exc_info:
+        compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert exc_info.value.differing_index == 1
+    assert exc_info.value.ref_token == "b"
+    assert exc_info.value.pred_token == "x"
+    assert "First differing index: 1" in str(exc_info.value)
+    assert "of data.txt" in str(exc_info.value)
+    assert "line 3" in str(exc_info.value)
+
+
+def test_token_mismatch_error_at_index_0() -> None:
+    ref_sequence = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=("O", "B-ORG"),
+        mentions=(),
+        provenance=SequenceProvenance(1, "test"),
+    )
+    pred_sequence = AnnotatedSequence(
+        tokens=("x", "b"),
+        labels=("O", "B-LOC"),
+        mentions=(),
+        provenance=SequenceProvenance(1, "test"),
+    )
+    with pytest.raises(TokenMismatchError) as exc_info:
+        compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert exc_info.value.differing_index == 0
+    assert exc_info.value.ref_token == "a"
+    assert exc_info.value.pred_token == "x"
+
+
+def test_token_mismatch_error_provenance_none_raises_error() -> None:
+    ref_sequence = AnnotatedSequence(
+        tokens=("a", "b"),
+        labels=("O", "B-ORG"),
+        mentions=(),
+        provenance=SequenceProvenance(0, "test"),
+    )
+    pred_sequence = AnnotatedSequence(
+        tokens=("a", "x"),
+        labels=("O", "B-LOC"),
+        mentions=(),
+        provenance=None,
+    )
+    with pytest.raises(ValueError):
+        TokenMismatchError.from_sequences(ref_sequence, pred_sequence)
+
+
+def test_compute_scores_matching_tokens_passes() -> None:
+    tokens = ("a", "b", "c", "d")
+    ref_sequence = AnnotatedSequence(
+        tokens=tokens,
+        labels=("O", "B-ORG", "I-ORG", "O"),
+        mentions=(Mention(Span(1, 3), "ORG"),),
+    )
+    pred_sequence = AnnotatedSequence(
+        tokens=tokens,
+        labels=("O", "B-ORG", "I-ORG", "O"),
+        mentions=(Mention(Span(1, 3), "ORG"),),
+    )
+    classification, accuracy = compute_scores([[pred_sequence]], [[ref_sequence]])
+    assert accuracy.accuracy == 1.0
 
 
 def test_convert_score() -> None:

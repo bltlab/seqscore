@@ -22,39 +22,113 @@ class TokensWithType:
 class TokenCountError(ValueError):
     def __init__(
         self,
-        reference_token_count: int,
+        ref_token_count: int,
         pred_token_count: int,
+        ref_last_token: str,
+        pred_last_token: str,
         line_num: int,
         source: Optional[str],
     ):
-        self.reference_token_count: int = reference_token_count
-        self.other_token_count: int = pred_token_count
+        self.ref_token_count: int = ref_token_count
+        self.pred_token_count: int = pred_token_count
+        self.ref_last_token: str = ref_last_token
+        self.pred_last_token: str = pred_last_token
         self.line_num: int = line_num
         self.source: Optional[str] = source
 
-        # Insertable string if source is specified
         src = f" of {source}" if source else ""
         msg = "\n".join(
             [
                 f"Token count mismatch at line {line_num}{src}",
-                f"Reference sequence contains {reference_token_count} tokens; "
+                f"Reference sequence contains {ref_token_count} tokens; "
                 + f"predicted sequence contains {pred_token_count}.",
+                f"Last token of reference sequence: {ref_last_token!r}",
+                f"Last token of predicted sequence: {pred_last_token!r}",
                 "Correct the predictions to have the same number of tokens as the reference.",
+                "If the predicted sequence was truncated, pad it with the outside label (O) "
+                + "to match the length of the reference sequence.",
             ]
         )
         super().__init__(msg)
 
     @classmethod
-    def from_predicted_sequence(
-        cls, reference_token_count: int, pred_sequence: AnnotatedSequence
+    def from_sequences(
+        cls, ref_sequence: AnnotatedSequence, pred_sequence: AnnotatedSequence
     ) -> "TokenCountError":
         if pred_sequence.provenance is None:
             raise ValueError(
                 f"Cannot create {cls.__name__} from sequence without provenance"
             )
+        # AnnotatedSequence enforces non-empty tokens, so tokens[-1] is always safe.
         return cls(
-            reference_token_count,
+            len(ref_sequence),
             len(pred_sequence),
+            ref_sequence.tokens[-1],
+            pred_sequence.tokens[-1],
+            pred_sequence.provenance.starting_line,
+            pred_sequence.provenance.source,
+        )
+
+
+class TokenMismatchError(ValueError):
+    """Raised when tokens have different content but the same length."""
+
+    def __init__(
+        self,
+        ref_token: str,
+        pred_token: str,
+        differing_index: int,
+        line_num: int,
+        source: Optional[str],
+    ):
+        self.ref_token: str = ref_token
+        self.pred_token: str = pred_token
+        self.differing_index: int = differing_index
+        self.line_num: int = line_num
+        self.source: Optional[str] = source
+
+        src = f" of {source}" if source else ""
+        msg = "\n".join(
+            [
+                f"Tokens do not match at line {line_num}{src}",
+                f"First differing index: {differing_index}",
+                f"Reference token at that index: {ref_token}",
+                f"Prediction token at that index: {pred_token}",
+                "Correct the predictions to have the same tokens as the reference.",
+            ]
+        )
+        super().__init__(msg)
+
+    @classmethod
+    def from_sequences(
+        cls, ref_sequence: AnnotatedSequence, pred_sequence: AnnotatedSequence
+    ) -> "TokenMismatchError":
+        if ref_sequence.provenance is None or pred_sequence.provenance is None:
+            raise ValueError(
+                f"Cannot create {cls.__name__} from sequence without provenance"
+            )
+        # Precondition: ref_sequence.tokens and pred_sequence.tokens are equal
+        # length and differ at least once, so the first differing index always
+        # exists. Use default=None and raise early to avoid a bare StopIteration.
+        differing_index = next(
+            (
+                i
+                for i, (ref_token, pred_token) in enumerate(
+                    zip(ref_sequence.tokens, pred_sequence.tokens)
+                )
+                if ref_token != pred_token
+            ),
+            None,
+        )
+        if differing_index is None:  # pragma: no cover
+            raise ValueError(
+                "Tokens are identical — this should not happen; "
+                "TokenMismatchError is only raised when tokens differ"
+            )
+        return cls(
+            ref_sequence.tokens[differing_index],
+            pred_sequence.tokens[differing_index],
+            differing_index,
             pred_sequence.provenance.starting_line,
             pred_sequence.provenance.source,
         )
@@ -150,19 +224,10 @@ def compute_scores(
 
         for pred_sequence, ref_sequence in zip(pred_doc, ref_doc):
             if len(pred_sequence) != len(ref_sequence):
-                raise TokenCountError.from_predicted_sequence(
-                    len(ref_sequence), pred_sequence
-                )
+                raise TokenCountError.from_sequences(ref_sequence, pred_sequence)
 
-            # Fail if tokens have been changed
-            # TODO: Consider removing this check or providing a flag to disable it
-            # TODO: Change to a more verbose error that uses the provenance
             if pred_sequence.tokens != ref_sequence.tokens:
-                raise ValueError(
-                    "Tokens do not match between predictions and reference.\n"
-                    f"Prediction: {pred_sequence.tokens}\n"
-                    f"Reference: {ref_sequence.tokens}"
-                )
+                raise TokenMismatchError.from_sequences(ref_sequence, pred_sequence)
 
             score_sequence_label_accuracy(
                 pred_sequence.labels, ref_sequence.labels, accuracy

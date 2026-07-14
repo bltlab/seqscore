@@ -395,3 +395,29 @@ def test_score_error_counts_conlleval_format() -> None:
     )
     assert result.exit_code == 2
     assert "Cannot use error-counts with multiple files to be scored" in result.output
+
+
+def test_score_prediction_shorter_than_reference() -> None:
+    # The prediction file's first sentence is truncated (4 tokens) relative to
+    # the reference (5 tokens), so scoring fails with a token count mismatch.
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            os.path.join("tests", "conll_predictions", "correct1_truncated_sentence.bio"),
+        ],
+    )
+    assert result.exit_code == 1
+    exception_text = str(result.exception)
+    assert "Token count mismatch at line 1" in exception_text
+    assert (
+        "Reference sequence contains 5 tokens; predicted sequence contains 4."
+        in exception_text
+    )
+    assert "Last token of reference sequence: '.'" in exception_text
+    assert "Last token of predicted sequence: 'sentence'" in exception_text
+    assert "was truncated" in exception_text
