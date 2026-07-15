@@ -1,32 +1,12 @@
 import sys
-from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from itertools import chain
-from math import sqrt
-from statistics import mean, stdev
-from typing import (
-    Any,
-    DefaultDict,
-    Optional,
-    TextIO,
-)
-
-from tabulate import tabulate
+from typing import Optional, TextIO
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import AnnotatedSequence, LabeledSequence, SequenceProvenance
-from seqscore.output import (
-    FORMAT_CONLLEVAL,
-    FORMAT_DELIM,
-    FORMAT_PRETTY,
-)
-from seqscore.scoring import (
-    AccuracyScore,
-    ClassificationScore,
-    compute_scores,
-    convert_score,
-)
+from seqscore.output import report_scores
 from seqscore.util import PathType
 from seqscore.validation import (
     InvalidLabelError,
@@ -562,7 +542,6 @@ def write_doc_using_encoding(
     )
 
 
-# TODO: Refactor to remove CoNLL-specific file loading so that this can move to the scoring module
 def score_conll_files(
     pred_files: Sequence[PathType],
     reference_file: PathType,
@@ -578,7 +557,9 @@ def score_conll_files(
     error_counts: bool = False,
     full_precision: bool = False,
     quiet: bool = False,
+    table_format: str = "github",
 ) -> None:
+    """Load the reference and prediction files, then delegate presentation to report_scores."""
     assert len(pred_files) > 0, "List of files to score cannot be empty"
 
     ref_docs = ingest_conll_file(
@@ -592,19 +573,7 @@ def score_conll_files(
         quiet=quiet,
     )
 
-    # Flag for whether we're scoring multiple files
-    multi_files = len(pred_files) > 1
-
-    # Data to accumulate across files
-    score_summaries = []
-    all_class_scores = []
-    all_acc_scores = []
-
-    # Used to track whether this is the first summary for including the header for delim
-    first_summary = True
-    # Used to track how many fields are in the header
-    header_len = -1
-
+    pred_docs_by_file: list[tuple[str, Sequence[Sequence[AnnotatedSequence]]]] = []
     for pred_file in pred_files:
         pred_docs = ingest_conll_file(
             pred_file,
@@ -616,274 +585,14 @@ def score_conll_files(
             allow_comment_lines=allow_comment_lines,
             quiet=quiet,
         )
+        pred_docs_by_file.append((str(pred_file), pred_docs))
 
-        class_scores, acc_scores = compute_scores(
-            pred_docs, ref_docs, count_fp_fn_examples=error_counts
-        )
-        all_class_scores.append(class_scores)
-        all_acc_scores.append(acc_scores)
-
-        if error_counts:
-            if multi_files:
-                raise ValueError(
-                    "Outputting error counts is only available for a single prediction file"
-                )
-
-            if output_format == FORMAT_CONLLEVAL:
-                raise ValueError(
-                    f"Format {repr(output_format)} is not supported with error counts"
-                )
-            elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
-                header = ["Count", "Error", "Type", "Tokens"]
-
-                # Combine counts across the two counters
-                combined_counts: Counter[tuple[str, str, str]] = Counter()
-                for counter, error_type in zip(
-                    (class_scores.false_pos_examples, class_scores.false_neg_examples),
-                    ("FP", "FN"),
-                ):
-                    for item, count in counter.items():
-                        combined_counts[
-                            (error_type, item.type, " ".join(item.tokens))
-                        ] = count
-
-                # Sort by count descending (the negative reverses the default
-                # ascending sort), breaking ties on the token string
-                # (item[0] is the (error_type, mention_type, token_str) key,
-                # so item[0][2] is the token string; item[1] is the count).
-                rows = [
-                    [count, error_type, mention_type, token_str]
-                    for (
-                        error_type,
-                        mention_type,
-                        token_str,
-                    ), count in sorted(
-                        combined_counts.items(), key=lambda item: (-item[1], item[0][2])
-                    )
-                ]
-
-                if output_format == FORMAT_PRETTY:
-                    print(tabulate(rows, header, tablefmt="github"))
-                else:
-                    # Delimited output
-                    score_summaries.append(delim.join(header))
-                    score_summaries.extend(_join_delim(row, delim) for row in rows)
-                    print("\n".join(score_summaries))
-
-            # Exit early since all the following logic is for printing scores
-            return
-
-        if output_format == FORMAT_CONLLEVAL:
-            score_summaries.append(format_output_conlleval(class_scores, acc_scores))
-        elif output_format in (FORMAT_PRETTY, FORMAT_DELIM):
-            header, rows = format_output_table(class_scores, full_precision)
-            if output_format == FORMAT_PRETTY:
-                if full_precision:
-                    raise ValueError("Cannot use full_precision with pretty formatting")
-                # We don't allow full_precision in this case so we can use the usual float format
-                score_summaries.append(
-                    tabulate(rows, header, tablefmt="github", floatfmt="6.2f")
-                )
-            else:
-                # Delimited output
-                # Write the header if needed
-                if first_summary:
-                    # Add filename to header if needed
-                    if multi_files:
-                        header = ["File"] + header
-                    score_summaries.append(delim.join(header))
-                    header_len = len(header)
-                    first_summary = False
-
-                # Add filename to row if needed
-                if multi_files:
-                    rows = [[pred_file] + row for row in rows]
-
-                # Double check that we have the same number of columns as the header.
-                for row in rows:
-                    assert len(row) == header_len, (
-                        "Row column count does not match header"
-                    )
-                score_summaries.extend(_join_delim(row, delim) for row in rows)
-        else:
-            raise ValueError(f"Unrecognized output format: {output_format}")
-
-    # Compute summary statistics across files when multiple files are scored
-    if multi_files:
-        type_scores: DefaultDict[str, list] = defaultdict(list)
-        for class_score in all_class_scores:
-            for entity_type, entity_score in class_score.type_scores.items():
-                type_scores[entity_type].append(entity_score.f1)
-
-        entity_type_means = {
-            entity_type: mean(scores) for entity_type, scores in type_scores.items()
-        }
-        entity_type_means[ALL_TYPES] = mean(score.f1 for score in all_class_scores)
-
-        entity_type_stderrs = {
-            entity_type: stdev(scores) / sqrt(len(scores))
-            for entity_type, scores in type_scores.items()
-        }
-        all_f1s = [score.f1 for score in all_class_scores]
-        entity_type_stderrs[ALL_TYPES] = stdev(all_f1s) / sqrt(len(all_f1s))
-
-    # For delimited, just join all the rows
-    if output_format == FORMAT_DELIM:
-        if multi_files:
-            for entity_type, num in entity_type_stderrs.items():
-                score_summaries.append(
-                    _join_delim(
-                        [
-                            "SE",
-                            entity_type,
-                            "NA",
-                            "NA",
-                            convert_score(num, full_precision),
-                            "NA",
-                            "NA",
-                            "NA",
-                        ],
-                        delim,
-                    )
-                )
-            for entity_type, num in entity_type_means.items():
-                score_summaries.append(
-                    _join_delim(
-                        [
-                            "Mean",
-                            entity_type,
-                            "NA",
-                            "NA",
-                            convert_score(num, full_precision),
-                            "NA",
-                            "NA",
-                            "NA",
-                        ],
-                        delim,
-                    )
-                )
-        print("\n".join(score_summaries))
-    else:
-        if not multi_files:
-            print(score_summaries[0])
-        else:
-            # Use the index because we care whether we're at the last entry
-            for idx, (filename, summary) in enumerate(zip(pred_files, score_summaries)):
-                print(filename)
-                print(summary)
-                # Don't print an extra trailing newline
-                if idx != len(pred_files) - 1:
-                    print()
-
-            # Print mean ± SE summary table
-            ref_scores = all_class_scores[0]
-            summary_header = ["Type", "Mean F1", "SE", "Reference"]
-            summary_rows = [
-                [
-                    ALL_TYPES,
-                    entity_type_means[ALL_TYPES] * 100,
-                    entity_type_stderrs[ALL_TYPES] * 100,
-                    ref_scores.total_ref,
-                ]
-            ]
-            for entity_type in sorted(entity_type_means):
-                if entity_type == ALL_TYPES:
-                    continue
-                summary_rows.append(
-                    [
-                        entity_type,
-                        entity_type_means[entity_type] * 100,
-                        entity_type_stderrs[entity_type] * 100,
-                        ref_scores.type_scores[entity_type].total_ref,
-                    ]
-                )
-            print()
-            print("Summary")
-            print(
-                tabulate(
-                    summary_rows,
-                    summary_header,
-                    tablefmt="github",
-                    floatfmt="6.2f",
-                )
-            )
-
-
-def format_output_conlleval(
-    class_scores: ClassificationScore,
-    acc_scores: AccuracyScore,
-) -> str:
-    """Format output like conlleval.pl.
-
-    Example:
-    processed 15 tokens with 3 phrases; found: 4 phrases; correct: 2.
-    accuracy:  93.33%; precision:  50.00%; recall:  66.67%; FB1:  57.14
-                  LOC: precision:  33.33%; recall:  50.00%; FB1:  40.00  3
-                  ORG: precision: 100.00%; recall: 100.00%; FB1: 100.00  1
-    """
-    n_phrases = class_scores.true_pos + class_scores.false_neg
-    lines = [
-        f"processed {acc_scores.total} tokens with {n_phrases} phrases; "
-        + f"found: {class_scores.total_pos} phrases; correct: {class_scores.true_pos}.",
-        f"accuracy: {100 * acc_scores.accuracy:6.2f}%; "
-        + f"precision: {100 * class_scores.precision:6.2f}%; "
-        + f"recall: {100 * class_scores.recall:6.2f}%; "
-        + f"FB1: {100 * class_scores.f1:6.2f}",
-    ]
-
-    # Add lines for each type
-    for type_name, score in sorted(class_scores.type_scores.items()):
-        lines.append(
-            f"{type_name.rjust(17)}: "  # This is the width that conlleval uses
-            + f"precision: {100 * score.precision:6.2f}%; "
-            + f"recall: {100 * score.recall:6.2f}%; "
-            + f"FB1: {100 * score.f1:6.2f}  {score.total_pos}"
-        )
-
-    return "\n".join(lines)
-
-
-def format_output_table(
-    class_scores: ClassificationScore,
-    full_precision: bool,
-) -> tuple[list[str], list[list[Any]]]:
-    header = [
-        "Type",
-        "Precision",
-        "Recall",
-        "F1",
-        "Reference",
-        "Predicted",
-        "Correct",
-    ]
-    rows = [
-        [
-            ALL_TYPES,
-            convert_score(class_scores.precision, full_precision),
-            convert_score(class_scores.recall, full_precision),
-            convert_score(class_scores.f1, full_precision),
-            class_scores.total_ref,
-            class_scores.total_pos,
-            class_scores.true_pos,
-        ]
-    ]
-
-    # Add lines for each type
-    for type_name, score in sorted(class_scores.type_scores.items()):
-        rows.append(
-            [
-                type_name,
-                convert_score(score.precision, full_precision),
-                convert_score(score.recall, full_precision),
-                convert_score(score.f1, full_precision),
-                score.total_ref,
-                score.total_pos,
-                score.true_pos,
-            ]
-        )
-
-    return header, rows
-
-
-def _join_delim(items: Iterable[Any], delim: str) -> str:
-    return delim.join(str(item) for item in items)
+    report_scores(
+        pred_docs_by_file=pred_docs_by_file,
+        ref_docs=ref_docs,
+        output_format=output_format,
+        delim=delim,
+        error_counts=error_counts,
+        full_precision=full_precision,
+        table_format=table_format,
+    )

@@ -23,6 +23,7 @@ from seqscore.encoding import (
     SUPPORTED_REPAIR_METHODS,
 )
 from seqscore.output import (
+    FORMAT_CONLLEVAL,
     FORMAT_DELIM,
     FORMAT_PRETTY,
     SUPPORTED_OUTPUT_FORMATS,
@@ -600,6 +601,7 @@ def summarize(
     help="whether to output floating values at full precision instead of multiplying by 100 and rounding half even at two decimal places",
 )
 @_quiet_option()
+@_table_format_option()
 def score(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
@@ -616,6 +618,7 @@ def score(
     error_counts: bool,
     full_precision: bool,
     quiet: bool,
+    table_format: str,
 ) -> None:
     line_spec = LineSpec(token_index, label_index)
 
@@ -629,6 +632,11 @@ def score(
 
     if error_counts and len(file) > 1:
         raise click.UsageError("Cannot use error-counts with multiple files to be scored")
+
+    if score_format == FORMAT_CONLLEVAL and len(file) > 1:
+        raise click.UsageError(
+            "Cannot use the conlleval score format with multiple files to be scored"
+        )
 
     delim = _normalize_delim(delim)
 
@@ -646,6 +654,7 @@ def score(
         error_counts=error_counts,
         full_precision=full_precision,
         quiet=quiet,
+        table_format=table_format,
     )
 
 

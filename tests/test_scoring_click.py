@@ -282,9 +282,9 @@ def test_score_multiple_files_pretty() -> None:
     assert os.path.join("tests", "conll_predictions", "correct1.bio") in result.output
     assert os.path.join("tests", "conll_predictions", "incorrect1.bio") in result.output
     assert "Summary" in result.output
-    assert "| ALL    |     78.57 |  21.43 |           3 |" in result.output
-    assert "| LOC    |     70.00 |  30.00 |           2 |" in result.output
-    assert "| ORG    |    100.00 |   0.00 |           1 |" in result.output
+    assert "| ALL    |     78.57 | 21.43 |           3 |" in result.output
+    assert "| LOC    |     70.00 | 30.00 |           2 |" in result.output
+    assert "| ORG    |    100.00 |  0.00 |           1 |" in result.output
 
 
 def test_score_error_counts_single_file() -> None:
@@ -438,3 +438,72 @@ def test_report_commands_have_output_format() -> None:
         assert result.exit_code == 0, f"{name} --help failed"
         assert "--output-format" in result.output, f"{name} missing --output-format"
         assert "--table-format" in result.output, f"{name} missing --table-format"
+
+
+def _score_table_format(table_format: str) -> str:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--table-format",
+            table_format,
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    return result.output
+
+
+def test_score_table_format_pretty_not_centered() -> None:
+    # The "pretty" table format centers by default; the score table must keep
+    # numeric columns right-justified instead.
+    output = _score_table_format("pretty")
+    assert "| ALL  |     50.00 |  66.67 |  57.14 |" in output
+
+
+def test_score_table_format_grid() -> None:
+    # "grid" uses row separators made of '=' and '-'
+    output = _score_table_format("grid")
+    assert "+====" in output
+
+
+def test_score_table_format_invalid_rejected() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--table-format",
+            "nonexistent",
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 2
+    assert "Invalid value for '--table-format'" in result.output
+
+
+def test_score_multiple_files_conlleval_rejected() -> None:
+    # conlleval format is inherently single-file
+    runner = CliRunner()
+    result = runner.invoke(
+        score,
+        [
+            "--labels",
+            "BIO",
+            "--reference",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            "--score-format",
+            "conlleval",
+            os.path.join("tests", "conll_predictions", "correct1.bio"),
+            os.path.join("tests", "conll_predictions", "incorrect1.bio"),
+        ],
+    )
+    assert result.exit_code == 2
+    assert "Cannot use the conlleval score format with multiple files" in result.output
