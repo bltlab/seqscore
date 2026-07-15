@@ -17,10 +17,10 @@ from seqscore.conll import (
     write_docs_using_encoding,
 )
 from seqscore.encoding import (
-    DEFAULT_OUTSIDE,
     REPAIR_NONE,
     SUPPORTED_ENCODINGS,
     SUPPORTED_REPAIR_METHODS,
+    default_outside_label,
 )
 from seqscore.output import (
     FORMAT_CONLLEVAL,
@@ -796,9 +796,9 @@ def _parse_type_list(types: str) -> set[str]:
     split_types = [t.strip() for t in types.split(",") if t.strip()]
     # Check for outside type
     for entity_type in split_types:
-        if entity_type == DEFAULT_OUTSIDE:
+        if entity_type == default_outside_label():
             raise click.UsageError(
-                f"Cannot specify the outside type {DEFAULT_OUTSIDE} in keep/remove types"
+                f"Cannot specify the outside type {default_outside_label()} in keep/remove types"
             )
     return set(split_types)
 
@@ -832,9 +832,9 @@ def _load_type_map(
             raise click.UsageError(
                 f"Key {repr(from_type)} in type map {repr(type_map_path)} is not a non-empty string"
             )
-        if from_type == DEFAULT_OUTSIDE:
+        if from_type == default_outside_label():
             raise click.UsageError(
-                f"Key {repr(from_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
+                f"Key {repr(from_type)} in type map {repr(type_map_path)} is the outside type {default_outside_label()}"
             )
 
         if not isinstance(to_types, list):
@@ -847,9 +847,9 @@ def _load_type_map(
                 raise click.UsageError(
                     f"Value {repr(to_type)} in type map {repr(type_map_path)} is not a non-empty string"
                 )
-            if to_type == DEFAULT_OUTSIDE:
+            if to_type == default_outside_label():
                 raise click.UsageError(
-                    f"Value {repr(to_type)} in type map {repr(type_map_path)} is the outside type {DEFAULT_OUTSIDE}"
+                    f"Value {repr(to_type)} in type map {repr(type_map_path)} is the outside type {default_outside_label()}"
                 )
 
     return type_map

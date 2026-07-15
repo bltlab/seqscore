@@ -2,10 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from seqscore.encoding import _ENCODING_NAMES, Encoding, EncodingError
-
-# All encodings can be validated
-VALIDATION_SUPPORTED_ENCODINGS: Sequence[str] = tuple(_ENCODING_NAMES)
+from seqscore.encoding import Encoding, EncodingError
 
 
 @dataclass

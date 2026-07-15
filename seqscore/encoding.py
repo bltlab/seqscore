@@ -15,10 +15,10 @@ REPAIR_DISCARD = "discard"
 REPAIR_NONE = "none"
 SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
 
-DEFAULT_OUTSIDE = "O"
+_DEFAULT_OUTSIDE = "O"
 
 
-class EncodingDialect(Protocol):
+class _EncodingDialect(Protocol):
     label_delim: str
     outside: str
     begin: Optional[str]
@@ -27,37 +27,38 @@ class EncodingDialect(Protocol):
     single: Optional[str]
 
 
-class BIOESDialect(EncodingDialect):
+class _BIOESDialect(_EncodingDialect):
     def __init__(self) -> None:
         self.label_delim = "-"
         self.begin = "B"
         self.inside = "I"
-        self.outside = DEFAULT_OUTSIDE
+        self.outside = _DEFAULT_OUTSIDE
         self.end = "E"
         self.single = "S"
 
 
-class BILOUDialect(BIOESDialect):
+class _BILOUDialect(_BIOESDialect):
     def __init__(self) -> None:
         super().__init__()
         self.end = "L"
         self.single = "U"
 
 
-class BMESDialect(BIOESDialect):
+class _BMESDialect(_BIOESDialect):
     def __init__(self) -> None:
         super().__init__()
         self.inside = "M"
 
 
-class BMEOWDialect(BMESDialect):
+class _BMEOWDialect(_BMESDialect):
     def __init__(self) -> None:
         super().__init__()
         self.single = "W"
 
 
 class Encoding(Protocol):
-    dialect: EncodingDialect
+    name: str
+    dialect: _EncodingDialect
 
     valid_same_type_transitions: AbstractSet[tuple[str, str]]
     valid_different_type_transitions: AbstractSet[tuple[str, str]]
@@ -156,9 +157,10 @@ class EncodingError(Exception):
     pass
 
 
-class IO(Encoding):
-    def __init__(self, dialect: EncodingDialect):
-        self.dialect: EncodingDialect = dialect
+class _IO(Encoding):
+    def __init__(self, dialect: _EncodingDialect, name: str):
+        self.name = name
+        self.dialect: _EncodingDialect = dialect
 
         inside = dialect.inside
         outside = dialect.outside
@@ -230,8 +232,9 @@ class IO(Encoding):
         return builder.mentions
 
 
-class IOB(Encoding):
-    def __init__(self, dialect: EncodingDialect):
+class _IOB(Encoding):
+    def __init__(self, dialect: _EncodingDialect, name: str):
+        self.name = name
         self.dialect = dialect
 
         inside = dialect.inside
@@ -379,8 +382,9 @@ class IOB(Encoding):
         return (REPAIR_CONLL,)
 
 
-class BIO(Encoding):
-    def __init__(self, dialect: EncodingDialect):
+class _BIO(Encoding):
+    def __init__(self, dialect: _EncodingDialect, name: str):
+        self.name = name
         self.dialect = dialect
 
         inside = dialect.inside
@@ -524,8 +528,9 @@ class BIO(Encoding):
         return (REPAIR_CONLL, REPAIR_DISCARD)
 
 
-class BIOES(Encoding):
-    def __init__(self, dialect: EncodingDialect):
+class _BIOES(Encoding):
+    def __init__(self, dialect: _EncodingDialect, name: str):
+        self.name = name
         self.dialect = dialect
 
         begin = dialect.begin
@@ -638,13 +643,13 @@ class BIOES(Encoding):
 
 # Declared mid-file so it can refer to classes in file
 _ENCODING_NAMES: dict[str, Encoding] = {
-    "BIO": BIO(BIOESDialect()),
-    "BIOES": BIOES(BIOESDialect()),
-    "BILOU": BIOES(BILOUDialect()),
-    "BMES": BIOES(BMESDialect()),
-    "BMEOW": BIOES(BMEOWDialect()),
-    "IO": IO(BIOESDialect()),
-    "IOB": IOB(BIOESDialect()),
+    "BIO": _BIO(_BIOESDialect(), "BIO"),
+    "BIOES": _BIOES(_BIOESDialect(), "BIOES"),
+    "BILOU": _BIOES(_BILOUDialect(), "BILOU"),
+    "BMES": _BIOES(_BMESDialect(), "BMES"),
+    "BMEOW": _BIOES(_BMEOWDialect(), "BMEOW"),
+    "IO": _IO(_BIOESDialect(), "IO"),
+    "IOB": _IOB(_BIOESDialect(), "IOB"),
 }
 # Note that the ordering here is what will appear on the command line options
 # All are supported for encoding and decoding, but in theory things could change
@@ -657,6 +662,10 @@ def get_encoding(name: str) -> Encoding:
         return _ENCODING_NAMES[name]
     else:
         raise ValueError(f"Unknown encoder {repr(name)}")
+
+
+def default_outside_label() -> str:
+    return _DEFAULT_OUTSIDE
 
 
 @dataclass

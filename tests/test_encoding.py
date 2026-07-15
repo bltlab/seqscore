@@ -3,17 +3,16 @@ from dataclasses import dataclass
 import pytest
 
 from seqscore.encoding import (
-    _ENCODING_NAMES,
-    BIO,
-    BIOES,
-    IO,
-    IOB,
+    _BIO,
+    _BIOES,
+    _IO,
+    _IOB,
     SUPPORTED_ENCODINGS,
-    BILOUDialect,
-    BIOESDialect,
-    BMEOWDialect,
-    BMESDialect,
     EncodingError,
+    _BILOUDialect,
+    _BIOESDialect,
+    _BMEOWDialect,
+    _BMESDialect,
     get_encoding,
 )
 from seqscore.model import AnnotatedSequence, LabeledSequence, Mention, Span
@@ -188,7 +187,7 @@ def test_round_trip() -> None:
 
 
 def test_valid_states() -> None:
-    all_encoding_names = set(_ENCODING_NAMES)
+    all_encoding_names = set(SUPPORTED_ENCODINGS)
     for state, valid_encoding_names in VALID_ENCODING_STATES.items():
         for encoding_name in all_encoding_names:
             encoding = get_encoding(encoding_name)
@@ -208,26 +207,38 @@ def test_edge_case_encoding() -> None:
 
 
 def test_get_encodings() -> None:
-    assert isinstance(get_encoding("IO"), IO)
-    assert isinstance(get_encoding("IOB"), IOB)
-    assert isinstance(get_encoding("BIO"), BIO)
+    enc = get_encoding("IO")
+    assert isinstance(enc, _IO)
+    assert enc.name == "IO"
+
+    enc = get_encoding("IOB")
+    assert isinstance(enc, _IOB)
+    assert enc.name == "IOB"
+
+    enc = get_encoding("BIO")
+    assert isinstance(enc, _BIO)
+    assert enc.name == "BIO"
 
     # Test the dialects for BIOES and derivatives
     enc = get_encoding("BIOES")
-    assert isinstance(enc, BIOES)
-    assert isinstance(enc.dialect, BIOESDialect)
+    assert isinstance(enc, _BIOES)
+    assert isinstance(enc.dialect, _BIOESDialect)
+    assert enc.name == "BIOES"
 
     enc = get_encoding("BILOU")
-    assert isinstance(enc, BIOES)
-    assert isinstance(enc.dialect, BILOUDialect)
+    assert isinstance(enc, _BIOES)
+    assert isinstance(enc.dialect, _BILOUDialect)
+    assert enc.name == "BILOU"
 
     enc = get_encoding("BMES")
-    assert isinstance(enc, BIOES)
-    assert isinstance(enc.dialect, BMESDialect)
+    assert isinstance(enc, _BIOES)
+    assert isinstance(enc.dialect, _BMESDialect)
+    assert enc.name == "BMES"
 
     enc = get_encoding("BMEOW")
-    assert isinstance(enc, BIOES)
-    assert isinstance(enc.dialect, BMEOWDialect)
+    assert isinstance(enc, _BIOES)
+    assert isinstance(enc.dialect, _BMEOWDialect)
+    assert enc.name == "BMEOW"
 
 
 def test_get_unknown_encoding() -> None:
