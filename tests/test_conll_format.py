@@ -43,6 +43,56 @@ def test_parse_comments_true() -> None:
     assert first_sent[9] == "#1"
 
 
+def test_comment_before_docstart_stays_with_docstart() -> None:
+    # A comment preceding a DOCSTART belongs to the document boundary and must
+    # not be carried onto the first sentence of the document.
+    ingester = CoNLLIngester(BIO, LINE_SPEC, allow_comment_lines=True)
+    path = Path("tests") / "test_files" / "minimal_comments_docstart.bio"
+    with path.open(encoding="utf8") as file:
+        documents = ingester.ingest(file, "test", REPAIR_NONE)
+
+    # The lone sentence keeps only its own comment, not the document comment.
+    assert len(documents) == 1
+    sequences = documents[0]
+    assert len(sequences) == 1
+    assert sequences[0].tokens == ("Hello",)
+    assert sequences[0].comment == "# Sentence note"
+
+    # The DOCSTART sequence itself carries the document comment.
+    with path.open(encoding="utf8") as file:
+        parsed = list(ingester._parse_file(file, "test", parse_comments=True))
+    docstart_seq, docstart_comment = parsed[0]
+    assert docstart_seq[0].is_docstart
+    assert docstart_comment == "# Document ID: 7"
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "minimal_comments.bio",
+        "minimal_comments_1.bio",
+        "minimal_comments_2.bio",
+        "minimal_comments_3.bio",
+        "minimal_comments_4.bio",
+    ],
+)
+def test_comments_round_trip(filename: str, tmp_path: Path) -> None:
+    # Ingesting a file with comments and writing it back out reproduces the
+    # original file exactly, including single- and multi-line comments.
+    input_path = Path("tests") / "test_files" / filename
+    docs = ingest_conll_file(
+        input_path,
+        "BIO",
+        "UTF-8",
+        LINE_SPEC,
+        ignore_document_boundaries=False,
+        allow_comment_lines=True,
+    )
+    output_path = tmp_path / filename
+    write_docs_using_encoding(docs, "BIO", "UTF-8", "\t", LINE_SPEC, output_path)
+    assert output_path.read_text(encoding="utf8") == input_path.read_text(encoding="utf8")
+
+
 def test_parse_comments_false() -> None:
     ingester = CoNLLIngester(BIO, LINE_SPEC)
     comments_path = Path("tests") / "test_files" / "minimal_comments_1.bio"
@@ -317,3 +367,45 @@ def test_write_docs_using_encoding_multi_doc_always_write_docstart(
     # Setting always_write_docstart=True has no effect.
     # DOCSTART is always written once per document.
     assert default_file.read_text() == forced_file.read_text()
+
+
+def test_ingest_conll_file_empty_input_raises() -> None:
+    # A completely empty file is rejected rather than producing no documents.
+    with pytest.raises(CoNLLFormatError, match="contains no sequences"):
+        ingest_conll_file(
+            "tests/test_files/empty.txt",
+            "BIO",
+            "UTF-8",
+            LINE_SPEC,
+            repair=None,
+            ignore_document_boundaries=False,
+            allow_comment_lines=False,
+            quiet=False,
+        )
+
+
+def test_validate_conll_file_empty_input_raises() -> None:
+    # A completely empty file is rejected by validate as well.
+    ingester = CoNLLIngester(BIO, LINE_SPEC)
+    path = Path("tests/test_files/empty.txt")
+    with pytest.raises(CoNLLFormatError, match="contains no sequences"):
+        ingester.validate(path.open(encoding="utf8"), str(path))
+
+
+def test_docstart_only_raises() -> None:
+    # A trailing DOCSTART with no sequences is an empty document and is rejected
+    # by both ingest and validate.
+    ingester = CoNLLIngester(BIO, LINE_SPEC)
+    path = Path("tests/test_files/docstart_only.txt")
+    with pytest.raises(CoNLLFormatError, match="with no sequences following it"):
+        ingester.ingest(path.open(encoding="utf8"), str(path), REPAIR_NONE)
+    with pytest.raises(CoNLLFormatError, match="with no sequences following it"):
+        ingester.validate(path.open(encoding="utf8"), str(path))
+
+
+def test_docstart_with_no_sequences_before_next_docstart_raises() -> None:
+    # A DOCSTART directly followed by another DOCSTART leaves an empty document.
+    ingester = CoNLLIngester(BIO, LINE_SPEC)
+    path = Path("tests/test_files/docstart_empty_doc.txt")
+    with pytest.raises(CoNLLFormatError, match="with no sequences before the"):
+        ingester.ingest(path.open(encoding="utf8"), str(path), REPAIR_NONE)

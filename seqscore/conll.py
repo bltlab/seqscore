@@ -107,6 +107,12 @@ class CoNLLIngester:
                 # We can ony receive DOCSTART in a sequence by itself, see _parse_file.
                 # But we check anyway to be absolutely sure we aren't throwing away a sequence.
                 assert len(source_sequence) == 1
+
+                # TODO: Preserve document-level comments
+                # _parse_file attaches a comment preceding a DOCSTART to the DOCSTART
+                # sequence, but we drop it here because a document is just a list of
+                # sequences with nowhere to store it, so it does not round-trip on output.
+
                 # End current document and start a new one if we're attending to boundaries.
                 # We skip this if the builder is empty, which will happen for the very
                 # first document in the corpus (as there is no previous document to end).
@@ -201,9 +207,9 @@ class CoNLLIngester:
                 ) from e
             document.append(sequences)
 
-        # Add final document if non-empty
-        if document:
-            all_documents.append(document)
+        # There is always a final document since empty input is rejected by _parse_file.
+        assert document
+        all_documents.append(document)
 
         return all_documents
 
@@ -242,8 +248,9 @@ class CoNLLIngester:
                 validate_labels(labels, self.encoding, tokens=tokens, line_nums=line_nums)
             )
 
-        if document_results:
-            all_results.append(document_results)
+        # There is always a final document since empty input is rejected by _parse_file.
+        assert document_results
+        all_results.append(document_results)
 
         return all_results
 
@@ -268,6 +275,13 @@ class CoNLLIngester:
     ) -> Iterable[tuple[tuple[_CoNLLToken, ...], Optional[str]]]:
         sequence: list = []
         comment: Optional[str] = None
+        # Line of the most recent DOCSTART that has not yet been followed by a
+        # sequence, or None if there is none. Used to reject empty documents (a
+        # DOCSTART with no sequences before the next DOCSTART or end of file).
+        last_docstart_line: Optional[int] = None
+        # Whether anything at all (a sequence or a DOCSTART) has been yielded,
+        # used to reject completely empty input.
+        have_yielded = False
         line_num = 0
         for line in input_file:
             line_num += 1
@@ -291,8 +305,11 @@ class CoNLLIngester:
                 if sequence:
                     self._check_sequence(sequence)
                     yield tuple(sequence), comment
+                    have_yielded = True
+                    # Reset state
                     sequence = []
                     comment = None
+                    last_docstart_line = None
                 # Always skip empty lines
                 continue
 
@@ -303,12 +320,26 @@ class CoNLLIngester:
                     raise CoNLLFormatError(
                         f"Encountered {DOCSTART} at line {line_num} of {source_name} in the middle of a sequence"
                     )
-                else:
-                    # Yield it by itself. Since the sequence variable is empty, leave it unchanged.
-                    tmp_sent = (token,)
-                    self._check_sequence(tmp_sent)
-                    # Don't return the comment yet, it will be returned with the sequence
-                    yield tmp_sent, None
+                # If we're in the middle of another document, raise an error
+                if last_docstart_line is not None:
+                    raise CoNLLFormatError(
+                        f"Encountered {DOCSTART} at line {last_docstart_line} of "
+                        f"{source_name} with no sequences before the {DOCSTART} at "
+                        f"line {line_num}"
+                    )
+                # Record this DOCSTART
+                last_docstart_line = line_num
+                # Yield the DOCSTART as its own single-token sequence. The sequence
+                # variable is empty here (otherwise we would have raised an error earlier),
+                # so we leave it unchanged for the next sentence.
+                docstart_sequence = (token,)
+                self._check_sequence(docstart_sequence)
+                # A comment before a DOCSTART belongs to the document boundary, not
+                # the first sentence of the document, so yield it with the DOCSTART
+                # and clear it rather than carrying it forward to the next sequence.
+                yield docstart_sequence, comment
+                comment = None
+                have_yielded = True
             else:
                 sequence.append(token)
 
@@ -316,6 +347,19 @@ class CoNLLIngester:
         if sequence:
             self._check_sequence(sequence)
             yield tuple(sequence), comment
+            have_yielded = True
+            last_docstart_line = None
+
+        # A trailing DOCSTART with no sequences after it is an empty document
+        if last_docstart_line is not None:
+            raise CoNLLFormatError(
+                f"Encountered {DOCSTART} at line {last_docstart_line} of "
+                f"{source_name} with no sequences following it"
+            )
+
+        # A file with no sequences at all is empty and invalid
+        if not have_yielded:
+            raise CoNLLFormatError(f"{source_name} contains no sequences")
 
     @staticmethod
     def _check_sequence(sequence: Sequence[_CoNLLToken]) -> None:
@@ -492,6 +536,12 @@ def write_doc_raw(
         print(file=file)
 
     for sequence in doc:
+        # Write any comment lines before the sequence they belong to. The comment
+        # already includes the leading "#" (and any embedded newlines for multi-line
+        # comments), so it is written verbatim.
+        if sequence.comment is not None:
+            print(sequence.comment, file=file)
+
         for (token, orig_fields), label in zip(
             sequence.tokens_with_fields(), sequence.labels
         ):
