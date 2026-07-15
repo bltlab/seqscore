@@ -5,7 +5,7 @@ from math import sqrt
 from statistics import mean, stdev
 from typing import Any, DefaultDict, TextIO
 
-from tabulate import SEPARATING_LINE, tabulate
+from tabulate import tabulate
 
 from seqscore.model import AnnotatedSequence
 from seqscore.scoring import (
@@ -62,8 +62,6 @@ def write_report(
         if delim_header:
             print(delim.join(str(c) for c in header), file=file)
         for row in rows:
-            if row is SEPARATING_LINE:
-                continue
             print(delim.join(str(c) for c in row), file=file)
 
 

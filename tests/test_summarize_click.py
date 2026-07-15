@@ -24,7 +24,6 @@ def test_summarize_bio_onedoc() -> None:
 |---------------|---------|
 | LOC           |       2 |
 | ORG           |       1 |
-|---------------|---------|
 | TOTAL         |       3 |
 """
     )
@@ -48,7 +47,6 @@ def test_summarize_bio_onedoc_quiet() -> None:
 |---------------|---------|
 | LOC           |       2 |
 | ORG           |       1 |
-|---------------|---------|
 | TOTAL         |       3 |
 """
     )
@@ -72,7 +70,6 @@ def test_summarize_iob_twodoc() -> None:
 |---------------|---------|
 | LOC           |       2 |
 | ORG           |       1 |
-|---------------|---------|
 | TOTAL         |       3 |
 """
     )
@@ -97,7 +94,6 @@ def test_summarize_iob_twodoc_ignore_doc_boundaries() -> None:
 |---------------|---------|
 | LOC           |       2 |
 | ORG           |       1 |
-|---------------|---------|
 | TOTAL         |       3 |
 """
     )
@@ -124,7 +120,6 @@ Total 2 document(s) and 4 sentences
 |---------------|---------|
 | LOC           |       5 |
 | ORG           |       2 |
-|---------------|---------|
 | TOTAL         |       7 |
 """
     )
@@ -198,7 +193,6 @@ def test_summarize_table_format_plain() -> None:
         == """Entity Type      Count
 LOC                  2
 ORG                  1
-
 TOTAL                3
 """
     )
@@ -276,7 +270,6 @@ def test_summarize_file_pretty() -> None:
 |---------------|---------|
 | LOC           |       2 |
 | ORG           |       1 |
-|---------------|---------|
 | TOTAL         |       3 |
 """
             )

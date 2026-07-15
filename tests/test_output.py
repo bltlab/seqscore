@@ -1,7 +1,6 @@
 import io
 
 import pytest
-from tabulate import SEPARATING_LINE
 
 from seqscore.encoding import get_encoding
 from seqscore.model import AnnotatedSequence
@@ -26,26 +25,6 @@ def test_write_report_defaults_to_stdout(capsys: pytest.CaptureFixture[str]) -> 
         delim_header=False,
     )
     assert capsys.readouterr().out == "1\tLOC\n2\tORG\n"
-
-
-def test_write_report_delim_skips_separating_line() -> None:
-    # SEPARATING_LINE is a table-only sentinel; in delim mode it must be skipped
-    # rather than joined (which would raise or emit a bogus row).
-    out = io.StringIO()
-    write_report(
-        ("Entity Type", "Count"),
-        [("LOC", 2), SEPARATING_LINE, ("TOTAL", 2)],
-        output_format="delim",
-        delim="\t",
-        file=out,
-    )
-    assert (
-        out.getvalue()
-        == """Entity Type\tCount
-LOC\t2
-TOTAL\t2
-"""
-    )
 
 
 def test_write_report_pretty_justification_no_centering() -> None:

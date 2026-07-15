@@ -5,7 +5,7 @@ from contextlib import nullcontext
 from typing import Callable, Optional, Union
 
 import click
-from tabulate import SEPARATING_LINE, tabulate_formats
+from tabulate import tabulate_formats
 
 import seqscore
 from seqscore.conll import (
@@ -550,10 +550,8 @@ def summarize(
     header = ("Entity Type", "Count")
     total = sum(type_counts.values())
 
-    rows: list[Union[tuple[str, int], str]] = list(sorted(type_counts.items()))
-    if output_format == FORMAT_PRETTY:
-        rows.append(SEPARATING_LINE)
-    else:
+    rows: list[tuple[str, int]] = list(sorted(type_counts.items()))
+    if output_format != FORMAT_PRETTY:
         # Only normalize/warn about the delimiter when it is actually used
         output_delim = _normalize_delim(output_delim)
     rows.append(("TOTAL", total))
