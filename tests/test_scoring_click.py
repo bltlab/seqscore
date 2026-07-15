@@ -2,7 +2,7 @@ import os
 
 from click.testing import CliRunner
 
-from seqscore.scripts.seqscore import score
+from seqscore.scripts.seqscore import analyze, count, score, summarize
 
 
 def test_score_correct_labels() -> None:
@@ -421,3 +421,20 @@ def test_score_prediction_shorter_than_reference() -> None:
     assert "Last token of reference sequence: '.'" in exception_text
     assert "Last token of predicted sequence: 'sentence'" in exception_text
     assert "was truncated" in exception_text
+
+
+def test_score_untouched_no_output_format() -> None:
+    runner = CliRunner()
+    result = runner.invoke(score, ["--help"])
+    assert "--score-format" in result.output
+    assert "--output-format" not in result.output
+    assert "conlleval" in result.output
+
+
+def test_report_commands_have_output_format() -> None:
+    runner = CliRunner()
+    for cmd, name in [(summarize, "summarize"), (count, "count"), (analyze, "analyze")]:
+        result = runner.invoke(cmd, ["--help"])
+        assert result.exit_code == 0, f"{name} --help failed"
+        assert "--output-format" in result.output, f"{name} missing --output-format"
+        assert "--table-format" in result.output, f"{name} missing --table-format"

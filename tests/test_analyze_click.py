@@ -4,6 +4,7 @@ from typing import Optional
 
 from click.testing import CliRunner
 
+from seqscore.output import SUPPORTED_OUTPUT_FORMATS
 from seqscore.scripts.seqscore import analyze
 from seqscore.util import file_lines_match
 
@@ -28,6 +29,8 @@ def test_analyze_BIO_stdout() -> None:
         [
             "--labels",
             "BIO",
+            "--output-format",
+            "delim",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
         ],
     )
@@ -76,3 +79,118 @@ def test_analyze_BIO_comma() -> None:
         os.path.join(TMP_DIR.name, "analyze_BIO_comma_out.txt"),
         os.path.join("tests", "test_files", "analyze_minimal_ref.csv"),
     )
+
+
+def test_analyze_pretty_output() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        analyze,
+        [
+            "--labels",
+            "BIO",
+            "--output-format",
+            "pretty",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    # GitHub table with the Mention/Type/Span/Sentence header, in insertion order.
+    # Span is numeric so it is right-justified; the other columns are left-justified.
+    assert (
+        result.output
+        == """| Mention                    | Type   |   Span | Sentence                                                            |
+|----------------------------|--------|--------|---------------------------------------------------------------------|
+| University of Pennsylvania | ORG    |    0-3 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+| West Philadelphia          | LOC    |    5-7 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+| Pennsylvania               | LOC    |    8-9 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+"""
+    )
+
+
+def test_analyze_default_stdout_pretty() -> None:
+    # With no --output-file and no explicit format, stdout defaults to a table.
+    # Span is numeric so it is right-justified; other columns are left-justified.
+    runner = CliRunner()
+    result = runner.invoke(
+        analyze,
+        [
+            "--labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """| Mention                    | Type   |   Span | Sentence                                                            |
+|----------------------------|--------|--------|---------------------------------------------------------------------|
+| University of Pennsylvania | ORG    |    0-3 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+| West Philadelphia          | LOC    |    5-7 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+| Pennsylvania               | LOC    |    8-9 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+"""
+    )
+
+
+def test_analyze_default_file_delim() -> None:
+    # With --output-file and no explicit format, output defaults to delimited
+    assert TMP_DIR is not None
+    out_path = os.path.join(TMP_DIR.name, "analyze_default_file_delim.txt")
+    runner = CliRunner()
+    result = runner.invoke(
+        analyze,
+        [
+            "--labels",
+            "BIO",
+            "--output-file",
+            out_path,
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    with open(out_path, encoding="utf8") as output:
+        assert (
+            output.read()
+            == """Mention\tType\tSpan\tSentence
+University of Pennsylvania\tORG\t0-3\tUniversity of Pennsylvania is in West Philadelphia , Pennsylvania .
+West Philadelphia\tLOC\t5-7\tUniversity of Pennsylvania is in West Philadelphia , Pennsylvania .
+Pennsylvania\tLOC\t8-9\tUniversity of Pennsylvania is in West Philadelphia , Pennsylvania .
+"""
+        )
+
+
+def test_analyze_pretty_output_file() -> None:
+    # --output-format pretty writes the table (not delimited) to the file
+    assert TMP_DIR is not None
+    out_path = os.path.join(TMP_DIR.name, "analyze_pretty_out.txt")
+    runner = CliRunner()
+    result = runner.invoke(
+        analyze,
+        [
+            "--labels",
+            "BIO",
+            "--output-format",
+            "pretty",
+            "--output-file",
+            out_path,
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    with open(out_path, encoding="utf8") as output:
+        assert (
+            output.read()
+            == """| Mention                    | Type   |   Span | Sentence                                                            |
+|----------------------------|--------|--------|---------------------------------------------------------------------|
+| University of Pennsylvania | ORG    |    0-3 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+| West Philadelphia          | LOC    |    5-7 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+| Pennsylvania               | LOC    |    8-9 | University of Pennsylvania is in West Philadelphia , Pennsylvania . |
+"""
+        )
+
+
+def test_analyze_output_format_help() -> None:
+    runner = CliRunner()
+    result = runner.invoke(analyze, ["--help"])
+    assert "--output-format" in result.output
+    for fmt in SUPPORTED_OUTPUT_FORMATS:
+        assert fmt in result.output

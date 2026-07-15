@@ -5,12 +5,10 @@ from contextlib import nullcontext
 from typing import Callable, Optional, Union
 
 import click
-from tabulate import SEPARATING_LINE, tabulate
+from tabulate import SEPARATING_LINE, tabulate_formats
 
 import seqscore
 from seqscore.conll import (
-    FORMAT_DELIM,
-    SUPPORTED_SCORE_FORMATS,
     LineSpec,
     ingest_conll_file,
     repair_conll_file,
@@ -23,6 +21,13 @@ from seqscore.encoding import (
     REPAIR_NONE,
     SUPPORTED_ENCODINGS,
     SUPPORTED_REPAIR_METHODS,
+)
+from seqscore.output import (
+    FORMAT_DELIM,
+    FORMAT_PRETTY,
+    SUPPORTED_OUTPUT_FORMATS,
+    SUPPORTED_SCORE_FORMATS,
+    write_report,
 )
 from seqscore.processing import modify_types
 
@@ -132,6 +137,31 @@ def _output_delim_option() -> Callable:
         "--output-delim",
         default=DEFAULT_OUTPUT_DELIM,
         help="the delimiter to be used for output (has no effect on input) [default: tab]",
+    )
+
+
+def _output_format_option(default: Optional[str]) -> Callable:
+    # If None is specified, the format is chosen at runtime based on where the
+    # output goes: pretty (a table) for stdout, delim when writing to a file
+    show_default: Union[bool, str] = (
+        "pretty for stdout, delim for --output-file" if default is None else True
+    )
+    return click.option(
+        "--output-format",
+        type=click.Choice(SUPPORTED_OUTPUT_FORMATS),
+        default=default,
+        show_default=show_default,
+        help="output format for report commands (pretty = table, delim = delimited)",
+    )
+
+
+def _table_format_option() -> Callable:
+    return click.option(
+        "--table-format",
+        type=click.Choice(tabulate_formats),
+        default="github",
+        show_default=True,
+        help="table style passed to tabulate (e.g. github, grid, plain, pretty)",
     )
 
 
@@ -380,6 +410,8 @@ def process(
 @_output_file_option()
 @_labels_option_default_bio()
 @_repair_option()
+@_output_format_option(None)
+@_table_format_option()
 @_output_delim_option()
 @_quiet_option()
 def count(
@@ -392,7 +424,9 @@ def count(
     *,
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
+    output_format: Optional[str],
     output_delim: str,
+    table_format: str,
     repair_method: str,
     quiet: bool,
 ) -> None:
@@ -400,7 +434,12 @@ def count(
     if repair_method == REPAIR_NONE:
         repair_method = None
 
-    output_delim = _normalize_delim(output_delim)
+    # Default to a table when writing to stdout, delimited when writing to a file
+    if output_format is None:
+        output_format = FORMAT_DELIM if output_file else FORMAT_PRETTY
+    # Only normalize/warn about the delimiter when it is actually used
+    if output_format == FORMAT_DELIM:
+        output_delim = _normalize_delim(output_delim)
 
     counts: Counter[tuple[str, tuple[str, ...]]] = Counter()
     for each_file in file:
@@ -426,29 +465,44 @@ def count(
         if output_file
         else nullcontext(sys.stdout) as output
     ):
-        for item, item_count in counts.most_common():
-            print(
-                output_delim.join((str(item_count), item[0], " ".join(item[1]))),
-                file=output,
-            )
+        rows: list[tuple[int, str, str]] = [
+            (count_val, typ, " ".join(tokens))
+            for (typ, tokens), count_val in counts.most_common()
+        ]
+        write_report(
+            ("Count", "Type", "Tokens"),
+            rows,
+            output_format=output_format,
+            delim=output_delim,
+            table_format=table_format,
+            file=output,
+            delim_header=False,
+            numeric_columns=(0,),  # Count
+        )
 
 
-# TODO: Add support for delimited file output
-# TODO: Take format argument for tabulate from command line
 @cli.command(help="show counts of the documents, sentences, and entity types")
 @_multi_input_file_arguments
+@_output_file_option()
 @_labels_option_default_bio()
 @_repair_option()
+@_output_format_option(None)
+@_table_format_option()
+@_output_delim_option()
 @_quiet_option()
 def summarize(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     token_index: int,
     label_index: int,
+    output_file: Optional[str],
     labels: str,
     *,
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
+    output_format: Optional[str],
+    table_format: str,
+    output_delim: str,
     repair_method: str,
     quiet: bool,
 ) -> None:
@@ -488,11 +542,35 @@ def summarize(
     if not quiet and len(file) > 1:
         print(f"Total {total_documents} document(s) and {total_sentences} sentences")
 
-    header = ["Entity Type", "Count"]
-    rows: list[Union[tuple[str, int], str]] = sorted(type_counts.items())
-    rows.append(SEPARATING_LINE)
-    rows.append(("TOTAL", sum(type_counts.values())))
-    print(tabulate(rows, header, tablefmt="github", intfmt=","))
+    # Default to a table when writing to stdout, delimited when writing to a file.
+    if output_format is None:
+        output_format = FORMAT_DELIM if output_file else FORMAT_PRETTY
+
+    header = ("Entity Type", "Count")
+    total = sum(type_counts.values())
+
+    rows: list[Union[tuple[str, int], str]] = list(sorted(type_counts.items()))
+    if output_format == FORMAT_PRETTY:
+        rows.append(SEPARATING_LINE)
+    else:
+        # Only normalize/warn about the delimiter when it is actually used
+        output_delim = _normalize_delim(output_delim)
+    rows.append(("TOTAL", total))
+
+    with (
+        open(output_file, "w", encoding=file_encoding)
+        if output_file
+        else nullcontext(sys.stdout) as output
+    ):
+        write_report(
+            header,
+            rows,
+            output_format=output_format,
+            delim=output_delim,
+            table_format=table_format,
+            file=output,
+            numeric_columns=(1,),  # Count
+        )
 
 
 @cli.command(help="score a file and report performance or an error count table")
@@ -576,6 +654,8 @@ def score(
 @_output_file_option()
 @_labels_option_default_bio()
 @_repair_option()
+@_output_format_option(None)
+@_table_format_option()
 @_output_delim_option()
 def analyze(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
@@ -587,16 +667,23 @@ def analyze(
     *,
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
+    output_format: Optional[str],
     output_delim: str,
+    table_format: str,
     repair_method: str,
 ) -> None:
     line_spec = LineSpec(token_index, label_index)
     if repair_method == REPAIR_NONE:
         repair_method = None
 
-    output_delim = _normalize_delim(output_delim)
+    # Default to a table when writing to stdout, delimited when writing to a file
+    if output_format is None:
+        output_format = FORMAT_DELIM if output_file else FORMAT_PRETTY
+    # Only normalize/warn about the delimiter when it is actually used
+    if output_format == FORMAT_DELIM:
+        output_delim = _normalize_delim(output_delim)
 
-    rows = []
+    rows: list[list[object]] = []
     for each_file in file:
         docs = ingest_conll_file(
             each_file,
@@ -613,16 +700,23 @@ def analyze(
                 for mention in sequence.mentions:
                     mention_text = " ".join(sequence.mention_tokens(mention))
                     span_text = f"{mention.span.start}-{mention.span.end}"
-                    rows.append((mention_text, mention.type, span_text, sentence_text))
+                    rows.append([mention_text, mention.type, span_text, sentence_text])
 
     with (
         open(output_file, "w", encoding=file_encoding)
         if output_file
         else nullcontext(sys.stdout) as output
     ):
-        print(output_delim.join(("Mention", "Type", "Span", "Sentence")), file=output)
-        for row in rows:
-            print(output_delim.join(row), file=output)
+        write_report(
+            ("Mention", "Type", "Span", "Sentence"),
+            rows,
+            output_format=output_format,
+            delim=output_delim,
+            table_format=table_format,
+            file=output,
+            delim_header=True,
+            numeric_columns=(2,),  # Span
+        )
 
 
 @cli.command(help="extract text from a file")

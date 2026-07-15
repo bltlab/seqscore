@@ -3,11 +3,13 @@ import os
 import pytest
 
 from seqscore.conll import (
+    LineSpec,
+    score_conll_files,
+)
+from seqscore.output import (
     FORMAT_CONLLEVAL,
     FORMAT_DELIM,
     FORMAT_PRETTY,
-    LineSpec,
-    score_conll_files,
 )
 
 REFERENCE = os.path.join("tests", "conll_annotation", "minimal.bio")

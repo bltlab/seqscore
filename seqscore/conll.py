@@ -16,6 +16,11 @@ from tabulate import tabulate
 
 from seqscore.encoding import Encoding, EncodingError, get_encoding
 from seqscore.model import AnnotatedSequence, LabeledSequence, SequenceProvenance
+from seqscore.output import (
+    FORMAT_CONLLEVAL,
+    FORMAT_DELIM,
+    FORMAT_PRETTY,
+)
 from seqscore.scoring import (
     AccuracyScore,
     ClassificationScore,
@@ -33,11 +38,6 @@ from seqscore.validation import (
 DOCSTART = "-DOCSTART-"
 EMPTY_OTHER_FIELD = "-X-"
 
-
-FORMAT_PRETTY = "pretty"
-FORMAT_CONLLEVAL = "conlleval"
-FORMAT_DELIM = "delim"
-SUPPORTED_SCORE_FORMATS = (FORMAT_PRETTY, FORMAT_CONLLEVAL, FORMAT_DELIM)
 
 ALL_TYPES = "ALL"
 
