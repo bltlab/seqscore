@@ -173,6 +173,9 @@ A few things to note:
 * You can get output in different formats using the `--output-format` flag. Using
   `--output-format delim` will produce tab-delimited output. In the delimited format,
   you can specify the `--full-precision` flag to output higher numerical precision.
+* You can write the results to a file with `--output-file`. When it is given, the output
+  defaults to delimited (so the file holds only report data); pass `--output-format` to
+  override.
 * In the default (pretty) output format, numbers are rounded "half up" at two decimal
   places. In other words, 57.124 will round to 57.12, and 57.125 will round to 57.13.
   This is different than the "half even" rounding used by `conlleval` and other

@@ -558,6 +558,7 @@ def score_conll_files(
     full_precision: bool = False,
     quiet: bool = False,
     table_format: str = "github",
+    file: Optional[TextIO] = None,
 ) -> None:
     """Load the reference and prediction files, then delegate presentation to report_scores."""
     assert len(pred_files) > 0, "List of files to score cannot be empty"
@@ -595,4 +596,5 @@ def score_conll_files(
         error_counts=error_counts,
         full_precision=full_precision,
         table_format=table_format,
+        file=file,
     )

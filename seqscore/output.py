@@ -153,8 +153,7 @@ def _f1_mean_stderr(
 
     means = {entity_type: mean(f1s) for entity_type, f1s in type_f1s.items()}
     stderrs = {
-        entity_type: stdev(f1s) / sqrt(len(f1s))
-        for entity_type, f1s in type_f1s.items()
+        entity_type: stdev(f1s) / sqrt(len(f1s)) for entity_type, f1s in type_f1s.items()
     }
     all_f1s = [score.f1 for score in all_class_scores]
     means[ALL_TYPES] = mean(all_f1s)
@@ -167,6 +166,7 @@ def _report_error_counts(
     output_format: str,
     delim: str,
     table_format: str,
+    file: TextIO,
 ) -> None:
     header = ["Count", "Error", "Type", "Tokens"]
     combined_counts: Counter[tuple[str, str, str]] = Counter()
@@ -191,6 +191,7 @@ def _report_error_counts(
         delim=delim,
         numeric_columns=(0,),
         table_format=table_format,
+        file=file,
     )
 
 
@@ -203,12 +204,16 @@ def report_scores(
     error_counts: bool = False,
     full_precision: bool = False,
     table_format: str = "github",
+    file: TextIO | None = None,
 ) -> None:
     """Score and present results for one or more prediction files.
 
     Operates only on already-ingested documents; does no file I/O and does not
     import from conll.py.
     """
+    if file is None:
+        file = sys.stdout
+
     if output_format not in SUPPORTED_SCORE_FORMATS:
         raise ValueError(f"Unrecognized output format: {output_format}")
 
@@ -232,7 +237,9 @@ def report_scores(
             raise ValueError(
                 f"Format {output_format!r} is not supported with error counts"
             )
-        _report_error_counts(all_class_scores[0], output_format, delim, table_format)
+        _report_error_counts(
+            all_class_scores[0], output_format, delim, table_format, file
+        )
         return
 
     if output_format == FORMAT_CONLLEVAL:
@@ -240,7 +247,7 @@ def report_scores(
             raise ValueError(
                 "conlleval format is not supported when scoring multiple files"
             )
-        print(format_output_conlleval(all_class_scores[0], all_acc_scores[0]))
+        print(format_output_conlleval(all_class_scores[0], all_acc_scores[0]), file=file)
         return
 
     if output_format == FORMAT_DELIM:
@@ -257,20 +264,36 @@ def report_scores(
             for entity_type, value in stderrs.items():
                 lines.append(
                     _join_delim(
-                        ["SE", entity_type, "NA", "NA",
-                         convert_score(value, full_precision), "NA", "NA", "NA"],
+                        [
+                            "SE",
+                            entity_type,
+                            "NA",
+                            "NA",
+                            convert_score(value, full_precision),
+                            "NA",
+                            "NA",
+                            "NA",
+                        ],
                         delim,
                     )
                 )
             for entity_type, value in means.items():
                 lines.append(
                     _join_delim(
-                        ["Mean", entity_type, "NA", "NA",
-                         convert_score(value, full_precision), "NA", "NA", "NA"],
+                        [
+                            "Mean",
+                            entity_type,
+                            "NA",
+                            "NA",
+                            convert_score(value, full_precision),
+                            "NA",
+                            "NA",
+                            "NA",
+                        ],
                         delim,
                     )
                 )
-        print("\n".join(lines))
+        print("\n".join(lines), file=file)
         return
 
     # Pretty
@@ -279,7 +302,7 @@ def report_scores(
 
     for idx, (fname, _) in enumerate(pred_docs_by_file):
         if multi_files:
-            print(fname)
+            print(fname, file=file)
         header, rows = format_output_table(all_class_scores[idx], full_precision)
         write_report(
             header,
@@ -289,9 +312,10 @@ def report_scores(
             numeric_columns=(1, 2, 3, 4, 5, 6),
             floatfmt="6.2f",
             table_format=table_format,
+            file=file,
         )
         if multi_files and idx != len(pred_docs_by_file) - 1:
-            print()
+            print(file=file)
 
     if multi_files:
         means, stderrs = _f1_mean_stderr(all_class_scores)
@@ -317,8 +341,8 @@ def report_scores(
                 ref_scores.total_ref,
             ]
         )
-        print()
-        print("Summary")
+        print(file=file)
+        print("Summary", file=file)
         write_report(
             summary_header,
             summary_rows,
@@ -327,4 +351,5 @@ def report_scores(
             numeric_columns=(1, 2, 3),
             floatfmt="6.2f",
             table_format=table_format,
+            file=file,
         )

@@ -574,14 +574,15 @@ def summarize(
 
 @cli.command(help="score a file and report performance or an error count table")
 @_multi_input_file_arguments
+@_output_file_option()
 @click.option("--reference", required=True)
 @_labels_option()
 @_repair_option()
 @click.option(
     "--output-format",
-    default=FORMAT_PRETTY,
+    default=None,
     type=click.Choice(SUPPORTED_SCORE_FORMATS),
-    show_default=True,
+    show_default="pretty for stdout, delim for --output-file",
     help="output format (pretty = table, delim = delimited, conlleval = conlleval-style)",
 )
 @_output_delim_option()
@@ -601,11 +602,12 @@ def score(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,
     labels: str,
+    output_file: Optional[str],
     *,
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
     reference: str,
-    output_format: str,
+    output_format: Optional[str],
     output_delim: str,
     token_index: int,
     label_index: int,
@@ -620,6 +622,10 @@ def score(
     if repair_method == REPAIR_NONE:
         repair_method = None
 
+    # Default to a table when writing to stdout, delimited when writing to a file
+    if output_format is None:
+        output_format = FORMAT_DELIM if output_file else FORMAT_PRETTY
+
     if full_precision and output_format != FORMAT_DELIM:
         raise click.UsageError(
             f"Can only use full-precision with output-format {FORMAT_DELIM}"
@@ -633,24 +639,32 @@ def score(
             "Cannot use the conlleval output format with multiple files to be scored"
         )
 
-    output_delim = _normalize_delim(output_delim)
+    # Only normalize/warn about the delimiter when it is actually used
+    if output_format == FORMAT_DELIM:
+        output_delim = _normalize_delim(output_delim)
 
-    score_conll_files(
-        file,
-        reference,
-        labels,
-        repair_method,
-        file_encoding,
-        line_spec,
-        ignore_document_boundaries=ignore_document_boundaries,
-        allow_comment_lines=allow_comment_lines,
-        output_format=output_format,
-        delim=output_delim,
-        error_counts=error_counts,
-        full_precision=full_precision,
-        quiet=quiet,
-        table_format=table_format,
-    )
+    with (
+        open(output_file, "w", encoding=file_encoding)
+        if output_file
+        else nullcontext(sys.stdout) as output
+    ):
+        score_conll_files(
+            file,
+            reference,
+            labels,
+            repair_method,
+            file_encoding,
+            line_spec,
+            ignore_document_boundaries=ignore_document_boundaries,
+            allow_comment_lines=allow_comment_lines,
+            output_format=output_format,
+            delim=output_delim,
+            error_counts=error_counts,
+            full_precision=full_precision,
+            quiet=quiet,
+            table_format=table_format,
+            file=output,
+        )
 
 
 @cli.command(help="extract mentions with their sentence context")

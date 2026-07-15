@@ -507,3 +507,54 @@ def test_score_multiple_files_conlleval_rejected() -> None:
     )
     assert result.exit_code == 2
     assert "Cannot use the conlleval output format with multiple files" in result.output
+
+
+def test_score_output_file_default_delim() -> None:
+    # --output-file with no explicit format defaults to delimited; the file holds
+    # only report data and stdout stays empty
+    runner = CliRunner()
+    ref = os.path.abspath(os.path.join("tests", "conll_annotation", "minimal.bio"))
+    pred = os.path.abspath(os.path.join("tests", "conll_predictions", "incorrect1.bio"))
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            score,
+            ["--labels", "BIO", "--reference", ref, "--output-file", "out.tsv", pred],
+        )
+        assert result.exit_code == 0
+        assert result.output == ""
+        with open("out.tsv", encoding="utf8") as output:
+            assert (
+                output.read()
+                == """Type\tPrecision\tRecall\tF1\tReference\tPredicted\tCorrect
+LOC\t33.33\t50.00\t40.00\t2\t3\t1
+ORG\t100.00\t100.00\t100.00\t1\t1\t1
+ALL\t50.00\t66.67\t57.14\t3\t4\t2
+"""
+            )
+
+
+def test_score_output_file_pretty() -> None:
+    # --output-format pretty writes the table (not delimited) to the file
+    runner = CliRunner()
+    ref = os.path.abspath(os.path.join("tests", "conll_annotation", "minimal.bio"))
+    pred = os.path.abspath(os.path.join("tests", "conll_predictions", "incorrect1.bio"))
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            score,
+            [
+                "--labels",
+                "BIO",
+                "--reference",
+                ref,
+                "--output-format",
+                "pretty",
+                "--output-file",
+                "out.txt",
+                pred,
+            ],
+        )
+        assert result.exit_code == 0
+        with open("out.txt", encoding="utf8") as output:
+            content = output.read()
+        assert "| Type   |   Precision |" in content
+        assert "| ALL    |       50.00 |    66.67 |  57.14 |" in content
