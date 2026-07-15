@@ -578,16 +578,13 @@ def summarize(
 @_labels_option()
 @_repair_option()
 @click.option(
-    "--score-format",
-    default="pretty",
+    "--output-format",
+    default=FORMAT_PRETTY,
     type=click.Choice(SUPPORTED_SCORE_FORMATS),
     show_default=True,
+    help="output format (pretty = table, delim = delimited, conlleval = conlleval-style)",
 )
-@click.option(
-    "--delim",
-    default="\t",
-    help="the delimiter to be used for delimited output (has no effect on input) [default: tab]",
-)
+@_output_delim_option()
 @click.option(
     "--error-counts",
     is_flag=True,
@@ -608,8 +605,8 @@ def score(
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
     reference: str,
-    score_format: str,
-    delim: str,
+    output_format: str,
+    output_delim: str,
     token_index: int,
     label_index: int,
     repair_method: str,
@@ -623,20 +620,20 @@ def score(
     if repair_method == REPAIR_NONE:
         repair_method = None
 
-    if full_precision and score_format != FORMAT_DELIM:
+    if full_precision and output_format != FORMAT_DELIM:
         raise click.UsageError(
-            f"Can only use full-precision with score-format {FORMAT_DELIM}"
+            f"Can only use full-precision with output-format {FORMAT_DELIM}"
         )
 
     if error_counts and len(file) > 1:
         raise click.UsageError("Cannot use error-counts with multiple files to be scored")
 
-    if score_format == FORMAT_CONLLEVAL and len(file) > 1:
+    if output_format == FORMAT_CONLLEVAL and len(file) > 1:
         raise click.UsageError(
-            "Cannot use the conlleval score format with multiple files to be scored"
+            "Cannot use the conlleval output format with multiple files to be scored"
         )
 
-    delim = _normalize_delim(delim)
+    output_delim = _normalize_delim(output_delim)
 
     score_conll_files(
         file,
@@ -647,8 +644,8 @@ def score(
         line_spec,
         ignore_document_boundaries=ignore_document_boundaries,
         allow_comment_lines=allow_comment_lines,
-        output_format=score_format,
-        delim=delim,
+        output_format=output_format,
+        delim=output_delim,
         error_counts=error_counts,
         full_precision=full_precision,
         quiet=quiet,

@@ -170,9 +170,9 @@ A few things to note:
 * The chunk encoding (BIO, BIOES, etc.) must be specified using the `--labels` flag.
 * Both files need to use the same chunk encoding. If you have files that use different
   chunk encodings, use the `convert` command.
-* You can get output in different formats using the `--score-format` flag. Using
-  `--score-format delim` will produce tab-delimited output. In the delimited format, you
-  can specify the `--full-precision` flag to output higher numerical precision.
+* You can get output in different formats using the `--output-format` flag. Using
+  `--output-format delim` will produce tab-delimited output. In the delimited format,
+  you can specify the `--full-precision` flag to output higher numerical precision.
 * In the default (pretty) output format, numbers are rounded "half up" at two decimal
   places. In other words, 57.124 will round to 57.12, and 57.125 will round to 57.13.
   This is different than the "half even" rounding used by `conlleval` and other
@@ -264,7 +264,7 @@ will produce the following output:
 
 The output shows that the system produced two false positives and missed one mention in
 the reference (false negative). The most frequent errors appear at the top. The
-`--error-counts` flag can be combined with `--score-format delim` to write a delimited
+`--error-counts` flag can be combined with `--output-format delim` to write a delimited
 table that can be read as a spreadsheet.
 
 ## Validation

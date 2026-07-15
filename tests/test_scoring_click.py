@@ -14,7 +14,7 @@ def test_score_correct_labels() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join("tests", "conll_predictions", "correct1.bio"),
         ],
@@ -35,7 +35,7 @@ def test_score_no_predictions() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join("tests", "conll_predictions", "incorrect1_nopredictions.bio"),
         ],
@@ -83,7 +83,7 @@ def test_score_incorrect_conlleval_format() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "conlleval",
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
         ],
@@ -112,7 +112,7 @@ def test_score_invalid_sequence_conlleval() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join(
                 "tests", "conll_predictions", "correct1_improper_sequence_pred.txt"
@@ -138,7 +138,7 @@ def test_score_invalid_sequence_discard() -> None:
             "discard",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join(
                 "tests", "conll_predictions", "correct1_improper_sequence_pred.txt"
@@ -164,7 +164,7 @@ def test_score_invalid_sequence_none() -> None:
             "none",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join(
                 "tests", "conll_predictions", "correct1_improper_sequence_pred.txt"
@@ -186,7 +186,7 @@ def test_score_valid_incorrect_sequence() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
         ],
@@ -207,7 +207,7 @@ def test_score_entity_type_not_in_reference() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join(
                 "tests", "conll_predictions", "incorrect_type_not_in_reference.bio"
@@ -234,7 +234,7 @@ def test_score_invalid_labels() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bioes"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
         ],
@@ -254,7 +254,7 @@ def test_score_multiple_files() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             os.path.join("tests", "conll_predictions", "correct1.bio"),
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
@@ -323,7 +323,7 @@ def test_score_error_counts_delim_format() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "delim",
             "--error-counts",
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
@@ -373,7 +373,7 @@ def test_score_full_precision_not_delim() -> None:
         ],
     )
     assert result.exit_code == 2
-    assert "Can only use full-precision with score-format delim" in result.output
+    assert "Can only use full-precision with output-format delim" in result.output
 
 
 def test_score_error_counts_conlleval_format() -> None:
@@ -386,7 +386,7 @@ def test_score_error_counts_conlleval_format() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "conlleval",
             os.path.join("tests", "conll_predictions", "correct1.bio"),
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
@@ -423,11 +423,11 @@ def test_score_prediction_shorter_than_reference() -> None:
     assert "was truncated" in exception_text
 
 
-def test_score_untouched_no_output_format() -> None:
+def test_score_uses_output_format_with_conlleval() -> None:
     runner = CliRunner()
     result = runner.invoke(score, ["--help"])
-    assert "--score-format" in result.output
-    assert "--output-format" not in result.output
+    assert "--output-format" in result.output
+    assert "--score-format" not in result.output
     assert "conlleval" in result.output
 
 
@@ -499,11 +499,11 @@ def test_score_multiple_files_conlleval_rejected() -> None:
             "BIO",
             "--reference",
             os.path.join("tests", "conll_annotation", "minimal.bio"),
-            "--score-format",
+            "--output-format",
             "conlleval",
             os.path.join("tests", "conll_predictions", "correct1.bio"),
             os.path.join("tests", "conll_predictions", "incorrect1.bio"),
         ],
     )
     assert result.exit_code == 2
-    assert "Cannot use the conlleval score format with multiple files" in result.output
+    assert "Cannot use the conlleval output format with multiple files" in result.output
