@@ -369,6 +369,38 @@ def test_write_docs_using_encoding_multi_doc_always_write_docstart(
     assert default_file.read_text() == forced_file.read_text()
 
 
+_INVALID1_INPUT = "tests/conll_annotation/invalid1.bio"
+
+
+def _ingest_invalid1_repaired(quiet: bool) -> list:
+    return ingest_conll_file(
+        _INVALID1_INPUT,
+        "BIO",
+        "UTF-8",
+        LINE_SPEC,
+        repair="conlleval",
+        ignore_document_boundaries=False,
+        allow_comment_lines=False,
+        quiet=quiet,
+    )
+
+
+def test_ingest_conll_file_repair_suppresses_output_when_quiet(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # quiet suppresses the repair diagnostics but does not change the output.
+    docs_no_quiet = _ingest_invalid1_repaired(quiet=False)
+    assert "Used method conlleval to repair:" in capsys.readouterr().err
+
+    docs_quiet = _ingest_invalid1_repaired(quiet=True)
+    assert "Used method conlleval to repair:" not in capsys.readouterr().err
+
+    assert len(docs_no_quiet) == len(docs_quiet) == 1
+    for seq_no_quiet, seq_quiet in zip(docs_no_quiet[0], docs_quiet[0]):
+        assert seq_no_quiet.tokens == seq_quiet.tokens
+        assert seq_no_quiet.labels == seq_quiet.labels
+
+
 def test_ingest_conll_file_empty_input_raises() -> None:
     # A completely empty file is rejected rather than producing no documents.
     with pytest.raises(CoNLLFormatError, match="contains no sequences"):

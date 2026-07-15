@@ -194,3 +194,27 @@ def test_analyze_output_format_help() -> None:
     assert "--output-format" in result.output
     for fmt in SUPPORTED_OUTPUT_FORMATS:
         assert fmt in result.output
+
+
+def test_analyze_with_repair_method() -> None:
+    # After repair, invalid1.bio analyzes the same as minimal.bio.
+    runner = CliRunner()
+    out_path = os.path.join(TMP_DIR.name, "analyze_repaired.txt")
+    result = runner.invoke(
+        analyze,
+        [
+            "--labels",
+            "BIO",
+            "--output-file",
+            out_path,
+            "--repair-method",
+            "conlleval",
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Used method conlleval to repair:" in result.stderr
+    assert file_lines_match(
+        out_path,
+        os.path.join("tests", "test_files", "analyze_minimal_ref.tsv"),
+    )

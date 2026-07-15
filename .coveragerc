@@ -3,5 +3,14 @@ branch = true
 
 [report]
 exclude_lines =
+    # Stub methods that do nothing but raise (abstract base methods)
     raise NotImplementedError
+
+    # Explicit user markers
     pragma: no cover
+
+    # Ellipsis-only lines (stub bodies)
+    ^\s*\.\.\.$
+
+    # Inline stub bodies (Protocol methods and @overload signatures)
+    : \.\.\.\s*$

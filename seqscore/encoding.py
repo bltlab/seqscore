@@ -455,9 +455,9 @@ class BIO(Encoding):
             elif state == inside:
                 assert builder.in_mention()
                 assert entity_type == builder.entity_type
-            # No action needed for outside (since ending mentions is mentioned above) other than
-            # checking state.
-            elif state == outside:
+            # Nothing to do but check state
+            else:
+                assert state == outside
                 assert not builder.in_mention()
 
         # Finish the last mention if needed

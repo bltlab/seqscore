@@ -292,3 +292,30 @@ def test_summarize_comma_delim_warning() -> None:
     )
     assert result.exit_code == 0
     assert "Warning" in result.stderr or "not recommended" in result.stderr
+
+
+def test_summarize_with_repair_method() -> None:
+    # After repair, invalid1.bio summarizes the same as minimal.bio.
+    runner = CliRunner()
+    result = runner.invoke(
+        summarize,
+        [
+            "--labels",
+            "BIO",
+            "--repair-method",
+            "conlleval",
+            os.path.join("tests", "conll_annotation", "invalid1.bio"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Used method conlleval to repair:" in result.stderr
+    assert (
+        result.stdout
+        == """File 'tests/conll_annotation/invalid1.bio' contains 1 document(s) and 2 sentences
+| Entity Type   |   Count |
+|---------------|---------|
+| LOC           |       2 |
+| ORG           |       1 |
+| TOTAL         |       3 |
+"""
+    )
