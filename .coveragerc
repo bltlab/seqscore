@@ -1,3 +1,6 @@
+[run]
+branch = true
+
 [report]
 exclude_lines =
     raise NotImplementedError
