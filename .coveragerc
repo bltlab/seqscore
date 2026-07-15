@@ -1,7 +1,22 @@
 [run]
 branch = true
+# Measure the seqscore package wherever it is imported from. Using source_pkgs
+# (rather than a "seqscore" path) ensures we measure the installed package that
+# the tests actually import in CI, not the unexecuted source tree that happens
+# to share the name.
+source_pkgs = seqscore
+
+[paths]
+# Treat the installed copy and the source tree as the same files so coverage
+# collected against an installed package reports against the source.
+source =
+    seqscore
+    */site-packages/seqscore
 
 [report]
+# Fail if coverage is not complete. 100 is treated strictly: anything short of
+# full coverage fails rather than being rounded up.
+fail_under = 100
 exclude_lines =
     # Stub methods that do nothing but raise (abstract base methods)
     raise NotImplementedError
