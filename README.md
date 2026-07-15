@@ -159,9 +159,9 @@ To score the predictions, run:
 ```
 | Type   |   Precision |   Recall |     F1 |   Reference |   Predicted |   Correct |
 |--------|-------------|----------|--------|-------------|-------------|-----------|
-| ALL    |       50.00 |    66.67 |  57.14 |           3 |           4 |         2 |
 | LOC    |       33.33 |    50.00 |  40.00 |           2 |           3 |         1 |
 | ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |
+| ALL    |       50.00 |    66.67 |  57.14 |           3 |           4 |         2 |
 ```
 
 A few things to note:
@@ -176,6 +176,9 @@ A few things to note:
 * You can write the results to a file with `--output-file`. When it is given, the output
   defaults to delimited (so the file holds only report data); pass `--output-format` to
   override.
+* You can change the style of the pretty table with `--table-format`, which accepts any
+  style supported by the `tabulate` library (for example `github`, `grid`, or `plain`)
+  and defaults to `github`.
 * In the default (pretty) output format, numbers are rounded "half up" at two decimal
   places. In other words, 57.124 will round to 57.12, and 57.125 will round to 57.13.
   This is different than the "half even" rounding used by `conlleval` and other
@@ -230,9 +233,9 @@ Old: ('I-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
 New: ('B-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
 | Type   |   Precision |   Recall |     F1 |   Reference |   Predicted |   Correct |
 |--------|-------------|----------|--------|-------------|-------------|-----------|
-| ALL    |      100.00 |   100.00 | 100.00 |           3 |           3 |         3 |
 | LOC    |      100.00 |   100.00 | 100.00 |           2 |           2 |         2 |
 | ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |
+| ALL    |      100.00 |   100.00 | 100.00 |           3 |           3 |         3 |
 ```
 
 You can use the `-q` flag to suppress the logging of all of the repairs applied. For
@@ -243,9 +246,9 @@ will hide the repairs:
 ```
 | Type   |   Precision |   Recall |     F1 |   Reference |   Predicted |   Correct |
 |--------|-------------|----------|--------|-------------|-------------|-----------|
-| ALL    |      100.00 |   100.00 | 100.00 |           3 |           3 |         3 |
 | LOC    |      100.00 |   100.00 | 100.00 |           2 |           2 |         2 |
 | ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |
+| ALL    |      100.00 |   100.00 | 100.00 |           3 |           3 |         3 |
 ```
 
 You may want to also explore the `discard` repair, which can produce higher scores for
@@ -407,7 +410,6 @@ File 'samples/reference.bio' contains 1 document(s) and 2 sentences
 |---------------|---------|
 | LOC           |       2 |
 | ORG           |       1 |
-|---------------|---------|
 | TOTAL         |       3 |
 ```
 
