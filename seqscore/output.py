@@ -114,18 +114,8 @@ def format_output_table(
         "Predicted",
         "Correct",
     ]
-    rows = [
-        [
-            ALL_TYPES,
-            convert_score(class_scores.precision, full_precision),
-            convert_score(class_scores.recall, full_precision),
-            convert_score(class_scores.f1, full_precision),
-            class_scores.total_ref,
-            class_scores.total_pos,
-            class_scores.true_pos,
-        ]
-    ]
-    # Add lines for each type
+    rows: list[list[Any]] = []
+    # One line per type, then the ALL row last so it reads like a total
     for type_name, score in sorted(class_scores.type_scores.items()):
         rows.append(
             [
@@ -138,6 +128,17 @@ def format_output_table(
                 score.true_pos,
             ]
         )
+    rows.append(
+        [
+            ALL_TYPES,
+            convert_score(class_scores.precision, full_precision),
+            convert_score(class_scores.recall, full_precision),
+            convert_score(class_scores.f1, full_precision),
+            class_scores.total_ref,
+            class_scores.total_pos,
+            class_scores.true_pos,
+        ]
+    )
     return header, rows
 
 
@@ -296,14 +297,7 @@ def report_scores(
         means, stderrs = _f1_mean_stderr(all_class_scores)
         ref_scores = all_class_scores[0]
         summary_header = ["Type", "Mean F1", "SE", "Reference"]
-        summary_rows: list[list[Any]] = [
-            [
-                ALL_TYPES,
-                means[ALL_TYPES] * 100,
-                stderrs[ALL_TYPES] * 100,
-                ref_scores.total_ref,
-            ]
-        ]
+        summary_rows: list[list[Any]] = []
         for entity_type in sorted(means):
             if entity_type == ALL_TYPES:
                 continue
@@ -315,6 +309,14 @@ def report_scores(
                     ref_scores.type_scores[entity_type].total_ref,
                 ]
             )
+        summary_rows.append(
+            [
+                ALL_TYPES,
+                means[ALL_TYPES] * 100,
+                stderrs[ALL_TYPES] * 100,
+                ref_scores.total_ref,
+            ]
+        )
         print()
         print("Summary")
         write_report(

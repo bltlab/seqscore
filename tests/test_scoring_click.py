@@ -218,10 +218,10 @@ def test_score_entity_type_not_in_reference() -> None:
     output_fields = [line.split("\t") for line in result.output.rstrip("\n").split("\n")]
     assert output_fields == [
         ["Type", "Precision", "Recall", "F1", "Reference", "Predicted", "Correct"],
-        ["ALL", "75.00", "100.00", "85.71", "3", "4", "3"],
         ["LOC", "100.00", "100.00", "100.00", "2", "2", "2"],
         ["ORG", "100.00", "100.00", "100.00", "1", "1", "1"],
         ["SPURIOUS", "0.00", "0.00", "0.00", "0", "1", "0"],
+        ["ALL", "75.00", "100.00", "85.71", "3", "4", "3"],
     ]
 
 
