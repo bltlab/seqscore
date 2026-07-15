@@ -594,7 +594,7 @@ def summarize(
 @click.option(
     "--full-precision",
     is_flag=True,
-    help="whether to output floating values at full precision instead of multiplying by 100 and rounding half even at two decimal places",
+    help="whether to output floating values at full precision instead of multiplying by 100 and rounding half up at two decimal places",
 )
 @_quiet_option()
 @_table_format_option()

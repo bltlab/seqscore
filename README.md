@@ -176,10 +176,10 @@ A few things to note:
 * You can write the results to a file with `--output-file`. When it is given, the output
   defaults to delimited (so the file holds only report data); pass `--output-format` to
   override.
-* You can change the style of the pretty table with `--table-format`, which accepts any
-  style supported by the `tabulate` library (for example `github`, `grid`, or `plain`)
-  and defaults to `github`.
-* In the default (pretty) output format, numbers are rounded "half up" at two decimal
+* You can change the style of the table with `--table-format`, which accepts any style
+  supported by the `tabulate` library (for example `github`, `grid`, or `plain`) and
+  defaults to `github`.
+* When not using `--full-precision`, numbers are rounded "half up" at two decimal
   places. In other words, 57.124 will round to 57.12, and 57.125 will round to 57.13.
   This is different than the "half even" rounding used by `conlleval` and other
   libraries that rely on `printf` behavior for rounding. Half up rounding is used as it
@@ -216,8 +216,8 @@ Note that the token `University` has the label `I-ORG`, but there is no precedin
 scoring will fail:
 
 ```
-seqscore.encoding.EncodingError: Stopping due to validation errors in invalid.bio:
-Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of invalid.bio
+seqscore.encoding.EncodingError: Stopping due to validation errors in samples/invalid.bio:
+Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of samples/invalid.bio
 ```
 
 To score output with invalid transitions, we need to specify a repair method which can
@@ -226,8 +226,8 @@ we refer to as "begin" repair in our paper):
 `seqscore score --labels BIO --repair-method conlleval --reference samples/reference.bio samples/invalid.bio`:
 
 ```
-Validation errors in sequence beginning at line 7 of invalid.bio:
-Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of invalid.bio
+Validation errors in sequence beginning at line 7 of samples/invalid.bio:
+Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of samples/invalid.bio
 Used method conlleval to repair:
 Old: ('I-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
 New: ('B-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
@@ -279,14 +279,14 @@ To check if a file has any invalid transitions, we can run
 `seqscore validate --labels BIO samples/reference.bio`:
 
 ```
-No errors found in 15 tokens, 2 sequences, and 1 document(s) in reference.bio
+No errors found in 15 tokens, 2 sequences, and 1 document(s) in samples/reference.bio
 ```
 
 For the example of the [samples/invalid.bio](samples/invalid.bio), we can run
 `seqscore validate --labels BIO samples/invalid.bio`:
 
 ```
-Encountered 1 errors in 15 tokens, 2 sequences, and 1 document(s) in invalid.bio
+Encountered 1 errors in 15 tokens, 2 sequences, and 1 document(s) in samples/invalid.bio
 Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
 ```
 
