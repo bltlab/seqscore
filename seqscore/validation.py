@@ -6,7 +6,9 @@ from seqscore.encoding import Encoding, EncodingError
 
 
 @dataclass
-class ValidationError:
+class ValidationIssue:
+    """A single validation issue found in a label sequence."""
+
     msg: str
     label: str
     type: str
@@ -16,11 +18,11 @@ class ValidationError:
     source_name: Optional[str] = None
 
 
-class InvalidStateError(ValidationError):
+class InvalidState(ValidationIssue):
     pass
 
 
-class InvalidTransitionError(ValidationError):
+class InvalidTransition(ValidationIssue):
     pass
 
 
@@ -32,15 +34,15 @@ class InvalidLabelError(EncodingError):
 
 @dataclass
 class SequenceValidationResult:
-    errors: tuple[ValidationError, ...]
+    errors: tuple[ValidationIssue, ...]
     n_tokens: int
     repaired_labels: tuple[str, ...] = ()
 
     def is_valid(self) -> bool:
         return not self.errors
 
-    def invalid_state_errors(self) -> list[InvalidStateError]:
-        return [error for error in self.errors if isinstance(error, InvalidStateError)]
+    def invalid_state_errors(self) -> list[InvalidState]:
+        return [error for error in self.errors if isinstance(error, InvalidState)]
 
     def __len__(self) -> int:
         return len(self.errors)
@@ -48,7 +50,7 @@ class SequenceValidationResult:
 
 @dataclass(frozen=True)
 class ValidationResult:
-    errors: tuple[ValidationError, ...]
+    errors: tuple[ValidationIssue, ...]
     n_tokens: int
     n_sequences: int
     n_docs: int
@@ -78,7 +80,7 @@ def validate_labels(
                 source_msg = f" of {source_name}" if source_name else ""
                 raise ValueError(f"Invalid token {repr(tok)}{line_msg}{source_msg}")
 
-    errors: list[ValidationError] = []
+    errors: list[ValidationIssue] = []
     outside = encoding.dialect.outside
 
     # Treat sequence as if preceded by outside
@@ -117,9 +119,7 @@ def validate_labels(
                 msg += f" of {source_name}"
 
             errors.append(
-                InvalidStateError(
-                    msg, label, entity_type, state, token, line_num, source_name
-                )
+                InvalidState(msg, label, entity_type, state, token, line_num, source_name)
             )
 
         if not encoding.is_valid_transition(
@@ -142,7 +142,7 @@ def validate_labels(
                 msg += f" of {source_name}"
 
             errors.append(
-                InvalidTransitionError(
+                InvalidTransition(
                     msg, label, entity_type, state, token, line_num, source_name
                 )
             )
@@ -172,7 +172,7 @@ def validate_labels(
         msg += " at end of sequence"
 
         errors.append(
-            InvalidTransitionError(
+            InvalidTransition(
                 msg, prev_label, prev_entity_type, prev_state, token, line_num
             )
         )

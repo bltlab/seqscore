@@ -274,19 +274,24 @@ def test_token_count_error() -> None:
     assert "outside label (O)" in str(exc_info.value)
 
 
-def test_token_count_error_provenance_none_raises_error() -> None:
-    labels = ("O", "B-ORG")
-    sequence = AnnotatedSequence(
-        tokens=("a", "b"), labels=labels, mentions=(), provenance=None
-    )
+def test_token_count_error_provenance_none_uses_fallback() -> None:
     ref_sequence = AnnotatedSequence(
         tokens=("a", "b"),
-        labels=labels,
+        labels=("O", "B-ORG"),
         mentions=(),
-        provenance=SequenceProvenance(0, "test"),
+        provenance=None,
     )
-    with pytest.raises(ValueError):
-        TokenCountError.from_sequences(ref_sequence, sequence)
+    pred_sequence = AnnotatedSequence(
+        tokens=("a", "b", "c"),
+        labels=("O", "B-ORG", "O"),
+        mentions=(),
+        provenance=None,
+    )
+    error = TokenCountError.from_sequences(ref_sequence, pred_sequence)
+    assert error.line_num is None
+    assert error.source is None
+    assert "Token count mismatch" in str(error)
+    assert " at line " not in str(error)
 
 
 def test_differing_num_docs() -> None:
@@ -452,12 +457,12 @@ def test_token_mismatch_error_at_index_0() -> None:
     assert exc_info.value.pred_token == "x"
 
 
-def test_token_mismatch_error_provenance_none_raises_error() -> None:
+def test_token_mismatch_error_provenance_none_uses_fallback() -> None:
     ref_sequence = AnnotatedSequence(
         tokens=("a", "b"),
         labels=("O", "B-ORG"),
         mentions=(),
-        provenance=SequenceProvenance(0, "test"),
+        provenance=None,
     )
     pred_sequence = AnnotatedSequence(
         tokens=("a", "x"),
@@ -465,8 +470,11 @@ def test_token_mismatch_error_provenance_none_raises_error() -> None:
         mentions=(),
         provenance=None,
     )
-    with pytest.raises(ValueError):
-        TokenMismatchError.from_sequences(ref_sequence, pred_sequence)
+    error = TokenMismatchError.from_sequences(ref_sequence, pred_sequence)
+    assert error.line_num is None
+    assert error.source is None
+    assert "Tokens do not match" in str(error)
+    assert " at line " not in str(error)
 
 
 def test_compute_scores_matching_tokens_passes() -> None:

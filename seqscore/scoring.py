@@ -15,31 +15,45 @@ def _defaultdict_classification_score() -> DefaultDict[str, "ClassificationScore
 
 @dataclass(frozen=True, slots=True)
 class TokensWithType:
+    """A false positive/negative mention's token span, for error analysis."""
+
     tokens: tuple[str, ...]
     type: str
 
 
+def _location_suffix(line_num: Optional[int], source: Optional[str]) -> str:
+    loc = f" at line {line_num}" if line_num is not None else ""
+    if source:
+        loc += f" of {source}"
+    return loc
+
+
 class TokenCountError(ValueError):
+    """Raised by compute_scores on a token count mismatch.
+
+    line_num/source are None when the predicted sequence has no provenance
+    (e.g. sequences built in memory rather than read from a file).
+    """
+
     def __init__(
         self,
         ref_token_count: int,
         pred_token_count: int,
         ref_last_token: str,
         pred_last_token: str,
-        line_num: int,
-        source: Optional[str],
+        line_num: Optional[int] = None,
+        source: Optional[str] = None,
     ):
         self.ref_token_count: int = ref_token_count
         self.pred_token_count: int = pred_token_count
         self.ref_last_token: str = ref_last_token
         self.pred_last_token: str = pred_last_token
-        self.line_num: int = line_num
+        self.line_num: Optional[int] = line_num
         self.source: Optional[str] = source
 
-        src = f" of {source}" if source else ""
         msg = "\n".join(
             [
-                f"Token count mismatch at line {line_num}{src}",
+                f"Token count mismatch{_location_suffix(line_num, source)}",
                 f"Reference sequence contains {ref_token_count} tokens; "
                 + f"predicted sequence contains {pred_token_count}.",
                 f"Last token of reference sequence: {ref_last_token!r}",
@@ -55,42 +69,41 @@ class TokenCountError(ValueError):
     def from_sequences(
         cls, ref_sequence: AnnotatedSequence, pred_sequence: AnnotatedSequence
     ) -> "TokenCountError":
-        if pred_sequence.provenance is None:
-            raise ValueError(
-                f"Cannot create {cls.__name__} from sequence without provenance"
-            )
         # AnnotatedSequence enforces non-empty tokens, so tokens[-1] is always safe.
         return cls(
             len(ref_sequence),
             len(pred_sequence),
             ref_sequence.tokens[-1],
             pred_sequence.tokens[-1],
-            pred_sequence.provenance.starting_line,
-            pred_sequence.provenance.source,
+            pred_sequence.provenance.starting_line if pred_sequence.provenance else None,
+            pred_sequence.provenance.source if pred_sequence.provenance else None,
         )
 
 
 class TokenMismatchError(ValueError):
-    """Raised when tokens have different content but the same length."""
+    """Raised when tokens have different content but the same length.
+
+    line_num/source are None when the predicted sequence has no provenance
+    (e.g. sequences built in memory rather than read from a file).
+    """
 
     def __init__(
         self,
         ref_token: str,
         pred_token: str,
         differing_index: int,
-        line_num: int,
-        source: Optional[str],
+        line_num: Optional[int] = None,
+        source: Optional[str] = None,
     ):
         self.ref_token: str = ref_token
         self.pred_token: str = pred_token
         self.differing_index: int = differing_index
-        self.line_num: int = line_num
+        self.line_num: Optional[int] = line_num
         self.source: Optional[str] = source
 
-        src = f" of {source}" if source else ""
         msg = "\n".join(
             [
-                f"Tokens do not match at line {line_num}{src}",
+                f"Tokens do not match{_location_suffix(line_num, source)}",
                 f"First differing index: {differing_index}",
                 f"Reference token at that index: {ref_token}",
                 f"Prediction token at that index: {pred_token}",
@@ -103,10 +116,6 @@ class TokenMismatchError(ValueError):
     def from_sequences(
         cls, ref_sequence: AnnotatedSequence, pred_sequence: AnnotatedSequence
     ) -> "TokenMismatchError":
-        if ref_sequence.provenance is None or pred_sequence.provenance is None:
-            raise ValueError(
-                f"Cannot create {cls.__name__} from sequence without provenance"
-            )
         # Precondition: ref_sequence.tokens and pred_sequence.tokens are equal
         # length and differ at least once, so the first differing index always
         # exists. Use default=None and raise early to avoid a bare StopIteration.
@@ -129,13 +138,15 @@ class TokenMismatchError(ValueError):
             ref_sequence.tokens[differing_index],
             pred_sequence.tokens[differing_index],
             differing_index,
-            pred_sequence.provenance.starting_line,
-            pred_sequence.provenance.source,
+            pred_sequence.provenance.starting_line if pred_sequence.provenance else None,
+            pred_sequence.provenance.source if pred_sequence.provenance else None,
         )
 
 
 @dataclass
 class ClassificationScore:
+    """Entity-level precision/recall/F1, broken down by type in type_scores."""
+
     true_pos: int = field(default=0, kw_only=True)
     false_pos: int = field(default=0, kw_only=True)
     false_neg: int = field(default=0, kw_only=True)
@@ -191,6 +202,8 @@ class ClassificationScore:
 
 @dataclass
 class AccuracyScore:
+    """Token-level label accuracy."""
+
     hits: int = field(default=0, kw_only=True)
     total: int = field(default=0, kw_only=True)
 
@@ -207,6 +220,12 @@ def compute_scores(
     *,
     count_fp_fn_examples: bool = False,
 ) -> tuple[ClassificationScore, AccuracyScore]:
+    """Score predicted sequences against reference sequences, grouped by document.
+
+    Documents and sequences within them must align positionally between
+    pred_docs and ref_docs, and corresponding sequences must have the same
+    tokens. Raises TokenCountError/TokenMismatchError if not.
+    """
     accuracy = AccuracyScore()
     classification = ClassificationScore()
 
@@ -317,7 +336,7 @@ def score_label_sequences(
     *,
     repair: Optional[str],
 ) -> tuple[ClassificationScore, AccuracyScore]:
-    """Return accuracy and classification scores for predicted and reference label sequences."""
+    """Score predicted label sequences against reference label sequences."""
     if len(pred_label_sequences) != len(ref_label_sequences):
         raise ValueError(
             f"Different number of sequences in predicted ({len(pred_label_sequences)}) and "
@@ -357,6 +376,11 @@ def _repair_label_sequence(
 
 
 def convert_score(num: float, full_precision: bool) -> Union[Decimal, float]:
+    """Convert a 0-1 score to a display form.
+
+    Unchanged if full precision, else a 0-100 percentage rounded to two
+    decimal places.
+    """
     if full_precision:
         # Leave it unchanged
         return num
