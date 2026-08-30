@@ -4,7 +4,12 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional, TextIO
 
-from seqscore.encoding import Encoding, EncodingError, get_encoding
+from seqscore.encoding import (
+    Encoding,
+    EncodingError,
+    get_encoding,
+    get_output_encoding,
+)
 from seqscore.model import AnnotatedSequence, LabeledSequence, SequenceProvenance
 from seqscore.output import report_scores
 from seqscore.util import PathType
@@ -467,7 +472,7 @@ def write_docs_using_encoding(
     discard_comments: bool = False,
     always_write_docstart: bool = False,
 ) -> None:
-    mention_encoding = get_encoding(mention_encoding_name)
+    mention_encoding = get_output_encoding(mention_encoding_name)
     output_docstart = len(docs) > 1 or always_write_docstart
 
     with open(output_path, "w", encoding=file_encoding) as file:

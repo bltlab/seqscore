@@ -289,3 +289,39 @@ def test_ner_label_index_zero() -> None:
     assert "Token index (0) and label index (0) cannot be the same" in str(
         result.exception
     )
+
+
+def test_valid_iob_lenient() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        [
+            "--labels",
+            "IOB-lenient",
+            os.path.join("tests", "conll_annotation", "minimal_lenient.iob"),
+        ],
+    )
+    assert result.output == (
+        "No errors found in 5 tokens, 1 sequences, and 1 document(s) in "
+        "tests/conll_annotation/minimal_lenient.iob\n"
+    )
+    assert result.exit_code == 0
+
+
+def test_invalid_iob_strict() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        validate,
+        [
+            "--labels",
+            "IOB",
+            os.path.join("tests", "conll_annotation", "minimal_lenient.iob"),
+        ],
+    )
+    assert result.output == (
+        "Encountered 2 errors in 5 tokens, 1 sequences, and 1 document(s) in "
+        "tests/conll_annotation/minimal_lenient.iob\n"
+        "Invalid transition 'I-ORG' -> 'B-LOC' for token 'Bonn' on line 2\n"
+        "Invalid transition 'O' -> 'B-LOC' for token 'Germany' on line 4\n"
+    )
+    assert result.exit_code == 1

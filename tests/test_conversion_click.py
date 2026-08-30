@@ -340,3 +340,41 @@ def test_diff_token_label_indices() -> None:
         output_path,
         os.path.join("tests", "conll_annotation", "diff_token_label_indices.bioes"),
     )
+
+
+def test_iob_lenient_input() -> None:
+    runner = CliRunner()
+    output_path = os.path.join(TMP_DIR.name, "IOBlenienttoBIO.txt")
+    result = runner.invoke(
+        convert,
+        [
+            "--input-labels",
+            "IOB-lenient",
+            "--output-labels",
+            "BIO",
+            os.path.join("tests", "conll_annotation", "minimal_lenient.iob"),
+            output_path,
+        ],
+    )
+    assert result.exit_code == 0
+    assert file_fields_match(
+        output_path, os.path.join("tests", "test_files", "minimal_lenient_bio.txt")
+    )
+
+
+def test_iob_lenient_rejected_as_output() -> None:
+    runner = CliRunner()
+    output_path = os.path.join(TMP_DIR.name, "BIOtoIOBlenient.txt")
+    result = runner.invoke(
+        convert,
+        [
+            "--input-labels",
+            "BIO",
+            "--output-labels",
+            "IOB-lenient",
+            os.path.join("tests", "conll_annotation", "minimal.bio"),
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert "'--output-labels'" in result.output

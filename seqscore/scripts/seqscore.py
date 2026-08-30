@@ -18,7 +18,8 @@ from seqscore.conll import (
 )
 from seqscore.encoding import (
     REPAIR_NONE,
-    SUPPORTED_ENCODINGS,
+    SUPPORTED_INPUT_ENCODINGS,
+    SUPPORTED_OUTPUT_ENCODINGS,
     SUPPORTED_REPAIR_METHODS,
     default_outside_label,
 )
@@ -120,16 +121,23 @@ def _repair_required_option() -> Callable:
     )
 
 
-def _labels_option() -> Callable:
-    return click.option("--labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
+def _labels_encodings(output: bool) -> tuple[str, ...]:
+    # Commands that write labels must use an output encoding
+    return SUPPORTED_OUTPUT_ENCODINGS if output else SUPPORTED_INPUT_ENCODINGS
 
 
-def _labels_option_default_bio() -> Callable:
+def _labels_option(*, output: bool) -> Callable:
+    return click.option(
+        "--labels", required=True, type=click.Choice(_labels_encodings(output))
+    )
+
+
+def _labels_option_default_bio(*, output: bool) -> Callable:
     return click.option(
         "--labels",
         default="BIO",
         show_default=True,
-        type=click.Choice(SUPPORTED_ENCODINGS),
+        type=click.Choice(_labels_encodings(output)),
     )
 
 
@@ -202,7 +210,7 @@ def _quiet_option() -> Callable:
 
 @cli.command(help="validate labels")
 @_multi_input_file_arguments
-@_labels_option()
+@_labels_option(output=False)
 @_quiet_option()
 def validate(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
@@ -247,7 +255,7 @@ def validate(
 @cli.command(help="repair invalid label transitions")
 @_single_input_file_arguments
 @click.argument("output_file")
-@_labels_option()
+@_labels_option(output=True)
 @_repair_required_option()
 @_output_delim_option()
 @_discard_extra_fields_option()
@@ -301,8 +309,12 @@ def repair(
 @cli.command(help="convert between mention encodings")
 @_single_input_file_arguments
 @click.argument("output_file")
-@click.option("--input-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
-@click.option("--output-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
+@click.option(
+    "--input-labels", required=True, type=click.Choice(SUPPORTED_INPUT_ENCODINGS)
+)
+@click.option(
+    "--output-labels", required=True, type=click.Choice(SUPPORTED_OUTPUT_ENCODINGS)
+)
 @_output_delim_option()
 @_discard_extra_fields_option()
 @_discard_comments_option()
@@ -348,7 +360,7 @@ def convert(
 @cli.command(help="transform entity types by keeping/removing/mapping")
 @_single_input_file_arguments
 @click.argument("output_file")
-@_labels_option_default_bio()
+@_labels_option_default_bio(output=True)
 @click.option(
     "--keep-types",
     default="",
@@ -427,7 +439,7 @@ def process(
 @cli.command(help="show counts for all the mentions contained in a file")
 @_multi_input_file_arguments
 @_output_file_option()
-@_labels_option_default_bio()
+@_labels_option_default_bio(output=False)
 @_repair_option()
 @_output_format_option(None)
 @_table_format_option()
@@ -503,7 +515,7 @@ def count(
 @cli.command(help="show counts of the documents, sentences, and entity types")
 @_multi_input_file_arguments
 @_output_file_option()
-@_labels_option_default_bio()
+@_labels_option_default_bio(output=False)
 @_repair_option()
 @_output_format_option(None)
 @_table_format_option()
@@ -594,7 +606,7 @@ def summarize(
 @_multi_input_file_arguments
 @_output_file_option()
 @click.option("--reference", required=True)
-@_labels_option()
+@_labels_option(output=False)
 @_repair_option()
 @click.option(
     "--output-format",
@@ -688,7 +700,7 @@ def score(
 @cli.command(help="extract mentions with their sentence context")
 @_multi_input_file_arguments
 @_output_file_option()
-@_labels_option_default_bio()
+@_labels_option_default_bio(output=False)
 @_repair_option()
 @_output_format_option(None)
 @_table_format_option()
@@ -758,7 +770,7 @@ def analyze(
 @cli.command(help="extract text from a file")
 @_multi_input_file_arguments
 @click.argument("output_file")
-@_labels_option_default_bio()
+@_labels_option_default_bio(output=False)
 def extract_text(
     file: list[str],  # Name is "file" to make sense on the command line, but it's a list
     file_encoding: str,

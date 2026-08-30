@@ -289,6 +289,32 @@ def test_validation_iob() -> None:
     assert len(result.errors) == 1
 
 
+def test_validation_iob_lenient() -> None:
+    encoding = get_encoding("IOB-lenient")
+
+    # Everything IOB allows is still allowed
+    result = validate_labels(("I-PER", "B-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("I-PER", "O", "I-ORG"), encoding)
+    assert not result.errors
+
+    # B-X is also allowed after O, after I-Y, and after B-Y
+    result = validate_labels(("B-PER", "I-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("O", "B-PER"), encoding)
+    assert not result.errors
+    result = validate_labels(("I-PER", "B-ORG"), encoding)
+    assert not result.errors
+    result = validate_labels(("B-PER", "B-ORG"), encoding)
+    assert not result.errors
+
+    # No transition between I, B, and O labels is invalid, but a state from another
+    # encoding still is
+    result = validate_labels(("S-PER",), encoding)
+    # Invalid state, plus the transitions into and out of it
+    assert len(result.errors) == 3
+
+
 def test_validation_bioes_start() -> None:
     encoding = get_encoding("BIOES")
 

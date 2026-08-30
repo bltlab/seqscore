@@ -12,7 +12,7 @@ from seqscore.conll import (
     write_docs_raw,
     write_docs_using_encoding,
 )
-from seqscore.encoding import REPAIR_NONE, get_encoding
+from seqscore.encoding import REPAIR_NONE, EncodingError, get_encoding
 from seqscore.model import AnnotatedSequence, LabeledSequence
 from seqscore.util import file_fields_match
 from seqscore.validation import InvalidLabelError
@@ -477,3 +477,23 @@ def test_discard_comments(filename: str, tmp_path: Path) -> None:
     assert output_lines == [
         line for line in input_lines if not (line.startswith("#") and "\t" not in line)
     ]
+
+
+def test_write_docs_iob_lenient_rejected(tmp_path: Path) -> None:
+    docs = ingest_conll_file(
+        Path("tests") / "conll_annotation" / "minimal_lenient.iob",
+        "IOB-lenient",
+        "UTF-8",
+        LINE_SPEC,
+        ignore_document_boundaries=False,
+        allow_comment_lines=False,
+    )
+    with pytest.raises(EncodingError):
+        write_docs_using_encoding(
+            docs,
+            "IOB-lenient",
+            "UTF-8",
+            "\t",
+            LINE_SPEC,
+            tmp_path / "out.txt",
+        )

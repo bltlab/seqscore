@@ -7,13 +7,16 @@ from seqscore.encoding import (
     _BIOES,
     _IO,
     _IOB,
-    SUPPORTED_ENCODINGS,
+    SUPPORTED_INPUT_ENCODINGS,
+    SUPPORTED_OUTPUT_ENCODINGS,
     EncodingError,
     _BILOUDialect,
     _BIOESDialect,
     _BMEOWDialect,
     _BMESDialect,
+    _IOBLenient,
     get_encoding,
+    get_output_encoding,
 )
 from seqscore.model import AnnotatedSequence, LabeledSequence, Mention, Span
 
@@ -26,6 +29,8 @@ FULL_SENTENCE_LABELS = {
     "BMES": ["S-PER", "O", "B-ORG", "E-ORG", "B-ORG", "M-ORG", "E-ORG", "S-LOC"],
     "BMEOW": ["W-PER", "O", "B-ORG", "E-ORG", "B-ORG", "M-ORG", "E-ORG", "W-LOC"],
 }
+# IOB-lenient decodes valid IOB labels identically, so it shares the IOB labels
+FULL_SENTENCE_LABELS["IOB-lenient"] = list(FULL_SENTENCE_LABELS["IOB"])
 FULL_SENTENCE_MENTS = [
     Mention(Span(0, 1), "PER"),
     Mention(Span(2, 4), "ORG"),
@@ -40,9 +45,9 @@ FULL_SENTENCE_MENTS_IO = [
 ]
 # Map to sets of encodings that allow that state
 VALID_ENCODING_STATES = {
-    "B": {"IOB", "BIO", "BIOES", "BILOU", "BMES", "BMEOW"},
-    "I": {"IOB", "BIO", "BIOES", "BILOU", "IO"},
-    "O": {"IOB", "IO", "BIO", "BIOES", "BILOU", "BMES", "BMEOW"},
+    "B": {"IOB", "IOB-lenient", "BIO", "BIOES", "BILOU", "BMES", "BMEOW"},
+    "I": {"IOB", "IOB-lenient", "BIO", "BIOES", "BILOU", "IO"},
+    "O": {"IOB", "IOB-lenient", "IO", "BIO", "BIOES", "BILOU", "BMES", "BMEOW"},
     "E": {"BIOES", "BMES", "BMEOW"},
     "M": {"BMES", "BMEOW"},
     "L": {"BILOU"},
@@ -139,7 +144,7 @@ EDGE_TEST_SENTENCES = [
 
 
 def test_basic_decoding() -> None:
-    for encoding_name in SUPPORTED_ENCODINGS:
+    for encoding_name in SUPPORTED_INPUT_ENCODINGS:
         encoding = get_encoding(encoding_name)
         labels = FULL_SENTENCE_LABELS[encoding_name]
         mentions = (
@@ -149,7 +154,7 @@ def test_basic_decoding() -> None:
 
 
 def test_basic_encoding() -> None:
-    for encoding_name in SUPPORTED_ENCODINGS:
+    for encoding_name in SUPPORTED_OUTPUT_ENCODINGS:
         encoding = get_encoding(encoding_name)
         labels = FULL_SENTENCE_LABELS[encoding_name]
         mentions = (
@@ -168,7 +173,7 @@ def test_basic_encoding() -> None:
 
 
 def test_round_trip() -> None:
-    for encoding_name in set(SUPPORTED_ENCODINGS) & set(SUPPORTED_ENCODINGS):
+    for encoding_name in SUPPORTED_OUTPUT_ENCODINGS:
         # Skip IO since it can't round-trip
         if encoding_name == "IO":
             continue
@@ -187,7 +192,7 @@ def test_round_trip() -> None:
 
 
 def test_valid_states() -> None:
-    all_encoding_names = set(SUPPORTED_ENCODINGS)
+    all_encoding_names = set(SUPPORTED_INPUT_ENCODINGS)
     for state, valid_encoding_names in VALID_ENCODING_STATES.items():
         for encoding_name in all_encoding_names:
             encoding = get_encoding(encoding_name)
@@ -214,6 +219,12 @@ def test_get_encodings() -> None:
     enc = get_encoding("IOB")
     assert isinstance(enc, _IOB)
     assert enc.name == "IOB"
+
+    enc = get_encoding("IOB-lenient")
+    assert isinstance(enc, _IOBLenient)
+    assert enc.name == "IOB-lenient"
+    # Names are matched case-insensitively
+    assert get_encoding("iob-lenient") is enc
 
     enc = get_encoding("BIO")
     assert isinstance(enc, _BIO)
@@ -343,3 +354,82 @@ def test_decode_bioes_invalid_continue() -> None:
     for sent in sents:
         with pytest.raises(AssertionError):
             assert decoder.decode_sequence(sent)
+
+
+# Labels valid under IOB-lenient but not under IOB, with the mentions they decode to
+IOB_LENIENT_DECODE_CASES = [
+    # B- after O is an ordinary mention start
+    (["O", "B-PER", "O"], [Mention(Span(1, 2), "PER")]),
+    # The start of a sequence counts as following O
+    (["B-PER", "I-PER", "O"], [Mention(Span(0, 2), "PER")]),
+    # B- of a different type ends the mention in progress and starts a new one
+    (["I-PER", "B-ORG"], [Mention(Span(0, 1), "PER"), Mention(Span(1, 2), "ORG")]),
+    (
+        ["I-PER", "B-ORG", "I-ORG", "O"],
+        [Mention(Span(0, 1), "PER"), Mention(Span(1, 3), "ORG")],
+    ),
+    # B- after B- of a different type does the same
+    (["B-PER", "B-ORG"], [Mention(Span(0, 1), "PER"), Mention(Span(1, 2), "ORG")]),
+]
+
+
+def test_iob_lenient_decoding() -> None:
+    encoding = get_encoding("IOB-lenient")
+    for labels, mentions in IOB_LENIENT_DECODE_CASES:
+        assert encoding.decode_labels(labels) == mentions
+
+
+def test_iob_rejects_lenient_transitions() -> None:
+    encoding = get_encoding("IOB")
+    for labels, _ in IOB_LENIENT_DECODE_CASES:
+        with pytest.raises(AssertionError):
+            encoding.decode_labels(labels)
+
+
+def test_iob_lenient_transitions() -> None:
+    iob = get_encoding("IOB")
+    lenient = get_encoding("IOB-lenient")
+    for first, second in (("O", None), ("I", "PER"), ("B", "PER")):
+        assert not iob.is_valid_transition(first, second, "B", "ORG")
+        assert lenient.is_valid_transition(first, second, "B", "ORG")
+
+    # Same-type transitions are unchanged
+    assert iob.valid_same_type_transitions == lenient.valid_same_type_transitions
+
+    # Every transition between I, B, and O labels is valid, but states from
+    # other encodings are still rejected
+    assert not lenient.is_valid_state("E")
+    assert not lenient.is_valid_transition("O", None, "E", "PER")
+
+
+def test_iob_lenient_matches_iob_on_valid_input() -> None:
+    iob = get_encoding("IOB")
+    lenient = get_encoding("IOB-lenient")
+
+    all_labels = [FULL_SENTENCE_LABELS["IOB"]]
+    for case in EDGE_TEST_SENTENCES:
+        for encoding_names, labels in case.encoding_labels:
+            if "IOB" in encoding_names:
+                all_labels.append(labels)
+
+    for labels in all_labels:
+        assert lenient.decode_labels(labels) == iob.decode_labels(labels)
+
+
+def test_iob_lenient_is_input_only() -> None:
+    encoding = get_encoding("IOB-lenient")
+    assert not encoding.supports_output
+
+    with pytest.raises(EncodingError):
+        encoding.encode_mentions(FULL_SENTENCE_MENTS, 8)
+
+    with pytest.raises(EncodingError):
+        get_output_encoding("IOB-lenient")
+
+    # Encodings that support output are still accepted
+    assert get_output_encoding("IOB") is get_encoding("IOB")
+
+
+def test_iob_lenient_not_an_output_encoding_name() -> None:
+    assert "IOB-lenient" in SUPPORTED_INPUT_ENCODINGS
+    assert "IOB-lenient" not in SUPPORTED_OUTPUT_ENCODINGS

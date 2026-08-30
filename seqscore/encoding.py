@@ -71,6 +71,10 @@ class Encoding(Protocol):
     valid_same_type_transitions: AbstractSet[tuple[str, str]]
     valid_different_type_transitions: AbstractSet[tuple[str, str]]
 
+    # Whether mentions can be encoded using this encoding. An encoding that cannot
+    # encode mentions is only usable for input labels.
+    supports_output: bool = True
+
     @lru_cache(maxsize=None)
     def split_label(self, label: str) -> tuple[str, Optional[str]]:
         splits = label.split(self.dialect.label_delim, maxsplit=1)
@@ -163,6 +167,13 @@ class Encoding(Protocol):
 
 class EncodingError(Exception):
     pass
+
+
+def _output_encoding_error(name: str) -> EncodingError:
+    return EncodingError(
+        f"Encoding {repr(name)} can only be used for input labels, "
+        + "not as an output encoding"
+    )
 
 
 class _IO(Encoding):
@@ -275,6 +286,14 @@ class _IOB(Encoding):
     def is_valid_state(self, state: str) -> bool:
         return state in self._valid_states
 
+    def _begin_mention(
+        self, builder: "_MentionBuilder", idx: int, entity_type: Optional[str]
+    ) -> None:
+        # Begin only allowed if previous entity type is the same as current
+        assert builder.in_mention() and entity_type == builder.entity_type
+        builder.end_mention(idx)
+        builder.start_mention(idx, entity_type)
+
     def decode_labels(self, labels: Sequence[str]) -> list[Mention]:
         builder = _MentionBuilder()
 
@@ -286,10 +305,7 @@ class _IOB(Encoding):
             state, entity_type = self.split_label(label)
 
             if state == begin:
-                # Begin only allowed if previous entity type is the same as current
-                assert builder.in_mention() and entity_type == builder.entity_type
-                builder.end_mention(idx)
-                builder.start_mention(idx, entity_type)
+                self._begin_mention(builder, idx, entity_type)
             elif state == inside:
                 if builder.in_mention():
                     if entity_type != builder.entity_type:
@@ -388,6 +404,45 @@ class _IOB(Encoding):
 
     def supported_repair_methods(self) -> tuple[str, ...]:
         return (REPAIR_CONLL,)
+
+
+class _IOBLenient(_IOB):
+    """IOB that allows a begin anywhere.
+
+    Only valid for input labels; mentions cannot be encoded using it.
+    """
+
+    supports_output = False
+
+    def __init__(self, dialect: _EncodingDialect, name: str):
+        super().__init__(dialect, name)
+
+        inside = dialect.inside
+        outside = dialect.outside
+        begin = dialect.begin
+
+        # Lenient IOB allows begin to appear anywhere
+        self.valid_different_type_transitions = frozenset(
+            self.valid_different_type_transitions
+            | {
+                (outside, begin),
+                (inside, begin),
+                (begin, begin),
+            }
+        )
+
+    def _begin_mention(
+        self, builder: "_MentionBuilder", idx: int, entity_type: Optional[str]
+    ) -> None:
+        # Begin always starts a mention, ending the one in progress if there is one
+        if builder.in_mention():
+            builder.end_mention(idx)
+        builder.start_mention(idx, entity_type)
+
+    def encode_mentions(
+        self, mentions: Sequence[Mention], sequence_length: int
+    ) -> Sequence[str]:
+        raise _output_encoding_error(self.name)
 
 
 class _BIO(Encoding):
@@ -512,7 +567,7 @@ class _BIO(Encoding):
                 # For BIO, this can only happen when the current label has a type
                 assert entity_type
                 if method == REPAIR_CONLL:
-                    # Treat this as the beginning of a new chunk
+                    # Treat this as the beginning of a new mention
                     state = begin
                 elif method == REPAIR_DISCARD:
                     # Treat this as O
@@ -522,7 +577,7 @@ class _BIO(Encoding):
                     # Both methods give the whole mention a single type, but there is
                     # only a mention to continue if the previous label is not outside
                     if prev_entity_type is None:
-                        # Treat this as the beginning of a new chunk
+                        # Treat this as the beginning of a new mention
                         state = begin
                     elif method == REPAIR_FIRST_TYPE:
                         # Continue the previous mention using its type
@@ -686,18 +741,33 @@ _ENCODING_NAMES: dict[str, Encoding] = {
     "BMEOW": _BIOES(_BMEOWDialect(), "BMEOW"),
     "IO": _IO(_BIOESDialect(), "IO"),
     "IOB": _IOB(_BIOESDialect(), "IOB"),
+    "IOB-lenient": _IOBLenient(_BIOESDialect(), "IOB-lenient"),
+}
+# Names are matched case-insensitively, so the keys above are the canonical spellings
+_ENCODING_LOOKUP: dict[str, Encoding] = {
+    name.upper(): encoding for name, encoding in _ENCODING_NAMES.items()
 }
 # Note that the ordering here is what will appear on the command line options
-# All are supported for encoding and decoding, but in theory things could change
-SUPPORTED_ENCODINGS = tuple(_ENCODING_NAMES)
+SUPPORTED_INPUT_ENCODINGS = tuple(_ENCODING_NAMES)
+SUPPORTED_OUTPUT_ENCODINGS = tuple(
+    name for name, encoding in _ENCODING_NAMES.items() if encoding.supports_output
+)
 
 
 def get_encoding(name: str) -> Encoding:
-    name = name.upper()
-    if name in _ENCODING_NAMES:
-        return _ENCODING_NAMES[name]
-    else:
-        raise ValueError(f"Unknown encoder {repr(name)}")
+    """Return the encoding with the given name, which may be used for input labels."""
+    encoding = _ENCODING_LOOKUP.get(name.upper())
+    if encoding is None:
+        raise ValueError(f"Unknown encoding {repr(name)}")
+    return encoding
+
+
+def get_output_encoding(name: str) -> Encoding:
+    """Return the encoding with the given name, which must support output."""
+    encoding = get_encoding(name)
+    if not encoding.supports_output:
+        raise _output_encoding_error(encoding.name)
+    return encoding
 
 
 def default_outside_label() -> str:

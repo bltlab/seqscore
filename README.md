@@ -297,6 +297,24 @@ Encountered 1 errors in 14 tokens, 2 sequences, and 1 document(s) in samples/inv
 Invalid transition 'I-ORG' -> 'I-LOC' for token 'Pennsylvania' on line 9
 ```
 
+### `IOB-lenient` input encoding
+
+A strict implementation of IOB only uses `B-` to separate two adjacent mentions of the
+same type, so a `B-` anywhere else is an invalid transition. Some datasets, including
+the original CoNLL-2003 English release, contain `B-` labels that do not follow an `I-`
+or `B-` label of the same entity type. This quirk causes them to fail validation as IOB,
+even though the intent is clear. `IOB-lenient` accepts the three transitions `IOB`
+rejects: `B-X` after `O`, `B-Y` after `I-X`, and `B-Y` after `B-X`.
+
+Because every sequence of `I-`, `B-`, and `O` labels is valid under `IOB-lenient`,
+validating with it checks only the label vocabulary, not the transitions: a label must
+be `O` or start with `I-` or `B-`. Use `--labels IOB` when you want the transitions
+checked as well.
+
+`IOB-lenient` can only be used for input labels. It is rejected wherever an output
+encoding is given, such as `convert --output-labels` and the `--labels` argument of
+`repair` and `process` (which use one encoding for both the input and the output file).
+
 ## Conversion
 
 We can convert a file from one chunk encoding to another. For example,
@@ -330,7 +348,8 @@ Usage: seqscore convert [OPTIONS] FILE OUTPUT_FILE
   convert between mention encodings
 
 Options:
-  --file-encoding TEXT            [default: UTF-8]
+  --file-encoding TEXT            encoding for input and output files
+                                  [default: UTF-8]
   --allow-comment-lines           allow comment lines starting with # before
                                   sequences
   --ignore-document-boundaries    ignore any document boundaries in the input
@@ -338,14 +357,14 @@ Options:
                                   token  [default: 0]
   --label-index INTEGER           index of the input field to use for the
                                   label  [default: -1]
+  --input-labels [BIO|BIOES|BILOU|BMES|BMEOW|IO|IOB|IOB-lenient]
+                                  [required]
+  --output-labels [BIO|BIOES|BILOU|BMES|BMEOW|IO|IOB]
+                                  [required]
   --output-delim TEXT             the delimiter to be used for output (has no
                                   effect on input) [default: tab]
   --discard-extra-fields          discard any fields other than the token and
                                   label when writing output files
-  --input-labels [BIO|BIOES|BILOU|BMES|BMEOW|IO|IOB]
-                                  [required]
-  --output-labels [BIO|BIOES|BILOU|BMES|BMEOW|IO|IOB]
-                                  [required]
   --help                          Show this message and exit.
 ```
 

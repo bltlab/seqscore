@@ -218,3 +218,20 @@ def test_repair_none_raises_error() -> None:
         ],
     )
     assert result.exit_code != 0
+
+
+def test_repair_iob_lenient_rejected() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        repair,
+        [
+            "--repair-method",
+            "conlleval",
+            "--labels",
+            "IOB-lenient",
+            os.path.join("tests", "conll_annotation", "minimal_lenient.iob"),
+            os.path.join(TMP_DIR.name, "lenient_repaired.txt"),
+        ],
+    )
+    assert result.exit_code == 2
+    assert "'--labels'" in result.output

@@ -509,3 +509,22 @@ def test_type_map_outside_value() -> None:
         "Value 'O' in type map 'tests/test_files/map_outside_value.json' is the outside type O"
         in result.output
     )
+
+
+def test_iob_lenient_rejected() -> None:
+    runner = CliRunner()
+    input_path = str(ANNOTATION_DIR / "minimal_lenient.iob")
+    output_path = str(Path(TMP_DIR.name) / "lenient_processed.txt")
+    result = runner.invoke(
+        process,
+        [
+            "--keep-types",
+            "ORG",
+            "--labels",
+            "IOB-lenient",
+            input_path,
+            output_path,
+        ],
+    )
+    assert result.exit_code == 2
+    assert "'--labels'" in result.output
