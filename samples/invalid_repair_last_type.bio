@@ -4,9 +4,9 @@ a	O
 sentence	O
 .	O
 
-University	O
-of	O
-Pennsylvania	O
+University	B-LOC
+of	I-LOC
+Pennsylvania	I-LOC
 is	O
 in	O
 Philadelphia	B-LOC

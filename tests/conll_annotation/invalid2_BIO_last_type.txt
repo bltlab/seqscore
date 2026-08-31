@@ -4,12 +4,13 @@ a	O
 sentence	O
 .	O
 
-University	B-ORG
-of	I-ORG
+University	B-LOC
+of	I-LOC
 Pennsylvania	I-LOC
 is	O
 in	O
-Philadelphia	B-LOC
+West	B-LOC
+Philadelphia	I-LOC
 ,	O
 Pennsylvania	B-LOC
 .	O

@@ -9,8 +9,7 @@ of	I-ORG
 Pennsylvania	E-ORG
 is	O
 in	O
-West	B-LOC
-Philadelphia	E-LOC
+Philadelphia	S-LOC
 ,	O
 Pennsylvania	S-LOC
 .	O

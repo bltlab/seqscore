@@ -125,8 +125,7 @@ of I-ORG
 Pennsylvania I-ORG
 is O
 in O
-West B-LOC
-Philadelphia I-LOC
+Philadelphia B-LOC
 , O
 Pennsylvania B-LOC
 . O
@@ -143,10 +142,9 @@ sentence O
 
 University B-ORG
 of I-ORG
-Pennsylvania I-ORG
+Pennsylvania B-ORG
 is O
 in O
-West B-LOC
 Philadelphia B-LOC
 , O
 Pennsylvania B-LOC
@@ -159,8 +157,8 @@ To score the predictions, run:
 ```
 | Type   |   Precision |   Recall |     F1 |   Reference |   Predicted |   Correct |
 |--------|-------------|----------|--------|-------------|-------------|-----------|
-| LOC    |       33.33 |    50.00 |  40.00 |           2 |           3 |         1 |
-| ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |
+| LOC    |      100.00 |   100.00 | 100.00 |           2 |           2 |         2 |
+| ORG    |        0.00 |     0.00 |   0.00 |           1 |           2 |         0 |
 | ALL    |       50.00 |    66.67 |  57.14 |           3 |           4 |         2 |
 ```
 
@@ -198,26 +196,25 @@ a O
 sentence O
 . O
 
-University I-ORG
+University B-ORG
 of I-ORG
-Pennsylvania I-ORG
+Pennsylvania I-LOC
 is O
 in O
-West B-LOC
-Philadelphia I-LOC
+Philadelphia B-LOC
 , O
 Pennsylvania B-LOC
 . O
 ```
 
-Note that the token `University` has the label `I-ORG`, but there is no preceding
-`B-ORG`. If we score it as before with
+Note that the token `Pennsylvania` has the label `I-LOC`, but it continues a mention
+that began with `B-ORG`. If we score it as before with
 `seqscore score --labels BIO --reference samples/reference.bio samples/invalid.bio`,
 scoring will fail:
 
 ```
 seqscore.encoding.EncodingError: Stopping due to validation errors in samples/invalid.bio:
-Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of samples/invalid.bio
+Invalid transition 'I-ORG' -> 'I-LOC' for token 'Pennsylvania' on line 9 of samples/invalid.bio
 ```
 
 To score output with invalid transitions, we need to specify a repair method which can
@@ -227,15 +224,15 @@ we refer to as "begin" repair in our paper):
 
 ```
 Validation errors in sequence beginning at line 7 of samples/invalid.bio:
-Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7 of samples/invalid.bio
+Invalid transition 'I-ORG' -> 'I-LOC' for token 'Pennsylvania' on line 9 of samples/invalid.bio
 Used method conlleval to repair:
-Old: ('I-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
-New: ('B-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')
-| Type   |   Precision |   Recall |     F1 |   Reference |   Predicted |   Correct |
-|--------|-------------|----------|--------|-------------|-------------|-----------|
-| LOC    |      100.00 |   100.00 | 100.00 |           2 |           2 |         2 |
-| ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |
-| ALL    |      100.00 |   100.00 | 100.00 |           3 |           3 |         3 |
+Old: ('B-ORG', 'I-ORG', 'I-LOC', 'O', 'O', 'B-LOC', 'O', 'B-LOC', 'O')
+New: ('B-ORG', 'I-ORG', 'B-LOC', 'O', 'O', 'B-LOC', 'O', 'B-LOC', 'O')
+| Type   |   Precision |   Recall |    F1 |   Reference |   Predicted |   Correct |
+|--------|-------------|----------|-------|-------------|-------------|-----------|
+| LOC    |       66.67 |   100.00 | 80.00 |           2 |           3 |         2 |
+| ORG    |        0.00 |     0.00 |  0.00 |           1 |           1 |         0 |
+| ALL    |       50.00 |    66.67 | 57.14 |           3 |           4 |         2 |
 ```
 
 You can use the `-q` flag to suppress the logging of all of the repairs applied. For
@@ -244,16 +241,26 @@ example, running the command
 will hide the repairs:
 
 ```
-| Type   |   Precision |   Recall |     F1 |   Reference |   Predicted |   Correct |
-|--------|-------------|----------|--------|-------------|-------------|-----------|
-| LOC    |      100.00 |   100.00 | 100.00 |           2 |           2 |         2 |
-| ORG    |      100.00 |   100.00 | 100.00 |           1 |           1 |         1 |
-| ALL    |      100.00 |   100.00 | 100.00 |           3 |           3 |         3 |
+| Type   |   Precision |   Recall |    F1 |   Reference |   Predicted |   Correct |
+|--------|-------------|----------|-------|-------------|-------------|-----------|
+| LOC    |       66.67 |   100.00 | 80.00 |           2 |           3 |         2 |
+| ORG    |        0.00 |     0.00 |  0.00 |           1 |           1 |         0 |
+| ALL    |       50.00 |    66.67 | 57.14 |           3 |           4 |         2 |
 ```
 
 You may want to also explore the `discard` repair, which can produce higher scores for
 output from models without a CRF/constrained decoding as they are more likely to produce
 invalid transitions.
+
+The `first-type` and `last-type` repair methods handle an entity type change in the
+middle of a mention by giving all the labels in the mention a single type. For example,
+given the labels `B-ORG I-LOC`, `first-type` uses the type of the label that began the
+mention, producing `B-ORG I-ORG`, while `last-type` uses the type of the last `I-` label
+in the mention, producing `B-LOC I-LOC`. Note that `last-type` can change all prior
+labels in the mention; for example, `B-LOC I-LOC I-ORG` would become
+`B-ORG I-ORG I-ORG`. When an invalid transition comes from `O`, as in `O I-ORG`, there
+is no mention to take a type from, so both methods begin a new mention, just as the
+`conlleval` repair does.
 
 SeqScore can also display all errors (false positives and false negatives) encountered
 in scoring using the `--error-counts` flag. For example, running the command
@@ -261,11 +268,11 @@ in scoring using the `--error-counts` flag. For example, running the command
 will produce the following output:
 
 ```
-|   Count | Error   | Type   | Tokens            |
-|---------|---------|--------|-------------------|
-|       1 | FP      | LOC    | Philadelphia      |
-|       1 | FP      | LOC    | West              |
-|       1 | FN      | LOC    | West Philadelphia |
+|   Count | Error   | Type   | Tokens                     |
+|---------|---------|--------|----------------------------|
+|       1 | FP      | ORG    | Pennsylvania               |
+|       1 | FP      | ORG    | University of              |
+|       1 | FN      | ORG    | University of Pennsylvania |
 ```
 
 The output shows that the system produced two false positives and missed one mention in
@@ -279,15 +286,15 @@ To check if a file has any invalid transitions, we can run
 `seqscore validate --labels BIO samples/reference.bio`:
 
 ```
-No errors found in 15 tokens, 2 sequences, and 1 document(s) in samples/reference.bio
+No errors found in 14 tokens, 2 sequences, and 1 document(s) in samples/reference.bio
 ```
 
 For the example of the [samples/invalid.bio](samples/invalid.bio), we can run
 `seqscore validate --labels BIO samples/invalid.bio`:
 
 ```
-Encountered 1 errors in 15 tokens, 2 sequences, and 1 document(s) in samples/invalid.bio
-Invalid transition 'O' -> 'I-ORG' for token 'University' on line 7
+Encountered 1 errors in 14 tokens, 2 sequences, and 1 document(s) in samples/invalid.bio
+Invalid transition 'I-ORG' -> 'I-LOC' for token 'Pennsylvania' on line 9
 ```
 
 ## Conversion
@@ -309,8 +316,7 @@ of I-ORG
 Pennsylvania E-ORG
 is O
 in O
-West B-LOC
-Philadelphia E-LOC
+Philadelphia S-LOC
 , O
 Pennsylvania S-LOC
 . O
@@ -361,11 +367,10 @@ sentence O
 
 University B-ORG
 of I-ORG
-Pennsylvania I-ORG
+Pennsylvania B-LOC
 is O
 in O
-West B-LOC
-Philadelphia I-LOC
+Philadelphia B-LOC
 , O
 Pennsylvania B-LOC
 . O
@@ -383,13 +388,58 @@ a O
 sentence O
 . O
 
-University O
-of O
+University B-ORG
+of I-ORG
 Pennsylvania O
 is O
 in O
-West B-LOC
-Philadelphia I-LOC
+Philadelphia B-LOC
+, O
+Pennsylvania B-LOC
+. O
+```
+
+If we want to apply the first-type repair method, we can run
+`seqscore repair --labels BIO --repair-method first-type samples/invalid.bio samples/invalid_repair_first_type.bio`
+and the output will be written to
+[samples/invalid_repair_first_type.bio](samples/invalid_repair_first_type.bio):
+
+```
+This O
+is O
+a O
+sentence O
+. O
+
+University B-ORG
+of I-ORG
+Pennsylvania I-ORG
+is O
+in O
+Philadelphia B-LOC
+, O
+Pennsylvania B-LOC
+. O
+```
+
+Similarly, if we want to apply the last-type repair method, we can run
+`seqscore repair --labels BIO --repair-method last-type samples/invalid.bio samples/invalid_repair_last_type.bio`
+and the output will be written to
+[samples/invalid_repair_last_type.bio](samples/invalid_repair_last_type.bio):
+
+```
+This O
+is O
+a O
+sentence O
+. O
+
+University B-LOC
+of I-LOC
+Pennsylvania I-LOC
+is O
+in O
+Philadelphia B-LOC
 , O
 Pennsylvania B-LOC
 . O
@@ -425,7 +475,7 @@ tab-delimited counts would be written to `counts.csv` as follows:
 
 ```
 1	ORG	University of Pennsylvania
-1	LOC	West Philadelphia
+1	LOC	Philadelphia
 1	LOC	Pennsylvania
 ```
 
@@ -446,9 +496,9 @@ writes tab-delimited output to `mentions.tsv` as follows:
 
 ```
 Mention	Type	Span	Sentence
-University of Pennsylvania	ORG	0-3	University of Pennsylvania is in West Philadelphia , Pennsylvania .
-West Philadelphia	LOC	5-7	University of Pennsylvania is in West Philadelphia , Pennsylvania .
-Pennsylvania	LOC	8-9	University of Pennsylvania is in West Philadelphia , Pennsylvania .
+University of Pennsylvania	ORG	0-3	University of Pennsylvania is in Philadelphia , Pennsylvania .
+Philadelphia	LOC	5-6	University of Pennsylvania is in Philadelphia , Pennsylvania .
+Pennsylvania	LOC	7-8	University of Pennsylvania is in Philadelphia , Pennsylvania .
 ```
 
 Each row contains one mention, so if there are multiple mentions in a sentence, there
@@ -479,7 +529,6 @@ of I-ORG
 Pennsylvania I-ORG
 is O
 in O
-West O
 Philadelphia O
 , O
 Pennsylvania O
@@ -508,8 +557,7 @@ of O
 Pennsylvania O
 is O
 in O
-West B-LOC
-Philadelphia I-LOC
+Philadelphia B-LOC
 , O
 Pennsylvania B-LOC
 . O
@@ -548,8 +596,7 @@ of I-NAME
 Pennsylvania I-NAME
 is O
 in O
-West B-NAME
-Philadelphia I-NAME
+Philadelphia B-NAME
 , O
 Pennsylvania B-NAME
 . O
@@ -570,7 +617,7 @@ This would result in `reference.txt` having the following contents:
 
 ```
 This is a sentence .
-University of Pennsylvania is in West Philadelphia , Pennsylvania .
+University of Pennsylvania is in Philadelphia , Pennsylvania .
 ```
 
 Each sentence is written on one line with space-delimited tokens.
@@ -585,11 +632,10 @@ each line contains a token, correct tag, and predicted tag:
 ```
 University B-ORG B-ORG
 of I-ORG I-ORG
-Pennsylvania I-ORG I-ORG
+Pennsylvania I-ORG B-ORG
 is O O
 in O O
-West B-LOC B-LOC
-Philadelphia I-LOC B-LOC
+Philadelphia B-LOC B-LOC
 , O O
 Pennsylvania B-LOC B-LOC
 . O O

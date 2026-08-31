@@ -17,32 +17,94 @@ BIO_REPAIRS = [
     RepairTest(
         ["I-PER"],
         1,
-        {"conlleval": ["B-PER"], "discard": ["O"]},
+        {
+            "conlleval": ["B-PER"],
+            "discard": ["O"],
+            "first-type": ["B-PER"],
+            "last-type": ["B-PER"],
+        },
     ),
     RepairTest(
         ["I-PER", "I-PER"],
         1,
-        {"conlleval": ["B-PER", "I-PER"], "discard": ["O", "O"]},
+        {
+            "conlleval": ["B-PER", "I-PER"],
+            "discard": ["O", "O"],
+            "first-type": ["B-PER", "I-PER"],
+            "last-type": ["B-PER", "I-PER"],
+        },
     ),
     RepairTest(
         ["O", "I-PER", "I-PER"],
         1,
-        {"conlleval": ["O", "B-PER", "I-PER"], "discard": ["O", "O", "O"]},
+        {
+            "conlleval": ["O", "B-PER", "I-PER"],
+            "discard": ["O", "O", "O"],
+            "first-type": ["O", "B-PER", "I-PER"],
+            "last-type": ["O", "B-PER", "I-PER"],
+        },
     ),
     RepairTest(
         ["B-ORG", "I-PER", "I-PER"],
         1,
-        {"conlleval": ["B-ORG", "B-PER", "I-PER"], "discard": ["B-ORG", "O", "O"]},
+        {
+            "conlleval": ["B-ORG", "B-PER", "I-PER"],
+            "discard": ["B-ORG", "O", "O"],
+            "first-type": ["B-ORG", "I-ORG", "I-ORG"],
+            "last-type": ["B-PER", "I-PER", "I-PER"],
+        },
     ),
     RepairTest(
         ["I-ORG", "I-PER", "I-PER"],
         2,
-        {"conlleval": ["B-ORG", "B-PER", "I-PER"], "discard": ["O", "O", "O"]},
+        {
+            "conlleval": ["B-ORG", "B-PER", "I-PER"],
+            "discard": ["O", "O", "O"],
+            "first-type": ["B-ORG", "I-ORG", "I-ORG"],
+            "last-type": ["B-PER", "I-PER", "I-PER"],
+        },
     ),
     RepairTest(
         ["O", "I-ORG", "I-PER", "I-ORG"],
         3,
-        {"conlleval": ["O", "B-ORG", "B-PER", "B-ORG"], "discard": ["O", "O", "O", "O"]},
+        {
+            "conlleval": ["O", "B-ORG", "B-PER", "B-ORG"],
+            "discard": ["O", "O", "O", "O"],
+            "first-type": ["O", "B-ORG", "I-ORG", "I-ORG"],
+            "last-type": ["O", "B-ORG", "I-ORG", "I-ORG"],
+        },
+    ),
+    RepairTest(
+        ["B-ORG", "I-LOC"],
+        1,
+        {
+            "conlleval": ["B-ORG", "B-LOC"],
+            "discard": ["B-ORG", "O"],
+            "first-type": ["B-ORG", "I-ORG"],
+            "last-type": ["B-LOC", "I-LOC"],
+        },
+    ),
+    RepairTest(
+        # The type of a mention of more than one token is changed for all of its tokens
+        ["B-ORG", "I-ORG", "I-LOC"],
+        1,
+        {
+            "conlleval": ["B-ORG", "I-ORG", "B-LOC"],
+            "discard": ["B-ORG", "I-ORG", "O"],
+            "first-type": ["B-ORG", "I-ORG", "I-ORG"],
+            "last-type": ["B-LOC", "I-LOC", "I-LOC"],
+        },
+    ),
+    RepairTest(
+        # Changing the type of a mention does not merge it with the mention before it
+        ["B-LOC", "I-LOC", "B-ORG", "I-LOC"],
+        1,
+        {
+            "conlleval": ["B-LOC", "I-LOC", "B-ORG", "B-LOC"],
+            "discard": ["B-LOC", "I-LOC", "B-ORG", "O"],
+            "first-type": ["B-LOC", "I-LOC", "B-ORG", "I-ORG"],
+            "last-type": ["B-LOC", "I-LOC", "B-LOC", "I-LOC"],
+        },
     ),
     RepairTest(
         ["O", "B-ORG", "B-PER", "I-PER"],
@@ -50,6 +112,8 @@ BIO_REPAIRS = [
         {
             "conlleval": ["O", "B-ORG", "B-PER", "I-PER"],
             "discard": ["O", "B-ORG", "B-PER", "I-PER"],
+            "first-type": ["O", "B-ORG", "B-PER", "I-PER"],
+            "last-type": ["O", "B-ORG", "B-PER", "I-PER"],
         },
     ),
 ]

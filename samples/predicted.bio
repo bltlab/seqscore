@@ -6,10 +6,9 @@ sentence	O
 
 University	B-ORG
 of	I-ORG
-Pennsylvania	I-ORG
+Pennsylvania	B-ORG
 is	O
 in	O
-West	B-LOC
 Philadelphia	B-LOC
 ,	O
 Pennsylvania	B-LOC

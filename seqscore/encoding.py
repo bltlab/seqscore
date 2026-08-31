@@ -12,8 +12,16 @@ from seqscore.model import AnnotatedSequence, LabeledSequence, Mention, Span
 
 REPAIR_CONLL = "conlleval"
 REPAIR_DISCARD = "discard"
+REPAIR_FIRST_TYPE = "first-type"
+REPAIR_LAST_TYPE = "last-type"
 REPAIR_NONE = "none"
-SUPPORTED_REPAIR_METHODS = (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_NONE)
+SUPPORTED_REPAIR_METHODS = (
+    REPAIR_CONLL,
+    REPAIR_DISCARD,
+    REPAIR_FIRST_TYPE,
+    REPAIR_LAST_TYPE,
+    REPAIR_NONE,
+)
 
 _DEFAULT_OUTSIDE = "O"
 
@@ -491,6 +499,9 @@ class _BIO(Encoding):
 
         # Range loop since we will modify the labels during iteration
         repaired_labels = list(labels)
+        # Start index of the latest mention, only meaningful when the previous label
+        # is part of a mention
+        mention_start = 0
         for idx in range(len(repaired_labels)):
             label = repaired_labels[idx]
 
@@ -507,6 +518,20 @@ class _BIO(Encoding):
                     # Treat this as O
                     state = outside
                     entity_type = None
+                elif method in (REPAIR_FIRST_TYPE, REPAIR_LAST_TYPE):
+                    # Both methods give the whole mention a single type, but there is
+                    # only a mention to continue if the previous label is not outside
+                    if prev_entity_type is None:
+                        # Treat this as the beginning of a new chunk
+                        state = begin
+                    elif method == REPAIR_FIRST_TYPE:
+                        # Continue the previous mention using its type
+                        entity_type = prev_entity_type
+                    else:
+                        # Change the mention being continued to the type of this label
+                        self._retype_mention(
+                            repaired_labels, mention_start, idx, entity_type
+                        )
                 else:  # pragma: no cover
                     # We can only hit this if we add something to SUPPORTED_REPAIR_METHODS but
                     # fail to create a case for it
@@ -514,6 +539,9 @@ class _BIO(Encoding):
 
                 label = self.join_label(state, entity_type)
                 repaired_labels[idx] = label
+
+            if state == begin:
+                mention_start = idx
 
             prev_label, prev_state, prev_entity_type = (
                 label,
@@ -524,8 +552,16 @@ class _BIO(Encoding):
         # Since BIO cannot have an illegal end-of sequence transition, no need to check
         return repaired_labels
 
+    def _retype_mention(
+        self, labels: list[str], start: int, end: int, entity_type: str
+    ) -> None:
+        """Give the labels in [start, end) the specified entity type."""
+        for idx in range(start, end):
+            state, _ = self.split_label(labels[idx])
+            labels[idx] = self.join_label(state, entity_type)
+
     def supported_repair_methods(self) -> tuple[str, ...]:
-        return (REPAIR_CONLL, REPAIR_DISCARD)
+        return (REPAIR_CONLL, REPAIR_DISCARD, REPAIR_FIRST_TYPE, REPAIR_LAST_TYPE)
 
 
 class _BIOES(Encoding):

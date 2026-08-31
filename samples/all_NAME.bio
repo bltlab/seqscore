@@ -9,8 +9,7 @@ of	I-NAME
 Pennsylvania	I-NAME
 is	O
 in	O
-West	B-NAME
-Philadelphia	I-NAME
+Philadelphia	B-NAME
 ,	O
 Pennsylvania	B-NAME
 .	O

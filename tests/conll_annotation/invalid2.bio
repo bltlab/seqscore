@@ -6,11 +6,11 @@ sentence	O
 
 University	B-ORG
 of	I-ORG
-Pennsylvania	B-LOC
+Pennsylvania	I-LOC
 is	O
 in	O
-Philadelphia	B-LOC
+West	B-LOC
+Philadelphia	I-LOC
 ,	O
 Pennsylvania	B-LOC
 .	O
-

@@ -110,6 +110,84 @@ def test_repair_BIO_discard() -> None:
     )
 
 
+def test_repair_BIO_first_type() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        repair,
+        [
+            "--labels",
+            "BIO",
+            "--repair-method",
+            "first-type",
+            os.path.join("tests", "conll_annotation", "invalid2.bio"),
+            os.path.join(TMP_DIR.name, "invalid_BIO_repaired_first_type.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert (
+        normalize_str_with_path(
+            "Validation errors in sequence beginning at line 7 of tests/conll_annotation/invalid2.bio:"
+        )
+        in result.output
+    )
+    assert (
+        "Invalid transition 'I-ORG' -> 'I-LOC' for token 'Pennsylvania' on line 9"
+        in result.output
+    )
+    assert "Used method first-type to repair:" in result.output
+    assert (
+        "Old: ('B-ORG', 'I-ORG', 'I-LOC', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')"
+        in result.output
+    )
+    assert (
+        "New: ('B-ORG', 'I-ORG', 'I-ORG', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')"
+        in result.output
+    )
+    assert file_fields_match(
+        os.path.join(TMP_DIR.name, "invalid_BIO_repaired_first_type.txt"),
+        os.path.join("tests", "conll_annotation", "invalid2_BIO_first_type.txt"),
+    )
+
+
+def test_repair_BIO_last_type() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        repair,
+        [
+            "--labels",
+            "BIO",
+            "--repair-method",
+            "last-type",
+            os.path.join("tests", "conll_annotation", "invalid2.bio"),
+            os.path.join(TMP_DIR.name, "invalid_BIO_repaired_last_type.txt"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert (
+        normalize_str_with_path(
+            "Validation errors in sequence beginning at line 7 of tests/conll_annotation/invalid2.bio:"
+        )
+        in result.output
+    )
+    assert (
+        "Invalid transition 'I-ORG' -> 'I-LOC' for token 'Pennsylvania' on line 9"
+        in result.output
+    )
+    assert "Used method last-type to repair:" in result.output
+    assert (
+        "Old: ('B-ORG', 'I-ORG', 'I-LOC', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')"
+        in result.output
+    )
+    assert (
+        "New: ('B-LOC', 'I-LOC', 'I-LOC', 'O', 'O', 'B-LOC', 'I-LOC', 'O', 'B-LOC', 'O')"
+        in result.output
+    )
+    assert file_fields_match(
+        os.path.join(TMP_DIR.name, "invalid_BIO_repaired_last_type.txt"),
+        os.path.join("tests", "conll_annotation", "invalid2_BIO_last_type.txt"),
+    )
+
+
 def test_invalid_label() -> None:
     runner = CliRunner()
     result = runner.invoke(
