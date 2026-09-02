@@ -464,6 +464,7 @@ def write_docs_using_encoding(
     output_path: PathType,
     *,
     discard_extra_fields: bool = False,
+    discard_comments: bool = False,
     always_write_docstart: bool = False,
 ) -> None:
     mention_encoding = get_encoding(mention_encoding_name)
@@ -479,6 +480,7 @@ def write_docs_using_encoding(
                 line_spec,
                 output_docstart=output_docstart,
                 discard_extra_fields=discard_extra_fields,
+                discard_comments=discard_comments,
             )
 
 
@@ -491,6 +493,7 @@ def write_docs_raw(
     *,
     outside_label: str = "O",
     discard_extra_fields: bool = False,
+    discard_comments: bool = False,
     always_write_docstart: bool = False,
 ) -> None:
     output_docstart = len(docs) > 1 or always_write_docstart
@@ -505,6 +508,7 @@ def write_docs_raw(
                 output_docstart=output_docstart,
                 outside_label=outside_label,
                 discard_extra_fields=discard_extra_fields,
+                discard_comments=discard_comments,
             )
 
 
@@ -517,6 +521,7 @@ def write_doc_raw(
     output_docstart: bool,
     outside_label: str = "O",
     discard_extra_fields: bool = False,
+    discard_comments: bool = False,
 ) -> None:
     if output_docstart:
         # Get the fields of the first token of the first sentence
@@ -538,7 +543,7 @@ def write_doc_raw(
         # Write any comment lines before the sequence they belong to. The comment
         # already includes the leading "#" (and any embedded newlines for multi-line
         # comments), so it is written verbatim.
-        if sequence.comment is not None:
+        if sequence.comment is not None and not discard_comments:
             print(sequence.comment, file=file)
 
         for (token, orig_fields), label in zip(
@@ -566,6 +571,7 @@ def write_doc_using_encoding(
     *,
     output_docstart: bool,
     discard_extra_fields: bool = False,
+    discard_comments: bool = False,
 ) -> None:
     # Re-encode mentions -> labels for each sequence, then defer to write_doc_raw
     # for the actual DOCSTART/token/blank-line writing so the two writers share
@@ -588,6 +594,7 @@ def write_doc_using_encoding(
         output_docstart=output_docstart,
         outside_label=encoding.dialect.outside,
         discard_extra_fields=discard_extra_fields,
+        discard_comments=discard_comments,
     )
 
 

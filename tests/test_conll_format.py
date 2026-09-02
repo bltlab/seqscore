@@ -441,3 +441,39 @@ def test_docstart_with_no_sequences_before_next_docstart_raises() -> None:
     path = Path("tests/test_files/docstart_empty_doc.txt")
     with pytest.raises(CoNLLFormatError, match="with no sequences before the"):
         ingester.ingest(path.open(encoding="utf8"), str(path), REPAIR_NONE)
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "minimal_comments.bio",
+        "minimal_comments_1.bio",
+        "minimal_comments_2.bio",
+        "minimal_comments_3.bio",
+        "minimal_comments_4.bio",
+    ],
+)
+def test_discard_comments(filename: str, tmp_path: Path) -> None:
+    # Writing with discard_comments drops the comment lines and leaves the tokens
+    # and sequence breaks untouched
+    input_path = Path("tests") / "test_files" / filename
+    docs = ingest_conll_file(
+        input_path,
+        "BIO",
+        "UTF-8",
+        LINE_SPEC,
+        ignore_document_boundaries=False,
+        allow_comment_lines=True,
+    )
+    output_path = tmp_path / filename
+    write_docs_using_encoding(
+        docs, "BIO", "UTF-8", "\t", LINE_SPEC, output_path, discard_comments=True
+    )
+
+    output_lines = output_path.read_text(encoding="utf8").splitlines()
+    input_lines = input_path.read_text(encoding="utf8").splitlines()
+    assert not any(line.startswith("#") and "\t" not in line for line in output_lines)
+    # Every non-comment line survives in order, tokens included
+    assert output_lines == [
+        line for line in input_lines if not (line.startswith("#") and "\t" not in line)
+    ]

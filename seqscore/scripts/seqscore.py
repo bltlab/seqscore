@@ -174,6 +174,15 @@ def _discard_extra_fields_option() -> Callable:
     )
 
 
+def _discard_comments_option() -> Callable:
+    return click.option(
+        "--discard-comments",
+        is_flag=True,
+        help="discard comment lines read with --allow-comment-lines instead of "
+        "writing them to output files",
+    )
+
+
 def _output_file_option() -> Callable:
     return click.option(
         "--output-file",
@@ -242,6 +251,7 @@ def validate(
 @_repair_required_option()
 @_output_delim_option()
 @_discard_extra_fields_option()
+@_discard_comments_option()
 @_quiet_option()
 def repair(
     file: str,
@@ -256,6 +266,7 @@ def repair(
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
     discard_extra_fields: bool,
+    discard_comments: bool,
     quiet: bool,
 ) -> None:
     output_delim = _normalize_delim(output_delim)
@@ -283,6 +294,7 @@ def repair(
         line_spec,
         output_file,
         discard_extra_fields=discard_extra_fields,
+        discard_comments=discard_comments,
     )
 
 
@@ -293,6 +305,7 @@ def repair(
 @click.option("--output-labels", required=True, type=click.Choice(SUPPORTED_ENCODINGS))
 @_output_delim_option()
 @_discard_extra_fields_option()
+@_discard_comments_option()
 def convert(
     file: str,
     output_file: str,
@@ -306,6 +319,7 @@ def convert(
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
     discard_extra_fields: bool,
+    discard_comments: bool,
 ) -> None:
     output_delim = _normalize_delim(output_delim)
     line_spec = LineSpec(token_index, label_index)
@@ -327,6 +341,7 @@ def convert(
         line_spec,
         output_file,
         discard_extra_fields=discard_extra_fields,
+        discard_comments=discard_comments,
     )
 
 
@@ -351,6 +366,7 @@ def convert(
 )
 @_output_delim_option()
 @_discard_extra_fields_option()
+@_discard_comments_option()
 def process(
     file: str,
     output_file: str,
@@ -366,6 +382,7 @@ def process(
     ignore_document_boundaries: bool,
     allow_comment_lines: bool,
     discard_extra_fields: bool,
+    discard_comments: bool,
 ) -> None:
     output_delim = _normalize_delim(output_delim)
     line_spec = LineSpec(token_index, label_index)
@@ -403,6 +420,7 @@ def process(
         line_spec,
         output_file,
         discard_extra_fields=discard_extra_fields,
+        discard_comments=discard_comments,
     )
 
 
